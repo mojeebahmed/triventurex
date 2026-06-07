@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Triventurex — Player</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:       #2E7D32;
+      --green-light: #E8F5E9;
+      --green-dark:  #1B5E20;
+      --danger:      #C62828;
+      --border:      #E0E0E0;
+      --card:        #FFFFFF;
+      --text:        #1A1A1A;
+      --text-muted:  #757575;
+      --bg:          #F5F5F5;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Views ─────────────────────────────────────────────────────────────── */
+    .view { display: none; flex-direction: column; flex: 1; padding: 20px 16px; }
+    .view.active { display: flex; }
+
+    /* ── Shared card ────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+    h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+    p  { font-size: .9rem; color: var(--text-muted); }
+
+    /* ── Inputs ─────────────────────────────────────────────────────────────── */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .field input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      background: #fff;
+      transition: border-color .15s;
+    }
+    .field input[type="text"]:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 13px 22px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-primary  { background: var(--green); color: #fff; }
+    .btn-full     { width: 100%; }
+
+    /* ── Badge area ─────────────────────────────────────────────────────────── */
+    #badge-preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .player-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: #fff;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(0,0,0,.2);
+      border: 3px solid transparent;
+      transition: transform .1s;
+    }
+    .player-badge:active { transform: scale(.95); }
+    .badge-emoji   { font-size: 1.8rem; line-height: 1; }
+    .badge-initials{ font-size: .7rem; font-weight: 900; opacity: .85; }
+    .badge-hint    { font-size: .78rem; color: var(--text-muted); }
+
+    /* ── Badge picker overlay ───────────────────────────────────────────────── */
+    #badge-picker-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 500;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #badge-picker-overlay.open { display: flex; }
+    #badge-picker-panel {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .picker-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .picker-section { margin-bottom: 16px; }
+    .picker-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .picker-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .picker-token {
+      font-size: 1.6rem;
+      width: 48px; height: 48px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid transparent;
+      background: var(--bg);
+      cursor: pointer;
+      transition: border-color .1s, background .1s;
+    }
+    .picker-token.selected { border-color: var(--green); background: var(--green-light); }
+    .picker-color {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform .1s, border-color .1s;
+    }
+    .picker-color.selected { border-color: var(--text); transform: scale(1.15); }
+    .picker-done {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    /* ── Lobby view ─────────────────────────────────────────────────────────── */
+    .lobby-header {
+      text-align: center;
+      padding: 24px 0 16px;
+    }
+    .lobby-game-id-box {
+      background: var(--green);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .lobby-game-id-label { font-size: .75rem; font-weight: 700; opacity: .8; letter-spacing: .5px; }
+    .lobby-game-id-value { font-size: 2rem; font-weight: 900; letter-spacing: 2px; }
+    .lobby-player-list   { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .lobby-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .lobby-player-name { font-weight: 600; }
+    .lobby-waiting {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: .85rem;
+      padding: 12px 0;
+    }
+    /* pulsing dots */
+    .dots::after {
+      content: '...';
+      animation: dots 1.4s infinite;
+    }
+    @keyframes dots {
+      0%  { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+    }
+
+    /* ── Mini badge (small token in lists) ──────────────────────────────────── */
+    .mini-badge {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .mini-badge .badge-emoji   { font-size: 1.1rem; line-height: 1; }
+    .mini-badge .badge-initials{ font-size: .55rem; font-weight: 900; opacity: .85; }
+
+    /* ── Game view ──────────────────────────────────────────────────────────── */
+    #game-view {
+      gap: 12px;
+    }
+
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+    }
+    .game-id-chip {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+    }
+
+    .own-badge-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .own-badge {
+      width: 72px; height: 72px;
+      border-radius: 16px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    }
+    .own-badge .badge-emoji   { font-size: 2rem; line-height: 1; }
+    .own-badge .badge-initials{ font-size: .75rem; font-weight: 900; opacity: .85; }
+    .own-name  { font-size: 1.2rem; font-weight: 800; }
+    .own-score-label { font-size: .75rem; color: var(--text-muted); }
+    .own-score-value { font-size: 2.6rem; font-weight: 900; color: var(--green); line-height: 1; }
+
+    /* ── Action box ─────────────────────────────────────────────────────────── */
+    .action-box {
+      border-radius: 20px;
+      padding: 20px;
+      background: var(--card);
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      border: 3px solid var(--border);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .25s, box-shadow .25s, transform .1s;
+      position: relative;
+    }
+    .action-box.dice-mode {
+      border-color: var(--green);
+      box-shadow: 0 0 0 5px rgba(46,125,50,.15), 0 2px 16px rgba(0,0,0,.10);
+      cursor: pointer;
+      animation: ab-glow 1.6s ease-in-out infinite;
+    }
+    .action-box.dice-mode:active { transform: scale(.98); }
+    @keyframes ab-glow {
+      0%,100% { box-shadow: 0 0 0 5px rgba(46,125,50,.15); }
+      50%      { box-shadow: 0 0 0 10px rgba(46,125,50,.06); }
+    }
+    .ab-mode {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+    }
+    .ab-mode.active { display: flex; }
+
+    /* CSS die faces (shared with main board) */
+    .die-face {
+      --ds: 52px;
+      width: var(--ds); height: var(--ds);
+      background: #fff;
+      border-radius: calc(var(--ds) * .16);
+      box-shadow: 0 2px 5px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.14),
+                  inset 0 1px 0 rgba(255,255,255,.9), inset 0 -2px 0 rgba(0,0,0,.06);
+      position: relative;
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+    .die-face.die-lg { --ds: 80px; }
+    .die-face.die-xl { --ds: 110px; }
+    .die-dot {
+      position: absolute;
+      width: calc(var(--ds) * .19);
+      height: calc(var(--ds) * .19);
+      background: #1a1a1a;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Dice mode */
+    .ab-dice-wrap  { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .ab-dice-label { font-size: 1.05rem; font-weight: 800; color: var(--green); }
+    .ab-dice-hint  { font-size: .78rem; color: var(--text-muted); }
+    /* Rolled state — dice result shown before space card */
+    .ab-rolled-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .ab-rolled-num  { font-size: .85rem; font-weight: 700; color: var(--text-muted); }
+
+    /* Reconnecting overlay */
+    #reconnecting-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      z-index: 600;
+      align-items: center; justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    #reconnecting-overlay.visible { display: flex; }
+    .reconnecting-spinner {
+      font-size: 2.4rem;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Host left overlay */
+    #host-left-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.72);
+      z-index: 600;
+      align-items: center; justify-content: center;
+    }
+    #host-left-overlay.visible { display: flex; }
+    .host-left-card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 28px 24px;
+      max-width: 320px;
+      text-align: center;
+    }
+    .host-left-card h2 { margin-bottom: 8px; }
+    .host-left-card p  { font-size: .9rem; color: var(--text-muted); margin-bottom: 20px; }
+
+    /* Card mode */
+    #ab-card { align-items: flex-start; text-align: left; }
+    .ab-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .ab-card-icon { font-size: 1.8rem; line-height: 1; }
+    .ab-card-type { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+    .ab-card-title { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+    .ab-card-body  { font-size: .85rem; color: var(--text-muted); line-height: 1.5; }
+    .ab-effect { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700; }
+    .ab-effect.good { background: #E8F5E9; color: #1B5E20; }
+    .ab-effect.bad  { background: #FFEBEE; color: #C62828; }
+
+    /* Activity mode */
+    #ab-activity { align-items: flex-start; justify-content: flex-start; }
+    .ab-activity-head { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); margin-bottom: 8px; align-self: flex-start; }
+    .ab-activity-list { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+    .ab-entry { display: flex; align-items: flex-start; gap: 8px; font-size: .84rem; animation: slide-in .2s ease; }
+    .ab-entry-icon { font-size: 1rem; flex-shrink: 0; line-height: 1.4; }
+    .ab-entry-text { flex: 1; color: var(--text-muted); line-height: 1.4; }
+    .ab-entry-text strong { color: var(--text); font-weight: 700; }
+    .ab-empty { font-size: .84rem; color: var(--text-muted); text-align: center; margin: auto; }
+    @keyframes slide-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Other players scoreboard */
+    .others-title {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .other-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .other-player-row:last-child { border-bottom: none; }
+    .other-name  { flex: 1; font-size: .9rem; font-weight: 600; }
+    .other-score { font-size: .9rem; font-weight: 700; color: var(--green); }
+    .other-pos   { font-size: .75rem; color: var(--text-muted); }
+    .other-active-indicator {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .other-active-indicator.inactive { background: var(--border); }
+
+    /* Connection status */
+    #conn-status {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #C62828;
+      color: #fff;
+      text-align: center;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 6px;
+      z-index: 999;
+      display: none;
+    }
+    #conn-status.visible { display: block; }
+
+    /* Error toast */
+    #error-toast {
+      position: fixed;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #C62828;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: .85rem;
+      font-weight: 600;
+      max-width: 300px;
+      text-align: center;
+      display: none;
+      z-index: 999;
+    }
+    #error-toast.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Connection lost banner -->
+  <div id="conn-status">Disconnected — reconnecting...</div>
+
+  <!-- Error toast -->
+  <div id="error-toast"></div>
+
+  <!-- ═══════════════════════════════
+       JOIN VIEW
+  ═══════════════════════════════ -->
+  <div id="join-view" class="view active">
+    <div style="text-align:center;padding:24px 0 16px">
+      <h1>🎯 Triventurex</h1>
+      <p>Join a game on the same Wi-Fi</p>
+    </div>
+
+    <div class="card">
+      <div id="badge-preview-wrap">
+        <div class="player-badge" id="join-badge" onclick="openBadgePicker()" title="Tap to customize">
+          <span class="badge-emoji" id="join-badge-emoji">🌟</span>
+          <span class="badge-initials" id="join-badge-initials"></span>
+        </div>
+        <span class="badge-hint">Tap badge to customize</span>
+      </div>
+
+      <div class="field">
+        <label for="input-name">Your Name</label>
+        <input type="text" id="input-name" placeholder="Enter your name" maxlength="20"
+               oninput="updateBadgeInitials()">
+      </div>
+
+      <div class="field">
+        <label for="input-game-id">Game ID</label>
+        <input type="text" id="input-game-id" placeholder="e.g. 4823"
+               autocomplete="off" autocorrect="off" autocapitalize="off"
+               inputmode="numeric" maxlength="4" spellcheck="false">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="joinGame()">Join Game →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       LOBBY VIEW
+  ═══════════════════════════════ -->
+  <div id="lobby-view" class="view">
+    <div class="lobby-header">
+      <h1>Lobby</h1>
+      <p>Waiting for the host to start the game</p>
+    </div>
+
+    <div class="lobby-game-id-box">
+      <div class="lobby-game-id-label">GAME ID</div>
+      <div class="lobby-game-id-value" id="lobby-game-id-display">—</div>
+    </div>
+
+    <div id="lobby-player-list" class="lobby-player-list"></div>
+
+    <div class="lobby-waiting">
+      Waiting for host to start<span class="dots"></span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       GAME VIEW
+  ═══════════════════════════════ -->
+  <div id="game-view" class="view">
+
+    <div class="game-header">
+      <div class="own-badge-wrap">
+        <div class="own-badge" id="game-own-badge">
+          <span class="badge-emoji" id="game-badge-emoji">🌟</span>
+          <span class="badge-initials" id="game-badge-initials"></span>
+        </div>
+        <div>
+          <div class="own-name" id="game-own-name">Player</div>
+          <div class="own-score-label">Score</div>
+          <div class="own-score-value" id="game-own-score">0</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div class="game-id-chip" id="game-id-chip"></div>
+        <button class="btn" style="font-size:.72rem;padding:4px 10px;background:#f0f0f0;color:#666"
+                onclick="leaveGame()">Leave</button>
+      </div>
+    </div>
+
+    <!-- Action box — replaces old dice-roller + space-card-wrap -->
+    <div id="action-box" class="action-box activity-mode" onclick="onActionBoxClick()">
+      <!-- Dice mode (my turn, ready to roll) -->
+      <div id="ab-dice" class="ab-mode">
+        <div class="ab-dice-wrap">
+          <div id="ab-die-render"></div>
+          <div class="ab-dice-label">YOUR TURN</div>
+          <div class="ab-dice-hint">Tap to roll</div>
+        </div>
+      </div>
+      <!-- Rolled mode (my turn, waiting for badge to land) -->
+      <div id="ab-rolled" class="ab-mode">
+        <div class="ab-rolled-wrap">
+          <div id="ab-rolled-die"></div>
+          <div class="ab-rolled-num" id="ab-rolled-num">Rolled —</div>
+          <div class="ab-dice-hint">Waiting for your badge to land...</div>
+        </div>
+      </div>
+      <!-- Card mode (space landed on) -->
+      <div id="ab-card" class="ab-mode">
+        <div class="ab-card-top">
+          <span class="ab-card-icon" id="ab-card-icon">❓</span>
+          <span class="ab-card-type" id="ab-card-type"></span>
+        </div>
+        <div class="ab-card-title" id="ab-card-title"></div>
+        <div class="ab-card-body" id="ab-card-body"></div>
+      </div>
+      <!-- Activity mode -->
+      <div id="ab-activity" class="ab-mode">
+        <div class="ab-activity-head">Game activity</div>
+        <div id="ab-activity-list" class="ab-activity-list">
+          <div class="ab-empty">Waiting for activity...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Other players -->
+    <div class="card">
+      <div class="others-title">All Players</div>
+      <div id="other-players-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════
+       BADGE PICKER OVERLAY
+  ═══════════════════════════════ -->
+  <div id="badge-picker-overlay" onclick="closeBadgePickerOutside(event)">
+    <div id="badge-picker-panel">
+      <div class="picker-handle"></div>
+      <div class="picker-section">
+        <span class="picker-label">Icon</span>
+        <div class="picker-grid" id="picker-tokens"></div>
+      </div>
+      <div class="picker-section">
+        <span class="picker-label">Colour</span>
+        <div class="picker-grid" id="picker-colors"></div>
+      </div>
+      <button class="btn btn-primary picker-done" onclick="closeBadgePicker()">Done</button>
+    </div>
+  </div>
+
+  <!-- Reconnecting overlay (shown while auto-rejoining after refresh) -->
+  <div id="reconnecting-overlay">
+    <div class="reconnecting-spinner">🔄</div>
+    <div>Reconnecting to game...</div>
+    <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;margin-top:8px"
+            onclick="cancelRejoin()">Cancel</button>
+  </div>
+
+  <!-- Host left overlay -->
+  <div id="host-left-overlay">
+    <div class="host-left-card">
+      <h2>🚪 Host Left</h2>
+      <p>The host has ended the session.</p>
+      <button class="btn btn-primary btn-full" onclick="leaveAndReset()">Back to Join</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script src="js/player.js"></script>
+</body>
+</html>

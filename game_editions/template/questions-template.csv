@@ -1,0 +1,3 @@
+question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
+Example easy open question — what is the answer?,open,The correct answer goes here.,,,,,easy,general,Example Subcategory,Example Topic,Optional note for the Game Master.
+Example hard multi-choice question — which option is correct?,multi,2,Wrong answer A,Correct answer B,Wrong answer C,,hard,general,Example Subcategory,Example Topic,answer=2 means opt_b is correct.

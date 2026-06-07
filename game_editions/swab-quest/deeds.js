@@ -1,0 +1,958 @@
+/**
+ * themes/swab-quest/deeds.js
+ * AUTO-GENERATED from deeds.csv — do not edit directly.
+ * To update deed cards, edit deeds.csv and re-run the generation step in Claude.
+ *
+ * 52 deed cards  (27 good / 25 bad)
+ */
+
+window.DEEDS_DATA = [
+  {
+    "id": 1,
+    "type": "good",
+    "text": "MashaAllah! You completed reciting the Holy Quran.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 3.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 3.0
+      },
+      {
+        "effect": "protection",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 3.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 2,
+    "type": "good",
+    "text": "You helped someone in need.",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      },
+      {
+        "effect": "score_add",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 3,
+    "type": "good",
+    "text": "You gave Sadaqah (charity) today.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 2.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 1.0
+      },
+      {
+        "effect": "protection",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 2.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 4,
+    "type": "good",
+    "text": "You paid your Chanda on time.",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      },
+      {
+        "effect": "score_add",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 5,
+    "type": "good",
+    "text": "You attended Friday prayers (Jumu'ah).",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 3.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 3.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 6,
+    "type": "good",
+    "text": "You visited a sick person and made du'a for them.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 1.0
+      },
+      {
+        "effect": "extra_turn",
+        "value": 0.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 1.0,
+    "mood": "social"
+  },
+  {
+    "id": 7,
+    "type": "good",
+    "text": "You stood up for justice and told the truth.",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 2.0,
+    "mood": "challenge"
+  },
+  {
+    "id": 8,
+    "type": "good",
+    "text": "You recited Durood Ibrahim after Salah.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 1.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 1.0
+      },
+      {
+        "effect": "protection",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 1.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 9,
+    "type": "good",
+    "text": "You volunteered at a community event.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 2.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 10,
+    "type": "good",
+    "text": "You made Wudu carefully before each prayer all day.",
+    "effects": [
+      {
+        "effect": "protection",
+        "value": 1.0
+      },
+      {
+        "effect": "score_add",
+        "value": 1.0
+      }
+    ],
+    "effect": "protection",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 11,
+    "type": "good",
+    "text": "You helped clean the mosque after an event.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 2.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 12,
+    "type": "good",
+    "text": "You memorised a new Surah.",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 2.0,
+    "mood": "challenge"
+  },
+  {
+    "id": 13,
+    "type": "good",
+    "text": "You shared your food with someone.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 1.0
+      },
+      {
+        "effect": "all_players_gain",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 1.0,
+    "mood": "social"
+  },
+  {
+    "id": 14,
+    "type": "good",
+    "text": "You helped your parents without being asked.",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      },
+      {
+        "effect": "score_add",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 15,
+    "type": "good",
+    "text": "You reminded a friend kindly about prayer time.",
+    "effects": [
+      {
+        "effect": "score_add",
+        "value": 2.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_add",
+    "value": 2.0,
+    "mood": "social"
+  },
+  {
+    "id": 16,
+    "type": "good",
+    "text": "You visited Masjid Nabawi and increased in gratitude.",
+    "effects": [
+      {
+        "effect": "move_to_next_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 4.0
+      }
+    ],
+    "effect": "move_to_next_landmark",
+    "value": 1.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 17,
+    "type": "good",
+    "text": "You reflected on the life of the Holy Prophet(sa).",
+    "effects": [
+      {
+        "effect": "move_forward",
+        "value": 4.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_forward",
+    "value": 4.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 18,
+    "type": "good",
+    "text": "You encouraged another player with kind words.",
+    "effects": [
+      {
+        "effect": "all_players_gain",
+        "value": 1.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "all_players_gain",
+    "value": 1.0,
+    "mood": "social"
+  },
+  {
+    "id": 19,
+    "type": "good",
+    "text": "You taught someone a prayer. Take another turn!",
+    "effects": [
+      {
+        "effect": "extra_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      }
+    ],
+    "effect": "extra_turn",
+    "value": 0.0,
+    "mood": "social"
+  },
+  {
+    "id": 20,
+    "type": "good",
+    "text": "You woke up early for Tahajjud.",
+    "effects": [
+      {
+        "effect": "move_to_next_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "score_add",
+        "value": 3.0
+      }
+    ],
+    "effect": "move_to_next_landmark",
+    "value": 1.0,
+    "mood": "challenge"
+  },
+  {
+    "id": 21,
+    "type": "good",
+    "text": "You forgave someone who upset you.",
+    "effects": [
+      {
+        "effect": "protection",
+        "value": 1.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      }
+    ],
+    "effect": "protection",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 22,
+    "type": "good",
+    "text": "MashaAllah! You made du'a for all the players.",
+    "effects": [
+      {
+        "effect": "all_players_gain",
+        "value": 1.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "all_players_gain",
+    "value": 1.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 23,
+    "type": "good",
+    "text": "You shared a beautiful hadith that moved everyone's hearts.",
+    "effects": [
+      {
+        "effect": "all_players_gain",
+        "value": 1.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 2.0
+      }
+    ],
+    "effect": "all_players_gain",
+    "value": 1.0,
+    "mood": "social"
+  },
+  {
+    "id": 24,
+    "type": "good",
+    "text": "You stayed up praying Qiyam-ul-Layl.",
+    "effects": [
+      {
+        "effect": "extra_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "score_add",
+        "value": 2.0
+      }
+    ],
+    "effect": "extra_turn",
+    "value": 0.0,
+    "mood": "challenge"
+  },
+  {
+    "id": 25,
+    "type": "good",
+    "text": "You rushed to help a stranger without hesitation.",
+    "effects": [
+      {
+        "effect": "extra_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "move_forward",
+        "value": 3.0
+      }
+    ],
+    "effect": "extra_turn",
+    "value": 0.0,
+    "mood": "social"
+  },
+  {
+    "id": 26,
+    "type": "good",
+    "text": "You completed your Chanda Wasiyyat contributions.",
+    "effects": [
+      {
+        "effect": "move_to_next_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "score_add",
+        "value": 3.0
+      }
+    ],
+    "effect": "move_to_next_landmark",
+    "value": 1.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 27,
+    "type": "good",
+    "text": "You recited extra prayers for the wellbeing of all.",
+    "effects": [
+      {
+        "effect": "protection",
+        "value": 0.0
+      },
+      {
+        "effect": "score_add",
+        "value": 1.0
+      }
+    ],
+    "effect": "protection",
+    "value": 0.0,
+    "mood": "blessing"
+  },
+  {
+    "id": 28,
+    "type": "bad",
+    "text": "You lied to a friend. You should reflect on your actions.",
+    "effects": [
+      {
+        "effect": "move_to_prev_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_to_prev_landmark",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 29,
+    "type": "bad",
+    "text": "You missed your Fajr prayer.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 30,
+    "type": "bad",
+    "text": "You were disrespectful to your parents. You should reflect on your actions.",
+    "effects": [
+      {
+        "effect": "move_to_prev_landmark",
+        "value": 2.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_to_prev_landmark",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 31,
+    "type": "bad",
+    "text": "You backbited about someone.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 3.0
+      },
+      {
+        "effect": "move_back",
+        "value": 2.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 3.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 32,
+    "type": "bad",
+    "text": "You wasted food and did not say Bismillah before eating.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 1.0,
+    "mood": "funny"
+  },
+  {
+    "id": 33,
+    "type": "bad",
+    "text": "You used hurtful words in an argument.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 2.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 34,
+    "type": "bad",
+    "text": "You forgot to say Bismillah before starting a meal.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      },
+      {
+        "effect": "skip_turn",
+        "value": 0.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 1.0,
+    "mood": "funny"
+  },
+  {
+    "id": 35,
+    "type": "bad",
+    "text": "You were distracted during Salah and did not concentrate.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 36,
+    "type": "bad",
+    "text": "You delayed returning something you borrowed.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 37,
+    "type": "bad",
+    "text": "You were ungrateful for blessings. You should reflect on your actions.",
+    "effects": [
+      {
+        "effect": "move_to_prev_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_to_prev_landmark",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 38,
+    "type": "bad",
+    "text": "You ignored someone asking for help.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 2.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 39,
+    "type": "bad",
+    "text": "You argued loudly and hurt someone's feelings.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 40,
+    "type": "bad",
+    "text": "You wasted too much time instead of praying.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 41,
+    "type": "bad",
+    "text": "You broke a promise you made.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 3.0
+      },
+      {
+        "effect": "move_back",
+        "value": 2.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 3.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 42,
+    "type": "bad",
+    "text": "You forgot to thank Allah for your blessings. You should reflect on your actions.",
+    "effects": [
+      {
+        "effect": "move_to_prev_landmark",
+        "value": 2.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_to_prev_landmark",
+    "value": 2.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 43,
+    "type": "bad",
+    "text": "You spoke while someone was reciting the Qur'an. You should reflect on your actions.",
+    "effects": [
+      {
+        "effect": "move_to_prev_landmark",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "move_to_prev_landmark",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 44,
+    "type": "bad",
+    "text": "You forgot your responsibilities today.",
+    "effects": [
+      {
+        "effect": "skip_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "skip_turn",
+    "value": 0.0,
+    "mood": "risk"
+  },
+  {
+    "id": 45,
+    "type": "bad",
+    "text": "You fell asleep during a long speech.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 1.0,
+    "mood": "funny"
+  },
+  {
+    "id": 46,
+    "type": "bad",
+    "text": "You got distracted by snacks during class.",
+    "effects": [
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "score_remove",
+    "value": 1.0,
+    "mood": "funny"
+  },
+  {
+    "id": 47,
+    "type": "bad",
+    "text": "You raced to the food before saying Salam.",
+    "effects": [
+      {
+        "effect": "move_back",
+        "value": 2.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "move_back",
+    "value": 2.0,
+    "mood": "funny"
+  },
+  {
+    "id": 48,
+    "type": "bad",
+    "text": "You upset the whole group with your behaviour.",
+    "effects": [
+      {
+        "effect": "all_players_lose",
+        "value": 1.0
+      },
+      {
+        "effect": "move_back",
+        "value": 2.0
+      }
+    ],
+    "effect": "all_players_lose",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 49,
+    "type": "bad",
+    "text": "You spread false information and caused worry.",
+    "effects": [
+      {
+        "effect": "all_players_lose",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "all_players_lose",
+    "value": 1.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 50,
+    "type": "bad",
+    "text": "You refused to apologise when you were wrong.",
+    "effects": [
+      {
+        "effect": "skip_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 2.0
+      }
+    ],
+    "effect": "skip_turn",
+    "value": 0.0,
+    "mood": "reflection"
+  },
+  {
+    "id": 51,
+    "type": "bad",
+    "text": "You kept everyone waiting without a good reason.",
+    "effects": [
+      {
+        "effect": "skip_turn",
+        "value": 0.0
+      },
+      {
+        "effect": "move_back",
+        "value": 1.0
+      }
+    ],
+    "effect": "skip_turn",
+    "value": 0.0,
+    "mood": "funny"
+  },
+  {
+    "id": 52,
+    "type": "bad",
+    "text": "You spoke harshly to everyone present.",
+    "effects": [
+      {
+        "effect": "all_players_lose",
+        "value": 1.0
+      },
+      {
+        "effect": "score_remove",
+        "value": 1.0
+      }
+    ],
+    "effect": "all_players_lose",
+    "value": 1.0,
+    "mood": "reflection"
+  }
+];

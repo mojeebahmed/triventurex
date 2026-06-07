@@ -1,0 +1,53 @@
+type,text,effect,value,effect_2,value_2,effect_3,value_3,mood
+good,Screamer! You scored a last-minute winner in extra time.,score_add,3,move_forward,3,extra_turn,1,blessing
+good,"Perfect hat-trick — left foot, right foot, header. The crowd goes wild!",score_add,3,move_forward,2,all_players_gain,1,social
+good,You stayed late after training to practice free kicks. Hard work pays off.,move_forward,3,score_add,2,protection,1,challenge
+good,You set up three assists in one match — Player of the Match!,score_add,2,move_forward,2,,,blessing
+good,Brilliant penalty save! You kept your nerve and dived the right way.,protection,1,score_add,2,move_forward,1,challenge
+good,You motivated your team after going 2–0 down and they came back to win.,all_players_gain,2,move_forward,2,,,social
+good,Your nutmeg in the final third left the defender spinning. Move forward!,move_forward,4,score_add,1,,,funny
+good,You played through injury to keep your team in the game. True grit.,score_add,2,protection,1,move_forward,1,challenge
+good,You won a crunching tackle then immediately released a pinpoint pass.,move_forward,2,score_add,1,extra_turn,1,challenge
+good,You cheered up a teammate who missed a sitter. Great team spirit!,all_players_gain,1,score_add,1,,,social
+good,Your corner kick found the striker's head perfectly. Textbook delivery.,score_add,1,move_forward,3,,,blessing
+good,You chose to play fairly even when the ref wasn't looking. Respect!,protection,1,score_add,2,move_forward,1,reflection
+good,You volunteered to take a penalty in a shootout under massive pressure.,extra_turn,1,score_add,2,,,risk
+good,You gave away your shirt to a young fan after the final whistle.,all_players_gain,1,move_forward,2,score_add,1,social
+good,Your rabona cross caught everyone by surprise — including the goalkeeper!,move_forward,3,score_add,2,extra_turn,1,funny
+good,"You led by example in training, pushing your teammates to work harder.",score_add,2,move_forward,2,,,challenge
+good,You called for the ball under pressure and played a brilliant through ball.,move_forward,2,score_add,1,protection,1,challenge
+good,You reached {landmark} on your journey — the crowd is cheering!,move_to_next_landmark,1,score_add,1,,,blessing
+good,Brilliant overhead kick straight into the top corner. Absolute worldie!,score_add,3,extra_turn,1,move_forward,1,blessing
+good,You apologised to the referee for arguing and shook hands with opponents.,protection,1,score_add,1,move_forward,2,reflection
+good,The fans started a chant about you — you're a club legend in the making!,score_add,2,all_players_gain,1,move_forward,1,social
+good,You tracked back 60 yards to make a last-ditch clearance off the line.,move_forward,2,score_add,2,,,challenge
+good,You scored a banger from 35 yards — the keeper didn't even move.,score_add,3,move_forward,2,protection,1,blessing
+good,You stopped the game to check on an injured opponent. Class act.,all_players_gain,1,protection,1,,,social
+good,Your training routine went viral online — inspiration to millions.,score_add,2,move_forward,3,extra_turn,1,funny
+good,The captain handed you the armband for the final. You rose to the occasion.,extra_turn,1,score_add,2,move_forward,2,risk
+good,You donated your bonus to build a pitch in a disadvantaged neighbourhood.,all_players_gain,2,score_add,1,move_forward,1,social
+bad,Red card! You lost your temper and got sent off. Sit out a turn.,skip_turn,1,score_remove,2,,,challenge
+bad,You dived in the penalty box. Booked for simulation — shameful!,score_remove,2,move_back,2,skip_turn,1,reflection
+bad,You were caught offside three times in a row. Go back.,move_back,3,score_remove,1,,,funny
+bad,You missed an open goal from two yards out. The crowd is stunned.,score_remove,2,move_back,2,,,funny
+bad,Your sloppy back pass let the opposition in for an easy goal.,all_players_lose,1,move_back,2,,,challenge
+bad,You argued with the referee and received a second yellow card. Off you go!,skip_turn,1,score_remove,3,move_back,1,reflection
+bad,You missed training twice this week without a good excuse.,score_remove,2,move_back,2,,,reflection
+bad,VAR ruled out your goal for the most marginal offside imaginable.,score_remove,1,move_back,3,,,funny
+bad,You celebrated too early and got tackled before reaching the net.,move_back,2,score_remove,1,skip_turn,1,funny
+bad,Your penalty hit both posts and came out. The miss that haunts you.,score_remove,2,move_back,2,,,challenge
+bad,You were nutmegged and the crowd won't let you forget it.,move_back,2,score_remove,1,,,funny
+bad,You pulled down an opponent on a clear goal-scoring opportunity. Straight red.,skip_turn,1,score_remove,3,,,challenge
+bad,Your transfer request has upset the whole dressing room.,all_players_lose,1,score_remove,2,move_back,1,reflection
+bad,You tripped over the ball and lost possession in a dangerous area.,move_back,3,score_remove,1,,,funny
+bad,Terrible tackle from behind — the referee had no choice. Red card!,skip_turn,1,score_remove,2,move_back,2,challenge
+bad,You got lost on the way to the stadium and missed the warm-up. Back to {landmark}.,move_to_prev_landmark,1,score_remove,1,,,funny
+bad,The manager sent you back to train with the reserves. Report to {landmark}.,move_to_prev_landmark,1,score_remove,2,,,reflection
+bad,You forgot your boots and had to borrow a pair three sizes too big.,score_remove,1,move_back,2,,,funny
+bad,You went AWOL before the biggest match of the season. Back to {landmark}.,move_to_prev_landmark,2,score_remove,2,skip_turn,1,challenge
+bad,Caught time-wasting in the first half — fans boo you off the pitch.,all_players_lose,1,score_remove,1,move_back,1,reflection
+bad,You failed a fitness test and the physio sent you back to {landmark}.,move_to_prev_landmark,1,score_remove,1,,,challenge
+bad,Your goalkeeper howler gifted the opposition a goal. All players lose confidence.,all_players_lose,2,score_remove,1,,,challenge
+bad,You refused to take a corner when the manager told you to. Benched!,skip_turn,1,score_remove,1,move_back,1,reflection
+bad,Your training bib ended up in the stands. Chaos! Sent back to {landmark}.,move_to_prev_landmark,2,score_remove,1,,,funny
+bad,You gave a shocking interview criticising your own teammates. Sent back to {landmark}.,move_to_prev_landmark,2,score_remove,3,skip_turn,1,reflection

@@ -1,0 +1,410 @@
+/**
+ * server.js
+ * Triventurex V2 — Express + Socket.IO game server.
+ * Serves all static files from the project root.
+ * Manages game rooms and authoritative dice rolling.
+ */
+
+const express   = require('express');
+const http      = require('http');
+const { Server } = require('socket.io');
+const path      = require('path');
+const os        = require('os');
+
+const app    = express();
+const server = http.createServer(app);
+const io     = new Server(server);
+
+const PORT = process.env.PORT || 3000;
+
+// ── Static file serving ───────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname)));
+
+// ── Room state ────────────────────────────────────────────────────────────────
+// Map<gameId, RoomState>
+const rooms = new Map();
+
+/**
+ * Generate a short game ID like TX-1A2B3C4D-XY9Z
+ */
+function generateGameId() {
+  // 4-digit numeric code, unique among active rooms
+  let id;
+  do { id = String(Math.floor(1000 + Math.random() * 9000)); } while (rooms.has(id));
+  return id;
+}
+
+/**
+ * Roll a standard 6-sided die on the server.
+ */
+function rollDie() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+/**
+ * Get the local network IP so players can connect.
+ */
+function getLocalIP() {
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const iface of ifaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+// ── Socket.IO events ──────────────────────────────────────────────────────────
+
+io.on('connection', (socket) => {
+  console.log(`[connect]    socket=${socket.id}`);
+
+  // ── host_game ──────────────────────────────────────────────────────────────
+  socket.on('host_game', ({ themeId, gameLength, pathIndex, hostPlayer, isGMOnly }) => {
+    const gameId = generateGameId();
+    console.log(`[host_game]  socket=${socket.id} gameId=${gameId} theme=${themeId} length=${gameLength} gmOnly=${isGMOnly}`);
+
+    const players = [];
+    if (!isGMOnly && hostPlayer) {
+      players.push({
+        id:                   hostPlayer.id ?? 0,
+        socketId:             socket.id,
+        name:                 hostPlayer.name,
+        token:                hostPlayer.token,
+        color:                hostPlayer.color,
+        position:             0,
+        score:                0,
+        finished:             false,
+        skipNextTurn:         false,
+        hasExtraTurn:         false,
+        protectedFromBadDeed: false,
+        finishOrder:          null,
+        inactive:             false,
+        disconnected:         false,
+      });
+    }
+
+    const room = {
+      gameId,
+      hostSocketId: socket.id,
+      isGMOnly,
+      themeId,
+      gameLength,
+      pathIndex,
+      phase:               'lobby',
+      players,
+      currentPlayerIndex:  0,
+      turnPhase:           'roll',
+      finishCount:         0,
+      history:             [],
+    };
+
+    rooms.set(gameId, room);
+    socket.join(gameId);
+    socket.emit('hosted', { gameId });
+    console.log(`[host_game]  room created gameId=${gameId} players=${players.length}`);
+  });
+
+  // ── join_game ──────────────────────────────────────────────────────────────
+  socket.on('join_game', ({ gameId, playerName, token, color }) => {
+    console.log(`[join_game]  socket=${socket.id} gameId=${gameId} name=${playerName}`);
+
+    const room = rooms.get(gameId);
+    if (!room) {
+      socket.emit('error', { message: `Game "${gameId}" not found.` });
+      return;
+    }
+
+    // Assign next available id
+    const existingIds = room.players.map(p => p.id);
+    let playerId = 0;
+    while (existingIds.includes(playerId)) playerId++;
+
+    const player = {
+      id:                   playerId,
+      socketId:             socket.id,
+      name:                 playerName || `Player ${playerId + 1}`,
+      token:                token  || '●',
+      color:                color  || '#4CAF50',
+      position:             0,
+      score:                0,
+      finished:             false,
+      skipNextTurn:         false,
+      hasExtraTurn:         false,
+      protectedFromBadDeed: false,
+      finishOrder:          null,
+      inactive:             false,
+      disconnected:         false,
+    };
+
+    const rejoinToken = Math.random().toString(36).slice(2, 10);
+    player.rejoinToken = rejoinToken;
+
+    room.players.push(player);
+    socket.join(gameId);
+    socket.data.gameId   = gameId;
+    socket.data.playerId = playerId;
+
+    socket.emit('joined', {
+      gameId,
+      playerId,
+      phase:       room.phase,
+      players:     room.players,
+      rejoinToken,
+    });
+
+    io.to(gameId).emit('player_joined', {
+      player,
+      players: room.players,
+    });
+
+    // If game already started, send current state immediately
+    if (room.phase === 'playing') {
+      socket.emit('state_update', {
+        playerStates:       room.players,
+        currentPlayerIndex: room.currentPlayerIndex,
+        turnPhase:          room.turnPhase,
+        finishCount:        room.finishCount,
+        phase:              room.phase,
+      });
+    }
+
+    console.log(`[join_game]  playerId=${playerId} joined gameId=${gameId} total=${room.players.length}`);
+  });
+
+  // ── start_game ─────────────────────────────────────────────────────────────
+  socket.on('start_game', ({ gameId }) => {
+    console.log(`[start_game] socket=${socket.id} gameId=${gameId}`);
+
+    const room = rooms.get(gameId);
+    if (!room) { socket.emit('error', { message: 'Game not found.' }); return; }
+    if (socket.id !== room.hostSocketId) { socket.emit('error', { message: 'Only the host can start.' }); return; }
+
+    room.phase = 'playing';
+    io.to(gameId).emit('game_started', { players: room.players });
+    console.log(`[start_game] gameId=${gameId} started with ${room.players.length} players`);
+  });
+
+  // ── roll ───────────────────────────────────────────────────────────────────
+  socket.on('roll', ({ gameId }) => {
+    console.log(`[roll]       socket=${socket.id} gameId=${gameId}`);
+
+    const room = rooms.get(gameId);
+    if (!room) { socket.emit('error', { message: 'Game not found.' }); return; }
+
+    // Accept from host OR the current player's socket
+    const currentPlayer = room.players[room.currentPlayerIndex];
+    const isHost        = socket.id === room.hostSocketId;
+    const isCurrent     = currentPlayer && socket.id === currentPlayer.socketId;
+
+    if (!isHost && !isCurrent) {
+      socket.emit('error', { message: 'Not your turn.' });
+      return;
+    }
+
+    const roll = rollDie();
+    console.log(`[roll]       gameId=${gameId} result=${roll} player=${currentPlayer?.name}`);
+    io.to(gameId).emit('roll_result', { roll, playerId: currentPlayer?.id });
+  });
+
+  // ── manual_roll — host sets a specific dice value (physical dice play) ────────
+  // Broadcasts roll_result only to player screens (not back to host) so the host
+  // can process the roll locally without waiting and without double-processing.
+  socket.on('manual_roll', ({ gameId, roll }) => {
+    const room = rooms.get(gameId);
+    if (!room) { socket.emit('error', { message: 'Game not found.' }); return; }
+    if (socket.id !== room.hostSocketId) { socket.emit('error', { message: 'Only the host can set a manual roll.' }); return; }
+    const n = Math.min(6, Math.max(1, parseInt(roll, 10) || 1));
+    const currentPlayer = room.players[room.currentPlayerIndex];
+    console.log(`[manual_roll] gameId=${gameId} result=${n} player=${currentPlayer?.name}`);
+    socket.to(gameId).emit('roll_result', { roll: n, playerId: currentPlayer?.id });
+  });
+
+  // ── sync_state ─────────────────────────────────────────────────────────────
+  socket.on('sync_state', ({ gameId, playerStates, currentPlayerIndex, turnPhase, finishCount, phase }) => {
+    console.log(`[sync_state] socket=${socket.id} gameId=${gameId} turnPhase=${turnPhase}`);
+
+    const room = rooms.get(gameId);
+    if (!room) return;
+    if (socket.id !== room.hostSocketId) return; // only host can sync
+
+    // Update server-side room state
+    if (playerStates)          room.players = playerStates.map(ps => {
+      const existing = room.players.find(rp => rp.id === ps.id);
+      return { ...ps, socketId: existing?.socketId || null, rejoinToken: existing?.rejoinToken || null };
+    });
+    if (currentPlayerIndex !== undefined) room.currentPlayerIndex = currentPlayerIndex;
+    if (turnPhase)             room.turnPhase            = turnPhase;
+    if (finishCount !== undefined)        room.finishCount        = finishCount;
+    if (phase)                 room.phase                = phase;
+
+    // Broadcast to all clients EXCEPT the host
+    socket.to(gameId).emit('state_update', {
+      playerStates,
+      currentPlayerIndex,
+      turnPhase,
+      finishCount,
+      phase,
+    });
+  });
+
+  // ── set_player_active ──────────────────────────────────────────────────────
+  socket.on('set_player_active', ({ gameId, playerId, active }) => {
+    console.log(`[set_active] socket=${socket.id} gameId=${gameId} playerId=${playerId} active=${active}`);
+
+    const room = rooms.get(gameId);
+    if (!room) return;
+    if (socket.id !== room.hostSocketId) return;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (player) {
+      player.inactive = !active;
+      io.to(gameId).emit('state_update', {
+        playerStates:        room.players,
+        currentPlayerIndex:  room.currentPlayerIndex,
+        turnPhase:           room.turnPhase,
+        finishCount:         room.finishCount,
+        phase:               room.phase,
+      });
+    }
+  });
+
+  // ── remove_player ──────────────────────────────────────────────────────────
+  socket.on('remove_player', ({ gameId, playerId }) => {
+    console.log(`[remove]     socket=${socket.id} gameId=${gameId} playerId=${playerId}`);
+
+    const room = rooms.get(gameId);
+    if (!room) return;
+    if (socket.id !== room.hostSocketId) return;
+
+    const idx = room.players.findIndex(p => p.id === playerId);
+    if (idx !== -1) {
+      room.players.splice(idx, 1);
+      // Adjust currentPlayerIndex if needed
+      if (room.currentPlayerIndex >= room.players.length) {
+        room.currentPlayerIndex = 0;
+      }
+      io.to(gameId).emit('player_removed', { playerId });
+      io.to(gameId).emit('state_update', {
+        playerStates:        room.players,
+        currentPlayerIndex:  room.currentPlayerIndex,
+        turnPhase:           room.turnPhase,
+        finishCount:         room.finishCount,
+        phase:               room.phase,
+      });
+    }
+  });
+
+  // ── rejoin_game ────────────────────────────────────────────────────────────
+  socket.on('rejoin_game', ({ gameId, playerId, rejoinToken }) => {
+    const room = rooms.get(gameId);
+    if (!room) { socket.emit('rejoin_failed', { msg: 'Game not found or expired.' }); return; }
+
+    const player = room.players.find(p => p.id === playerId && p.rejoinToken === rejoinToken);
+    if (!player) { socket.emit('rejoin_failed', { msg: 'Invalid session.' }); return; }
+
+    // Update socket ID
+    player.socketId      = socket.id;
+    player.disconnected  = false;
+    socket.join(gameId);
+    socket.data.gameId   = gameId;
+    socket.data.playerId = playerId;
+
+    socket.emit('rejoined', {
+      gameId,
+      playerId,
+      phase:              room.phase,
+      players:            room.players,
+      playerStates:       room.players,
+      currentPlayerIndex: room.currentPlayerIndex,
+      turnPhase:          room.turnPhase,
+      finishCount:        room.finishCount,
+    });
+
+    // Notify others that player reconnected
+    socket.to(gameId).emit('player_reconnected', { playerId, playerName: player.name });
+    console.log(`[rejoin]     playerId=${playerId} rejoined gameId=${gameId}`);
+  });
+
+  // ── host_rejoin ────────────────────────────────────────────────────────────
+  socket.on('host_rejoin', ({ gameId }) => {
+    const room = rooms.get(gameId);
+    if (!room) { socket.emit('rejoin_failed', { msg: 'Game session expired.' }); return; }
+    room.hostSocketId = socket.id;
+    socket.join(gameId);
+    socket.data.gameId  = gameId;
+    socket.data.isHost  = true;
+    socket.emit('host_rejoined', { gameId, players: room.players, phase: room.phase });
+    console.log(`[host_rejoin] host rejoined gameId=${gameId}`);
+  });
+
+  // ── leave_game — player voluntarily leaves ────────────────────────────────
+  socket.on('leave_game', ({ gameId }) => {
+    const room = rooms.get(gameId || socket.data.gameId);
+    if (!room) return;
+    const player = room.players.find(p => p.socketId === socket.id);
+    if (player) {
+      room.players = room.players.filter(p => p.socketId !== socket.id);
+      socket.leave(room.gameId);
+      io.to(room.gameId).emit('player_removed', { playerId: player.id, players: room.players });
+      console.log(`[leave_game] ${player.name} left ${room.gameId}`);
+    }
+  });
+
+  // ── turn_result — relay outcome from host to players ──────────────────────
+  socket.on('turn_result', ({ gameId, ...data }) => {
+    socket.to(gameId).emit('turn_result', data);
+  });
+
+  // ── space_card / space_card_done — relay from host to all players ──────────
+  socket.on('space_card', ({ gameId, ...cardData }) => {
+    socket.to(gameId).emit('space_card', cardData);
+  });
+
+  socket.on('space_card_done', ({ gameId }) => {
+    socket.to(gameId).emit('space_card_done');
+  });
+
+  // ── disconnect ─────────────────────────────────────────────────────────────
+  socket.on('disconnect', () => {
+    console.log(`[disconnect] socket=${socket.id}`);
+
+    for (const [gameId, room] of rooms.entries()) {
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (player) {
+        player.disconnected = true;
+        console.log(`[disconnect] player=${player.name} gameId=${gameId}`);
+        io.to(gameId).emit('player_disconnected', {
+          playerId:   player.id,
+          playerName: player.name,
+        });
+        break;
+      }
+
+      // If host disconnects, notify the room with a dedicated event
+      if (room.hostSocketId === socket.id) {
+        console.log(`[disconnect] HOST disconnected gameId=${gameId}`);
+        io.to(gameId).emit('host_left', { msg: 'The host has left the game.' });
+      }
+    }
+  });
+});
+
+// ── Start server ──────────────────────────────────────────────────────────────
+server.listen(PORT, () => {
+  const localIP = getLocalIP();
+  console.log('');
+  console.log('  ╔══════════════════════════════════════════════╗');
+  console.log('  ║           Triventurex V2 Server              ║');
+  console.log('  ╚══════════════════════════════════════════════╝');
+  console.log('');
+  console.log(`  Host (this device):   http://localhost:${PORT}`);
+  console.log(`  Players (same Wi-Fi): http://${localIP}:${PORT}/player.html`);
+  console.log('');
+  console.log('  1. Open the Host URL above in your browser to set up a game.');
+  console.log('  2. Players open the Player URL on their phones (same Wi-Fi).');
+  console.log('  3. Enter the Game ID shown on the host screen to join.');
+  console.log('');
+});

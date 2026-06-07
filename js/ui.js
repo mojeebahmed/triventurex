@@ -1,0 +1,821 @@
+/**
+ * ui.js
+ * UI helpers: screen switching, modal management, scoreboard, legend, timer.
+ */
+
+// ── Screen Management ─────────────────────────────────────────────────────────
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+// ── Current Player Display ────────────────────────────────────────────────────
+
+function updateCurrentPlayerDisplay(player, phaseText) {
+  const tokenEl = document.getElementById('current-player-token');
+  tokenEl.style.backgroundColor = player.color;
+  tokenEl.innerHTML = `
+    <div class="token-emoji">${player.token || '●'}</div>
+    <div class="token-initial">${(player.name || '?').slice(0, 2).toUpperCase()}</div>`;
+  document.getElementById('current-player-name').textContent = player.name;
+  document.getElementById('current-turn-phase').textContent  = phaseText;
+}
+
+// ── Scoreboard ────────────────────────────────────────────────────────────────
+
+function updateScoreboard(players) {
+  const el = document.getElementById('scoreboard');
+  el.innerHTML = getSortedPlayers(players).map(p => `
+    <div class="score-row">
+      <div class="score-token" style="background:${p.color}">
+        <div class="token-emoji">${p.token || '●'}</div>
+        <div class="token-initial">${(p.name || '?').slice(0, 2).toUpperCase()}</div>
+      </div>
+      <div class="score-name">${p.name}</div>
+      <div>
+        <div class="score-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
+        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── GM Player Select ──────────────────────────────────────────────────────────
+
+function updateGMPlayerSelect(players) {
+  const sel = document.getElementById('gm-player-select');
+  sel.innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function showModal({ icon, title, content, actions }) {
+  document.getElementById('modal-icon').textContent = icon;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-content').innerHTML = content;
+
+  const actionsEl = document.getElementById('modal-actions');
+  actionsEl.innerHTML = '';
+  actions.forEach(({ label, class: cls, callback }) => {
+    const btn = document.createElement('button');
+    btn.className = cls || 'btn btn-primary';
+    btn.textContent = label;
+    btn.addEventListener('click', () => { hideModal(); callback(); });
+    actionsEl.appendChild(btn);
+  });
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function hideModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+// ── Space Modal ───────────────────────────────────────────────────────────────
+
+/**
+ * Show the space-landing modal for the given space type.
+ * For 'question' spaces, first shows a difficulty choice, then the question.
+ * For deed spaces, shows the deed card text and applies the effect.
+ */
+function showSpaceModal(space, player, onDone) {
+  // Set the modal accent colour to match this space type
+  const spaceColor = CONFIG.SPACE_INFO[space.type]?.color;
+  if (spaceColor) {
+    document.documentElement.style.setProperty('--modal-accent', spaceColor);
+  } else {
+    document.documentElement.style.removeProperty('--modal-accent');
+  }
+
+  switch (space.type) {
+
+    case 'question':
+      _showQuestionChoice(player, space, onDone);
+      break;
+
+    case 'action':
+      timerSet(CONFIG.TIMER.action);
+      showModal({
+        icon: '🎬',
+        title: 'Action Card!',
+        content: _playerBadgeHtml(player) +
+                 `<p>Draw an <em>Action Card</em> and perform it!</p>
+                  <p>If guessed: performer <strong>+1</strong>, guesser <strong>+1</strong>.<br>
+                  <small>Use the timer in the sidebar to manage time.</small></p>`,
+        actions: [
+          { label: '✅ Guessed! (+1 each)', class: 'btn btn-primary',
+            callback: () => { addScore(player, CONFIG.SCORE_VALUES.action_performer); onDone(true); } },
+          { label: '⏱ No guess / Time up', class: 'btn btn-secondary',
+            callback: () => onDone(false) },
+        ],
+      });
+      break;
+
+    case 'good_deed':
+      _showDeedCard(space, player, onDone);
+      break;
+
+    case 'bad_deed':
+      _showDeedCard(space, player, onDone);
+      break;
+
+    case 'landmark': {
+      const imgHtml = space.image
+        ? `<img src="${space.image}" alt="${space.name}" class="landmark-modal-img"
+               onerror="this.style.display='none'">`
+        : '';
+      const descHtml = space.description
+        ? `<p class="landmark-description">${space.description}</p>`
+        : '';
+      showModal({
+        icon: '🌍',
+        title: space.name || 'Holy Site',
+        content: `${imgHtml}${descHtml}
+                  <p style="margin-top:8px"><strong>${player.name}</strong> has arrived at
+                  <strong>${space.name || 'a holy site'}</strong>!</p>
+                  <p style="margin-top:8px;font-size:.85rem;color:#666">
+                  GM: award <strong>5 ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> or treat as a visual stop.<br>
+                  <em>Note: players sent here by a bad deed card do not receive points.</em></p>`,
+        actions: [
+          { label: `⭐ Award 5 ${CONFIG.GAME?.pointsName ?? 'pts'}`, class: 'btn btn-primary',
+            callback: () => { addScore(player, CONFIG.SCORE_VALUES.landmark); onDone(); } },
+          { label: 'Visual stop (no points)', class: 'btn btn-secondary', callback: onDone },
+        ],
+      });
+      break;
+    }
+
+    case 'skip':
+      showModal({
+        icon: '⏭',
+        title: 'Skip a Turn',
+        content: `<strong>${player.name}</strong> must skip their next turn.`,
+        actions: [{ label: 'OK', class: 'btn btn-primary',
+          callback: () => { player.skipNextTurn = true; onDone(); } }],
+      });
+      break;
+
+    case 'start':
+      showModal({
+        icon: '🚩', title: 'Start',
+        content: 'The journey begins! May the best adventurer win! 🏁',
+        actions: [{ label: "Let's go!", class: 'btn btn-primary', callback: onDone }],
+      });
+      break;
+
+    case 'finish': {
+      const order       = player.finishOrder || 1;
+      const bonus       = CONFIG.FINISH_BONUS[order - 1] ?? 1;
+      const ordinal     = ['1st','2nd','3rd','4th','5th','6th','7th','8th'][order - 1] || `${order}th`;
+      const finishIcon  = CONFIG.SPACE_INFO.finish?.icon ?? '🏁';
+      const celebration = CONFIG.GAME?.finishCelebration ?? 'Well done! 🎉';
+      const btnLabel    = CONFIG.GAME?.finishButtonLabel  ?? '🎉 Celebrate!';
+      const pts         = CONFIG.GAME?.pointsName ?? 'pts';
+      showModal({
+        icon: finishIcon,
+        title: `${CONFIG.GAME?.finishLabel ?? 'Finish'}!`,
+        content: `${_playerBadgeHtml(player)}
+                  <div class="finish-announcement">
+                    <div class="finish-ordinal">${ordinal} to arrive!</div>
+                    <div class="finish-bonus-display">+${bonus} ${pts} bonus awarded</div>
+                  </div>
+                  <p style="margin-top:10px;color:#666;font-size:.9rem">${celebration}</p>`,
+        actions: [{ label: btnLabel, class: 'btn btn-primary', callback: onDone }],
+      });
+      break;
+    }
+
+    default:
+      onDone();
+  }
+}
+
+// ── Question Flow ─────────────────────────────────────────────────────────────
+
+function _playerBadgeHtml(player) {
+  return `<div class="modal-player-badge" style="background:${player.color}">
+    <div class="token-emoji">${player.token || '●'}</div>
+    <span>${player.name}</span>
+  </div>`;
+}
+
+// ── Question tracking (no-repeat) ─────────────────────────────────────────────
+
+function _askedKey(diff) {
+  const themeId = window._activeThemeId || 'default';
+  return `triventurex_asked_${themeId}_${diff}`;
+}
+
+function _getAskedIds(diff) {
+  try { return new Set(JSON.parse(localStorage.getItem(_askedKey(diff))) || []); } catch { return new Set(); }
+}
+
+function _markAsked(diff, id) {
+  const asked = _getAskedIds(diff);
+  asked.add(id);
+  try { localStorage.setItem(_askedKey(diff), JSON.stringify([...asked])); } catch {}
+}
+
+function _clearAskedIds(diff) {
+  try { localStorage.removeItem(_askedKey(diff)); } catch {}
+}
+
+/** Called by game.js on new game when questionTracking === 'game'. */
+function resetAskedQuestions() {
+  _clearAskedIds('easy');
+  _clearAskedIds('hard');
+}
+
+/** Returns the unasked pool for a difficulty. Resets tracking if all are asked. */
+function _availablePool(diff) {
+  const selTopics = typeof getSelectedTopics === 'function' ? getSelectedTopics() : null;
+  const all = (window.QUESTIONS_DATA || []).filter(q => {
+    if (q.diff !== diff) return false;
+    if (selTopics && q.topic && !selTopics.has(q.topic)) return false;
+    return true;
+  });
+  if (!all.length) return { pool: [], recycled: false };
+  const asked = _getAskedIds(diff);
+  let pool = all.filter(q => !asked.has(q.id));
+  let recycled = false;
+  if (!pool.length) {
+    _clearAskedIds(diff);
+    pool = all;
+    recycled = true;
+  }
+  return { pool, recycled };
+}
+
+function _showQuestionChoice(player, space, onDone) {
+  const { pool: easyPool } = _availablePool('easy');
+  const { pool: hardPool } = _availablePool('hard');
+  const pts = CONFIG.GAME?.pointsName ?? 'pts';
+
+  // Both exhausted at the same time means _availablePool already recycled them above.
+  // Build actions — disable whichever type has no questions in the active topic filter.
+  const selTopics = typeof getSelectedTopics === 'function' ? getSelectedTopics() : null;
+  const _inTopic = q => !selTopics || !q.topic || selTopics.has(q.topic);
+  const allEasy = (window.QUESTIONS_DATA || []).filter(q => q.diff === 'easy' && _inTopic(q));
+  const allHard = (window.QUESTIONS_DATA || []).filter(q => q.diff === 'hard' && _inTopic(q));
+
+  const easyExhausted = allEasy.length > 0 && easyPool.length === 0;
+  const hardExhausted = allHard.length > 0 && hardPool.length === 0;
+
+  let note = '';
+  if (easyExhausted) note = `<p class="question-exhausted-note">🟢 Easy questions exhausted — only Hard available!</p>`;
+  if (hardExhausted) note = `<p class="question-exhausted-note">🔵 Hard questions exhausted — only Easy available!</p>`;
+
+  const actions = [];
+  if (!easyExhausted) {
+    actions.push({ label: `🟢 Easy  (+1 ${pts})`, class: 'btn btn-primary',
+      callback: () => _showQuestion('easy', player, onDone) });
+  }
+  if (!hardExhausted) {
+    actions.push({ label: `🔵 Hard  (+2 ${pts})`, class: 'btn btn-primary btn-blue',
+      callback: () => _showQuestion('hard', player, onDone) });
+  }
+  // Both exhausted at init time shouldn't happen (pool recycles), but fallback just in case
+  if (!actions.length) {
+    actions.push({ label: `🟢 Easy  (+1 ${pts})`, class: 'btn btn-primary',
+      callback: () => _showQuestion('easy', player, onDone) });
+    actions.push({ label: `🔵 Hard  (+2 ${pts})`, class: 'btn btn-primary btn-blue',
+      callback: () => _showQuestion('hard', player, onDone) });
+  }
+
+  showModal({
+    icon: '❓',
+    title: 'Question Time!',
+    content: _playerBadgeHtml(player) +
+      `<p>Choose your difficulty. You score more ${pts} for a harder question!</p>${note}`,
+    actions,
+  });
+}
+
+function _showQuestion(diff, player, onDone) {
+  timerSet(CONFIG.TIMER.question);
+
+  // Pick an unasked question; pool recycles automatically if all exhausted
+  const { pool, recycled } = _availablePool(diff);
+  if (recycled) showToast(`All ${diff} questions asked — reshuffling!`);
+  const q = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  const pts  = diff === 'easy'
+    ? (CONFIG.SCORE_VALUES.question_easy ?? 1)
+    : (CONFIG.SCORE_VALUES.question_hard ?? 2);
+
+  if (!q) {
+    // No questions loaded — use physical card fallback
+    showModal({
+      icon: diff === 'easy' ? '🟢' : '🔵',
+      title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question`,
+      content: `<strong>${player.name}</strong>, draw a <em>${diff === 'easy' ? 'Easy' : 'Hard'}</em>
+                question card from the physical deck and read it aloud.
+                <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}${pts > 1 ? 's' : ''}</strong> if correct.`,
+      actions: [
+        { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+          callback: () => { addScore(player, pts); onDone(); } },
+        { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+        { label: '📋 Use physical card instead', class: 'btn btn-secondary',
+          callback: () => _showPhysicalCard(diff, player, pts, onDone) },
+      ],
+    });
+    return;
+  }
+
+  // Build question HTML
+  let optionsHtml = '';
+  if (q.opts && q.opts.length) {
+    const letters = ['A', 'B', 'C', 'D'];
+    optionsHtml = `<div class="question-options">` +
+      q.opts.map((o, i) => `
+        <div class="question-option" id="qopt-${i}">
+          <span class="option-letter">${letters[i]}</span>
+          <span>${o}</span>
+        </div>`).join('') +
+      `</div>`;
+  }
+
+  const contentHtml = `
+    <div class="question-text">${q.q}</div>
+    ${optionsHtml}
+    <div id="question-answer-reveal" class="hidden">
+      <div class="answer-box">✅ Answer: <strong>${
+        q.opts && q.opts.length
+          ? `${q.answer} — ${q.opts[['A','B','C','D'].indexOf(q.answer)] ?? q.answer}`
+          : q.answer
+      }</strong></div>
+      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
+    </div>`;
+
+  showModal({
+    icon: diff === 'easy' ? '🟢' : '🔵',
+    title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question  (+${pts} ${CONFIG.GAME?.pointsName ?? 'pts'})`,
+    content: contentHtml,
+    actions: [
+      { label: '👁 Reveal Answer', class: 'btn btn-secondary',
+        callback: () => {
+          _markAsked(diff, q.id); // mark as used when the answer is revealed
+          _showQuestionWithAnswer(q, diff, pts, player, onDone);
+        }},
+      { label: '📋 Use physical card', class: 'btn btn-secondary',
+        callback: () => _showPhysicalCard(diff, player, pts, onDone) },
+    ],
+  });
+}
+
+function _showQuestionWithAnswer(q, diff, pts, player, onDone) {
+  const letters = ['A', 'B', 'C', 'D'];
+  let optionsHtml = '';
+  if (q.opts && q.opts.length) {
+    optionsHtml = `<div class="question-options">` +
+      q.opts.map((o, i) => {
+        const isCorrect = letters[i] === q.answer;
+        return `<div class="question-option ${isCorrect ? 'option-correct' : ''}">
+          <span class="option-letter">${letters[i]}</span><span>${o}</span></div>`;
+      }).join('') + `</div>`;
+  }
+
+  const answerLabel = q.opts && q.opts.length
+    ? `${q.answer} — ${q.opts[letters.indexOf(q.answer)] ?? q.answer}`
+    : q.answer;
+
+  showModal({
+    icon: diff === 'easy' ? '🟢' : '🔵',
+    title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question  (+${pts} ${CONFIG.GAME?.pointsName ?? 'pts'})`,
+    content: `
+      <div class="question-text">${q.q}</div>
+      ${optionsHtml}
+      <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
+      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}`,
+    actions: [
+      { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+        callback: () => { addScore(player, pts); onDone(); } },
+      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+    ],
+  });
+}
+
+function _showPhysicalCard(diff, player, pts, onDone) {
+  showModal({
+    icon: diff === 'easy' ? '🟢' : '🔵',
+    title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question (physical card)`,
+    content: `<strong>${player.name}</strong>, draw a <em>${diff}</em> card from the deck and read it aloud.
+              <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
+    actions: [
+      { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+        callback: () => { addScore(player, pts); onDone(); } },
+      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+    ],
+  });
+}
+
+// ── Deed Card Flow ────────────────────────────────────────────────────────────
+
+function _showDeedCard(space, player, onDone) {
+  const isGood     = space.type === 'good_deed';
+  const card       = space.deed; // pre-assigned from deeds.js during board generation
+  const spaceInfo  = CONFIG.SPACE_INFO[space.type] ?? {};
+  const deedIcon   = spaceInfo.icon  ?? (isGood ? '✅' : '❌');
+  const deedLabel  = spaceInfo.label ?? (isGood ? 'Good Deed' : 'Bad Deed');
+
+  // Protection card absorbs one bad deed
+  if (!isGood && player.protectedFromBadDeed) {
+    player.protectedFromBadDeed = false;
+    showModal({
+      icon: '🛡️',
+      title: 'Protected!',
+      content: `${_playerBadgeHtml(player)}
+                <p>Your protection card blocked this — the effect is cancelled!</p>`,
+      actions: [{ label: '🛡️ Nice!', class: 'btn btn-primary', callback: onDone }],
+    });
+    return;
+  }
+
+  if (!card) {
+    // No data loaded — fallback to physical card prompt
+    showModal({
+      icon: deedIcon,
+      title: deedLabel,
+      content: `<strong>${player.name}</strong>, draw a <em>${deedLabel}</em>
+                card and read it aloud. Apply the effect shown on the card.
+                <br>Use GM controls to adjust score or position if needed.`,
+      actions: [{ label: 'Done', class: 'btn btn-primary', callback: onDone }],
+    });
+    return;
+  }
+
+  // Apply the effect automatically and show the result
+  let effectDesc = '';
+  const beforeApply = onDone; // we call this after showing the result
+
+  switch (card.effect) {
+    case 'score_add':
+      effectDesc = `<div class="deed-effect deed-good">+${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
+      break;
+    case 'score_remove':
+      effectDesc = `<div class="deed-effect deed-bad">−${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
+      break;
+    case 'move_forward':
+      effectDesc = `<div class="deed-effect deed-good">▶ Move forward ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
+      break;
+    case 'move_back':
+      effectDesc = `<div class="deed-effect deed-bad">◀ Move back ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
+      break;
+    case 'move_to_landmark':
+      effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">📍 Go to: ${card.landmark}</div>`;
+      break;
+    case 'move_to_prev_landmark':
+    case 'move_to_next_landmark': {
+      const rel = _resolveRelativeLandmark(card.effect, player.position, card.value);
+      const relName = rel?.name ?? 'nearest landmark';
+      const relDir = card.effect === 'move_to_prev_landmark' ? '◀' : '▶';
+      effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">${relDir} Go to: ${relName}</div>`;
+      break;
+    }
+    case 'skip_turn':
+      effectDesc = `<div class="deed-effect deed-bad">⏭ Skip your next turn</div>`;
+      break;
+    case 'extra_turn':
+      effectDesc = `<div class="deed-effect deed-good">🎲 Roll again!</div>`;
+      break;
+    case 'all_players_gain':
+      effectDesc = `<div class="deed-effect deed-good">Everyone +${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
+      break;
+    case 'all_players_lose':
+      effectDesc = `<div class="deed-effect deed-bad">Everyone −${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
+      break;
+    case 'protection':
+      effectDesc = `<div class="deed-effect deed-good">🛡️ Next bad deed cancelled</div>`;
+      break;
+    // move_to_next_landmark is now handled in the relative-landmark block above
+
+  }
+
+  // Resolve {landmark} placeholder in deed text using the relative target
+  let deedText = card.text || '';
+  if (deedText.includes('{landmark}')) {
+    const relLm = _resolveRelativeLandmark(card.effect, player.position, card.value);
+    deedText = deedText.replace(/\{landmark\}/g, relLm?.name ?? 'a landmark');
+  }
+
+  showModal({
+    icon: deedIcon,
+    title: isGood ? `${deedLabel}! 🌟` : deedLabel,
+    content: `<div class="deed-text">${deedText}</div>${effectDesc}`,
+    actions: [
+      { label: 'Apply Effect', class: 'btn btn-primary',
+        callback: () => { _applyDeedEffect(card, player); onDone(); } },
+    ],
+  });
+}
+
+/**
+ * Resolve the target landmark for a relative-landmark effect given the player's
+ * current position and the effect's value (1 = nearest, 2 = second, etc.).
+ * Returns the landmark space object, or null if none found.
+ */
+function _resolveRelativeLandmark(effect, playerPosition, value) {
+  const board = window._gameBoard;
+  if (!board) return null;
+  const n = Math.max(1, Math.round(value) || 1);
+  if (effect === 'move_to_next_landmark') {
+    const candidates = board.filter(s => s.type === 'landmark' && s.id > playerPosition);
+    return candidates[n - 1] ?? candidates[candidates.length - 1] ?? null;
+  }
+  if (effect === 'move_to_prev_landmark') {
+    const candidates = board.filter(s => s.type === 'landmark' && s.id < playerPosition).reverse();
+    return candidates[n - 1] ?? candidates[candidates.length - 1] ?? null;
+  }
+  return null;
+}
+
+function _applyDeedEffect(card, player) {
+  // game.js exposes state.board for landmark lookup
+  switch (card.effect) {
+    case 'score_add':
+      addScore(player, card.value);
+      break;
+    case 'score_remove':
+      addScore(player, -card.value);
+      break;
+    case 'move_forward':
+      movePlayer(player, window._gameBoard, card.value);
+      break;
+    case 'move_back':
+      movePlayer(player, window._gameBoard, -card.value);
+      break;
+    case 'move_to_landmark': {
+      // Board generation guarantees the landmark is correctly positioned:
+      //   bad deed → landmark is behind player (backward move / penalty)
+      //   good deed → landmark is ahead of player (forward move / reward)
+      const target = getLandmarkSpace(window._gameBoard, card.landmark);
+      if (target) movePlayerToPosition(player, window._gameBoard, target.id);
+      break;
+    }
+    case 'skip_turn':
+      player.skipNextTurn = true;
+      break;
+
+    case 'extra_turn':
+      player.hasExtraTurn = true;
+      break;
+
+    case 'all_players_gain': {
+      const allP = window._gamePlayers || [];
+      allP.forEach(p => addScore(p, card.value));
+      break;
+    }
+
+    case 'all_players_lose': {
+      const allP = window._gamePlayers || [];
+      allP.forEach(p => addScore(p, -card.value));
+      break;
+    }
+
+    case 'protection':
+      player.protectedFromBadDeed = true;
+      break;
+
+    case 'move_to_next_landmark':
+    case 'move_to_prev_landmark': {
+      const target = _resolveRelativeLandmark(card.effect, player.position, card.value);
+      if (target) movePlayerToPosition(player, window._gameBoard, target.id);
+      break;
+    }
+  }
+}
+
+// ── Guesser Award ─────────────────────────────────────────────────────────────
+
+function showGuesserModal(players, performer, onDone) {
+  const others = players.filter(p => p.id !== performer.id);
+  const options = others.map(p => ({
+    label: `${p.name} guessed it! (+1)`,
+    class: 'btn btn-secondary',
+    callback: () => { addScore(p, CONFIG.SCORE_VALUES.action_guesser); onDone(); },
+  }));
+  options.push({ label: 'No one guessed', class: 'btn btn-secondary', callback: onDone });
+  showModal({
+    icon: '🎯', title: 'Who guessed it?',
+    content: `Award 1 ${CONFIG.GAME?.pointsName ?? 'pts'} to the first player who guessed correctly.`,
+    actions: options,
+  });
+}
+
+// ── End Screen ────────────────────────────────────────────────────────────────
+
+function showEndScreen(players) {
+  const sorted = getSortedPlayers(players);
+  const ranks  = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+  document.getElementById('final-scores').innerHTML = sorted.map((p, i) => `
+    <div class="final-score-row">
+      <div class="final-rank">${ranks[i] || `${i + 1}.`}</div>
+      <div class="end-token" style="background:${p.color}">
+        <div class="token-emoji">${p.token || '●'}</div>
+        <div class="token-initial">${(p.name || '?').slice(0, 2).toUpperCase()}</div>
+      </div>
+      <div class="final-name">${p.name}</div>
+      <div class="final-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
+    </div>`).join('');
+  showScreen('end-screen');
+}
+
+// ── Score Flyout ──────────────────────────────────────────────────────────────
+
+function showScoreFlyout(player, amount) {
+  const spaceEl = document.getElementById(`space-${player.position}`);
+  if (!spaceEl) return;
+  const rect = spaceEl.getBoundingClientRect();
+  const flyout = document.createElement('div');
+  flyout.className = `score-flyout ${amount > 0 ? 'score-pos' : 'score-neg'}`;
+  const ptsLabel = CONFIG.GAME?.pointsName ?? 'pts';
+  flyout.textContent = amount > 0 ? `+${amount} ${ptsLabel}` : `${amount} ${ptsLabel}`;
+  flyout.style.left = `${rect.left + rect.width / 2}px`;
+  flyout.style.top  = `${rect.top  + rect.height * 0.3}px`;
+  flyout.style.animationDuration = `${CONFIG.ANIMATION?.flyoutMs ?? 1000}ms`;
+  document.body.appendChild(flyout);
+  flyout.addEventListener('animationend', () => flyout.remove());
+}
+
+// ── Game History ──────────────────────────────────────────────────────────────
+
+function _spaceIcon(type) {
+  return CONFIG.SPACE_INFO[type]?.icon ?? { question: '❓', action: '🎬', landmark: '🌍', skip: '⏭', finish: '🏁', start: '🚩' }[type] ?? '•';
+}
+
+function renderHistoryPanel(history) {
+  const list    = document.getElementById('history-list');
+  const undoBtn = document.getElementById('undo-btn');
+  if (!list) return;
+  if (undoBtn) undoBtn.disabled = !history?.length;
+
+  if (!history?.length) {
+    list.innerHTML = '<div class="history-empty">No moves yet</div>';
+    return;
+  }
+
+  list.innerHTML = [...history].reverse().map((e, i) => {
+    const scoreDiff = e.scoreAfter - e.scoreBefore;
+    const scoreStr  = scoreDiff !== 0
+      ? `<span class="history-score ${scoreDiff > 0 ? 'hs-pos' : 'hs-neg'}">${scoreDiff > 0 ? '+' : ''}${scoreDiff}</span>`
+      : '';
+    const rollStr   = e.roll ? `🎲 ${e.roll}` : '⏭ skipped';
+    return `<div class="history-entry${i === 0 ? ' history-latest' : ''}">
+      <div class="history-badge" style="background:${e.playerColor}">${e.playerToken}</div>
+      <div class="history-info">
+        <div class="history-main">${e.playerName} · ${rollStr}</div>
+        <div class="history-detail">${_spaceIcon(e.spaceType)} Sp.${e.posAfter}${e.spaceName && e.spaceType !== 'skip' ? ' · ' + e.spaceName : ''} ${scoreStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Board Legend ──────────────────────────────────────────────────────────────
+
+function renderLegend() {
+  const existing = document.getElementById('board-legend');
+  if (existing) existing.remove();
+  const legend = document.createElement('div');
+  legend.id = 'board-legend';
+  const types = ['question', 'action', 'good_deed', 'bad_deed', 'landmark', 'skip'];
+  legend.innerHTML = types.map(t => {
+    const info = CONFIG.SPACE_INFO[t];
+    const icon = t === 'question' ? '<span class="legend-q">?</span>' : info.icon;
+    return `<div class="legend-item">
+      <div class="legend-space" style="background:${info.color}">${icon}</div>
+      <span>${info.label}</span>
+    </div>`;
+  }).join('');
+  document.body.appendChild(legend);
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+
+const timer = {
+  duration:  60,
+  remaining: 60,
+  running:   false,
+  _interval: null,
+};
+
+function timerSet(secs) {
+  timerStop();
+  timer.duration  = secs;
+  timer.remaining = secs;
+  _timerRender();
+}
+
+function timerStartStop() {
+  timer.running ? timerPause() : timerStart();
+}
+
+function timerStart() {
+  if (timer.remaining <= 0) { timer.remaining = timer.duration; }
+  timer.running = true;
+  document.getElementById('timer-startstop-btn').textContent = '⏸ Pause';
+  timer._interval = setInterval(() => {
+    timer.remaining = Math.max(0, timer.remaining - 1);
+    _timerRender();
+    if (timer.remaining === 0) timerPause();
+  }, 1000);
+}
+
+function timerPause() {
+  timer.running = false;
+  clearInterval(timer._interval);
+  const btn = document.getElementById('timer-startstop-btn');
+  if (btn) btn.textContent = '▶ Start';
+}
+
+function timerStop() {
+  timerPause();
+  timer.remaining = timer.duration;
+  _timerRender();
+}
+
+function timerReset() { timerStop(); }
+
+function timerAdd(secs) {
+  timer.remaining = Math.min(599, timer.remaining + secs);
+  _timerRender();
+}
+
+function _timerRender() {
+  const timeEl = document.getElementById('timer-time');
+  const barEl  = document.getElementById('timer-bar');
+  if (!timeEl || !barEl) return;
+
+  const pct = timer.duration > 0 ? timer.remaining / timer.duration : 0;
+  const mins = Math.floor(timer.remaining / 60);
+  const secs = timer.remaining % 60;
+  timeEl.textContent = mins > 0
+    ? `${mins}:${String(secs).padStart(2, '0')}`
+    : `${timer.remaining}s`;
+
+  barEl.style.width = (pct * 100) + '%';
+  barEl.style.background =
+    pct > 0.5 ? '#43A047' :
+    pct > 0.25 ? '#FF9800' : '#E53935';
+}
+
+// ── Toast notification ────────────────────────────────────────────────────────
+
+function showToast(message, durationMs = 2500) {
+  let el = document.getElementById('tx-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tx-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.classList.add('tx-toast-visible');
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => el.classList.remove('tx-toast-visible'), durationMs);
+}
+
+// ── Landmark Info Popup ───────────────────────────────────────────────────────
+
+function showLandmarkInfo(space) {
+  let overlay = document.getElementById('landmark-info-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'landmark-info-overlay';
+    overlay.innerHTML = `
+      <div id="landmark-info-box">
+        <button id="landmark-info-close" aria-label="Close">✕</button>
+        <img id="landmark-info-img" src="" alt="" onerror="this.style.display='none'">
+        <h2 id="landmark-info-name"></h2>
+        <p id="landmark-info-desc"></p>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) hideLandmarkInfo(); });
+    document.getElementById('landmark-info-close').addEventListener('click', hideLandmarkInfo);
+  }
+
+  const img = document.getElementById('landmark-info-img');
+  if (space.image) {
+    img.src   = space.image;
+    img.alt   = space.name;
+    img.style.display = '';
+  } else {
+    img.style.display = 'none';
+  }
+  document.getElementById('landmark-info-name').textContent = space.name || 'Landmark';
+  document.getElementById('landmark-info-desc').textContent = space.description || '';
+  overlay.classList.add('visible');
+}
+
+function hideLandmarkInfo() {
+  const overlay = document.getElementById('landmark-info-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+// ── Path selector ─────────────────────────────────────────────────────────────
+
+/** Populate the path selector dropdown for a given game length. */
+function populatePathSelector(gameLength) {
+  const sel = document.getElementById('path-select');
+  const templates = CONFIG.PATH_TEMPLATES[gameLength] || [];
+  sel.innerHTML = `<option value="random">🎲 Random (different each game)</option>` +
+    templates.map((t, i) => `<option value="${i}">${t.name || `Path ${i + 1}`}</option>`).join('');
+}

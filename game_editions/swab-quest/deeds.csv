@@ -1,0 +1,53 @@
+type,text,effect,value,effect_2,value_2,effect_3,value_3,mood
+good,MashaAllah! You completed reciting the Holy Quran.,score_add,3,move_forward,3,protection,1,blessing
+good,You helped someone in need.,move_forward,2,score_add,1,,,social
+good,You gave Sadaqah (charity) today.,score_add,2,move_forward,1,protection,1,blessing
+good,You paid your Chanda on time.,move_forward,2,score_add,1,,,social
+good,You attended Friday prayers (Jumu'ah).,score_add,3,move_forward,2,,,blessing
+good,You visited a sick person and made du'a for them.,score_add,1,extra_turn,0,,,social
+good,You stood up for justice and told the truth.,move_forward,2,score_add,2,,,challenge
+good,You recited Durood Ibrahim after Salah.,score_add,1,move_forward,1,protection,1,blessing
+good,You volunteered at a community event.,score_add,2,move_forward,1,,,social
+good,You made Wudu carefully before each prayer all day.,protection,1,score_add,1,,,reflection
+good,You helped clean the mosque after an event.,score_add,2,move_forward,2,,,social
+good,You memorised a new Surah.,move_forward,2,score_add,2,,,challenge
+good,You shared your food with someone.,score_add,1,all_players_gain,1,,,social
+good,You helped your parents without being asked.,move_forward,2,score_add,1,,,social
+good,You reminded a friend kindly about prayer time.,score_add,2,move_forward,1,,,social
+good,You visited Masjid Nabawi and increased in gratitude.,move_to_next_landmark,1,move_forward,4,,,blessing
+good,You reflected on the life of the Holy Prophet(sa).,move_forward,4,score_add,2,,,reflection
+good,You encouraged another player with kind words.,all_players_gain,1,score_add,2,,,social
+good,You taught someone a prayer. Take another turn!,extra_turn,0,move_forward,2,,,social
+good,You woke up early for Tahajjud.,move_to_next_landmark,1,score_add,3,,,challenge
+good,You forgave someone who upset you.,protection,1,move_forward,2,,,reflection
+good,MashaAllah! You made du'a for all the players.,all_players_gain,1,score_add,2,,,blessing
+good,You shared a beautiful hadith that moved everyone's hearts.,all_players_gain,1,move_forward,2,,,social
+good,You stayed up praying Qiyam-ul-Layl.,extra_turn,0,score_add,2,,,challenge
+good,You rushed to help a stranger without hesitation.,extra_turn,0,move_forward,3,,,social
+good,You completed your Chanda Wasiyyat contributions.,move_to_next_landmark,1,score_add,3,,,blessing
+good,You recited extra prayers for the wellbeing of all.,protection,0,score_add,1,,,blessing
+bad,You lied to a friend. You should reflect on your actions.,move_to_prev_landmark,1,score_remove,2,,,reflection
+bad,You missed your Fajr prayer.,score_remove,2,move_back,1,,,reflection
+bad,You were disrespectful to your parents. You should reflect on your actions.,move_to_prev_landmark,2,score_remove,2,,,reflection
+bad,You backbited about someone.,score_remove,3,move_back,2,,,reflection
+bad,You wasted food and did not say Bismillah before eating.,score_remove,1,move_back,1,,,funny
+bad,You used hurtful words in an argument.,move_back,2,score_remove,1,,,reflection
+bad,You forgot to say Bismillah before starting a meal.,score_remove,1,skip_turn,0,,,funny
+bad,You were distracted during Salah and did not concentrate.,move_back,1,score_remove,1,,,reflection
+bad,You delayed returning something you borrowed.,score_remove,2,move_back,1,,,reflection
+bad,You were ungrateful for blessings. You should reflect on your actions.,move_to_prev_landmark,1,score_remove,2,,,reflection
+bad,You ignored someone asking for help.,move_back,2,score_remove,1,,,reflection
+bad,You argued loudly and hurt someone's feelings.,score_remove,2,move_back,1,,,reflection
+bad,You wasted too much time instead of praying.,move_back,1,score_remove,1,,,reflection
+bad,You broke a promise you made.,score_remove,3,move_back,2,,,reflection
+bad,You forgot to thank Allah for your blessings. You should reflect on your actions.,move_to_prev_landmark,2,score_remove,2,,,reflection
+bad,You spoke while someone was reciting the Qur'an. You should reflect on your actions.,move_to_prev_landmark,1,score_remove,2,,,reflection
+bad,You forgot your responsibilities today.,skip_turn,0,score_remove,1,,,risk
+bad,You fell asleep during a long speech.,move_back,1,score_remove,1,,,funny
+bad,You got distracted by snacks during class.,score_remove,1,move_back,1,,,funny
+bad,You raced to the food before saying Salam.,move_back,2,score_remove,1,,,funny
+bad,You upset the whole group with your behaviour.,all_players_lose,1,move_back,2,,,reflection
+bad,You spread false information and caused worry.,all_players_lose,1,score_remove,2,,,reflection
+bad,You refused to apologise when you were wrong.,skip_turn,0,score_remove,2,,,reflection
+bad,You kept everyone waiting without a good reason.,skip_turn,0,move_back,1,,,funny
+bad,You spoke harshly to everyone present.,all_players_lose,1,score_remove,1,,,reflection

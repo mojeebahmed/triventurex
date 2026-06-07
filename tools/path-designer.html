@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triventurex — Path Designer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #16213e;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #0f3460;
+  }
+  header h1 { font-size: 1.1rem; color: #e94560; flex-shrink: 0; }
+
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ctrl-group label { font-size: .8rem; color: #aaa; }
+  .ctrl-group input[type="number"], .ctrl-group input[type="text"], .ctrl-group select {
+    padding: 4px 6px; border-radius: 5px;
+    background: #0f3460; border: 1px solid #444; color: #eee; font-size: .82rem;
+    min-width: 0;
+  }
+  .ctrl-group input[type="number"] { width: 56px; }
+  .ctrl-group input[type="text"]   { width: 180px; }
+  .ctrl-group select               { width: auto; max-width: 200px; }
+  #load-select                     { max-width: 220px; }
+
+  .btn {
+    padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer;
+    font-size: .8rem; font-weight: 600;
+  }
+  .btn-primary   { background: #e94560; color: #fff; }
+  .btn-secondary { background: #0f3460; color: #eee; border: 1px solid #444; }
+  .btn-danger    { background: #7b2226; color: #fff; }
+  .btn-success   { background: #1d6a36; color: #fff; }
+  .btn:hover { opacity: .85; }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── Grid canvas ── */
+  #grid-wrap {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  #grid {
+    display: grid;
+    gap: 2px;
+    /* template set by JS */
+  }
+  .cell {
+    width: 44px; height: 44px;
+    border-radius: 6px;
+    background: #0f1b2d;
+    border: 1px solid #1e3a5f;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .65rem;
+    font-weight: 700;
+    color: #fff;
+    transition: background .1s;
+    user-select: none;
+    position: relative;
+  }
+  .cell:hover { border-color: #e94560; }
+  .cell.path {
+    background: #1d6a36;
+    border-color: #2ecc71;
+  }
+  .cell.path.start {
+    background: #0f3460;
+    border-color: #3498db;
+  }
+  .cell.path.finish {
+    background: #7b2226;
+    border-color: #e94560;
+  }
+  .cell.path.current {
+    background: #b8860b;
+    border-color: #f1c40f;
+    box-shadow: 0 0 8px #f1c40f88;
+  }
+  .cell.hover-valid   { border-color: #2ecc71; background: #0d3320; }
+  .cell.hover-invalid { border-color: #e74c3c; background: #2d0d0d; }
+  .cell .seq { font-size: .55rem; color: #aaffaa; }
+  .cell .arrow { font-size: .9rem; line-height: 1; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 320px;
+    min-width: 260px;
+    background: #16213e;
+    border-left: 2px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar h2 { font-size: .85rem; color: #aaa; padding: 12px 14px 6px; text-transform: uppercase; letter-spacing: .05em; }
+
+  #segment-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .seg-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #0f1b2d;
+    border: 1px solid #1e3a5f;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: .78rem;
+  }
+  .seg-row .seg-idx { color: #aaa; width: 20px; text-align: right; flex-shrink: 0; }
+  .seg-row .seg-dir { width: 46px; font-weight: 600; }
+  .dir-right { color: #3498db; }
+  .dir-left  { color: #9b59b6; }
+  .dir-up    { color: #2ecc71; }
+  .dir-down  { color: #e67e22; }
+  .seg-row .seg-steps { flex: 1; }
+  .seg-row button { background: none; border: none; cursor: pointer; font-size: .75rem; color: #888; padding: 1px 4px; }
+  .seg-row button:hover { color: #e94560; }
+
+  #output-box {
+    background: #0a0f1e;
+    border-top: 2px solid #0f3460;
+    padding: 12px;
+  }
+  #output-box h2 { font-size: .8rem; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
+  #output-textarea {
+    width: 100%; height: 120px; resize: none;
+    background: #0f1b2d; border: 1px solid #1e3a5f; border-radius: 6px;
+    color: #7fff7f; font-family: monospace; font-size: .72rem; padding: 8px;
+  }
+  #copy-btn { margin-top: 6px; width: 100%; }
+
+  .stats {
+    padding: 8px 14px;
+    font-size: .78rem;
+    color: #aaa;
+    border-top: 1px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .stats span { color: #eee; }
+  .stat-warn { color: #e74c3c !important; }
+  .stat-ok   { color: #2ecc71 !important; }
+
+  .sidebar-btns {
+    padding: 10px 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-top: 1px solid #0f3460;
+  }
+
+  #hint {
+    padding: 8px 14px;
+    font-size: .75rem;
+    color: #888;
+    border-top: 1px solid #0f3460;
+    line-height: 1.5;
+  }
+
+  /* Violations overlay */
+  .cell.violation { outline: 2px solid #e74c3c; outline-offset: -2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎲 Path Designer</h1>
+
+  <div class="ctrl-group">
+    <label>Rows</label>
+    <input type="number" id="inp-rows" value="12" min="6" max="20">
+    <label>Cols</label>
+    <input type="number" id="inp-cols" value="12" min="6" max="20">
+    <button class="btn btn-secondary" onclick="applyGridSize()">Apply</button>
+  </div>
+
+  <div class="ctrl-group">
+    <label>Length</label>
+    <select id="inp-length">
+      <option value="short">Short (~20)</option>
+      <option value="medium" selected>Medium (~40)</option>
+      <option value="long">Long (~60)</option>
+    </select>
+  </div>
+
+  <div class="ctrl-group">
+    <label>Name</label>
+    <input type="text" id="inp-name" value="Custom path">
+  </div>
+
+  <div class="ctrl-group">
+    <button class="btn btn-secondary" onclick="setMode('start')">📍 Set Start</button>
+    <button class="btn btn-primary"   onclick="setMode('draw')" id="btn-draw">✏️ Draw</button>
+    <button class="btn btn-danger"    onclick="undoSegment()">↩ Undo</button>
+    <button class="btn btn-danger"    onclick="clearPath()">🗑 Clear</button>
+  </div>
+
+  <div class="ctrl-group">
+    <label>Load template:</label>
+    <select id="load-select" onchange="loadTemplate(this.value)">
+      <option value="">— select —</option>
+    </select>
+  </div>
+</header>
+
+<div class="main">
+
+  <div id="grid-wrap">
+    <div id="grid"></div>
+  </div>
+
+  <div id="sidebar">
+    <div class="stats" id="stats">
+      <div>Start: <span id="stat-start">—</span></div>
+      <div>Spaces: <span id="stat-spaces">0</span> / <span id="stat-target">—</span></div>
+      <div>Status: <span id="stat-status">Set a start cell</span></div>
+    </div>
+
+    <h2>Segments</h2>
+    <div id="segment-list"></div>
+
+    <div id="hint">
+      <b>How to draw:</b><br>
+      1. Click <b>Set Start</b> → click a cell<br>
+      2. Click <b>Draw</b> → click any cell to extend the path along that axis<br>
+      3. <b>Undo</b> removes the last segment; click a segment's ✕ to delete it<br>
+      4. <b>Generate JSON</b> then copy into config.js<br>
+      <br>
+      <b>Violation rules:</b><br>
+      🔴 Red cells = two parallel runs directly adjacent (add a gap row/col between them)<br>
+      ✅ Corners where horizontal meets vertical are <i>not</i> violations — the inner corner cell is fine; only the outer side needs 2 empty cells clearance<br>
+      <br>
+      <b>Space count:</b> the engine uses the path length directly — any count works, not just 20/40/60. The <i>target</i> shown is just a guideline.
+    </div>
+
+    <div class="sidebar-btns">
+      <button class="btn btn-success" onclick="generateOutput()" style="flex:1">⚙️ Generate JSON</button>
+    </div>
+
+    <div id="output-box">
+      <h2>JSON Output</h2>
+      <textarea id="output-textarea" readonly placeholder="Click Generate JSON…"></textarea>
+      <button class="btn btn-secondary" id="copy-btn" onclick="copyOutput()">📋 Copy</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/config.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let rows = 12, cols = 12;
+let startCell = null;   // [row, col]
+let segments  = [];     // [{dir, steps}]
+let mode      = 'idle'; // 'start' | 'draw' | 'idle'
+let hoverCell = null;
+
+// Templates loaded live from config.js (CONFIG.PATH_TEMPLATES)
+const TEMPLATES = (typeof CONFIG !== 'undefined' && CONFIG.PATH_TEMPLATES) ? CONFIG.PATH_TEMPLATES : { short: [], medium: [], long: [] };
+
+const TARGET = { short: 22, medium: 42, long: 62 }; // total cells including start+finish
+
+// ── Grid build ──────────────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.style.gridTemplateRows    = `repeat(${rows}, 44px)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 44px)`;
+  grid.innerHTML = '';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.addEventListener('click',      () => handleClick(r, c));
+      cell.addEventListener('mouseenter', () => handleHover(r, c));
+      cell.addEventListener('mouseleave', () => { hoverCell = null; renderPath(); });
+      grid.appendChild(cell);
+    }
+  }
+  renderPath();
+}
+
+function getCell(r, c) {
+  return document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+}
+
+// ── Path computation ────────────────────────────────────────────────────────
+function computePathCells() {
+  if (!startCell) return [];
+  const cells = [{ r: startCell[0], c: startCell[1], seq: 0 }];
+  let [r, c] = startCell;
+  const dr = { up:-1, down:1, left:0,  right:0  };
+  const dc = { up: 0, down:0, left:-1, right:1  };
+  const arrows = { up:'↑', down:'↓', left:'←', right:'→' };
+  for (const [dir, steps] of segments) {
+    for (let i = 0; i < steps; i++) {
+      r += dr[dir]; c += dc[dir];
+      cells.push({ r, c, seq: cells.length, arrow: arrows[dir], dir });
+    }
+  }
+  return cells;
+}
+
+function currentEnd() {
+  if (!startCell) return null;
+  let [r, c] = startCell;
+  const dr = { up:-1, down:1, left:0,  right:0  };
+  const dc = { up: 0, down:0, left:-1, right:1  };
+  for (const [dir, steps] of segments) { r += dr[dir]*steps; c += dc[dir]*steps; }
+  return [r, c];
+}
+
+// ── Violation detection ─────────────────────────────────────────────────────
+// Flags cells where two PARALLEL runs are directly adjacent (same axis, adjacent row/col).
+// Corner cells — where a horizontal run meets a vertical run at 90° — are NOT violations:
+//   · The inner corner cell is shared geometry, not a parallel-run collision.
+//   · The outer corner cell has one perpendicular neighbour from the other axis, which is fine.
+// Only flag when a horizontal cell's perpendicular neighbour is ALSO a horizontal cell,
+// or a vertical cell's perpendicular neighbour is ALSO a vertical cell.
+function computeViolations(pathCells) {
+  // Build a map from "r,c" → axis ('h' for left/right, 'v' for up/down, null for start)
+  const axisMap = new Map();
+  for (const p of pathCells) {
+    const axis = !p.dir ? null
+      : (p.dir === 'left' || p.dir === 'right') ? 'h' : 'v';
+    axisMap.set(`${p.r},${p.c}`, axis);
+  }
+
+  const viols = new Set();
+  for (const p of pathCells) {
+    const myAxis = axisMap.get(`${p.r},${p.c}`);
+    if (!myAxis) continue; // start cell — no direction, skip
+
+    // Check perpendicular neighbours (the sides that should be empty for this axis)
+    const perp = myAxis === 'h'
+      ? [[p.r-1, p.c], [p.r+1, p.c]]   // above/below for a horizontal cell
+      : [[p.r, p.c-1], [p.r, p.c+1]];  // left/right for a vertical cell
+
+    for (const [nr, nc] of perp) {
+      const nAxis = axisMap.get(`${nr},${nc}`);
+      if (nAxis === myAxis) {
+        // Neighbour exists AND is on the same axis → parallel run collision
+        viols.add(`${p.r},${p.c}`);
+        viols.add(`${nr},${nc}`);
+      }
+      // nAxis !== myAxis means the neighbour is a corner/perpendicular cell → allowed
+    }
+  }
+  return viols;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderPath() {
+  // Clear all cells
+  document.querySelectorAll('.cell').forEach(el => {
+    el.className = 'cell'; el.innerHTML = '';
+  });
+
+  const pathCells = computePathCells();
+  const pathSet   = new Set(pathCells.map(p => `${p.r},${p.c}`));
+  const violations = computeViolations(pathCells);
+
+  pathCells.forEach((p, i) => {
+    const el = getCell(p.r, p.c);
+    if (!el) return;
+    el.classList.add('path');
+    if (i === 0) {
+      el.classList.add('start');
+      el.innerHTML = `<span>S</span>`;
+    } else if (i === pathCells.length - 1 && pathCells.length > 1) {
+      el.classList.add('finish');
+      el.innerHTML = `<div class="arrow">${p.arrow||''}</div>`;
+    } else {
+      el.innerHTML = `<div class="arrow">${p.arrow||''}</div>`;
+    }
+    if (violations.has(`${p.r},${p.c}`)) el.classList.add('violation');
+  });
+
+  // Highlight current end
+  const end = currentEnd();
+  if (end && pathCells.length > 0) {
+    const el = getCell(end[0], end[1]);
+    if (el) el.classList.add('current');
+  }
+
+  // Hover preview
+  if (hoverCell && mode === 'draw' && end) {
+    const [hr, hc] = hoverCell;
+    const [er, ec] = end;
+    const preview = previewSegment(er, ec, hr, hc);
+    if (preview) {
+      const { dir, steps } = preview;
+      const drs = { up:-1, down:1, left:0,  right:0  };
+      const dcs = { up: 0, down:0, left:-1, right:1  };
+      let pr = er, pc = ec;
+      let valid = true;
+      for (let i = 0; i < steps; i++) {
+        pr += drs[dir]; pc += dcs[dir];
+        if (pr < 0 || pr >= rows || pc < 0 || pc >= cols || pathSet.has(`${pr},${pc}`)) {
+          valid = false; break;
+        }
+      }
+      const cls = valid ? 'hover-valid' : 'hover-invalid';
+      pr = er; pc = ec;
+      for (let i = 0; i < steps; i++) {
+        pr += drs[dir]; pc += dcs[dir];
+        const el = getCell(pr, pc);
+        if (el && !el.classList.contains('path')) el.classList.add(cls);
+      }
+    }
+  }
+
+  updateStats(pathCells, violations);
+  renderSegmentList();
+}
+
+// ── Stats ───────────────────────────────────────────────────────────────────
+function updateStats(pathCells, violations) {
+  const target = TARGET[document.getElementById('inp-length').value];
+  document.getElementById('stat-start').textContent  = startCell ? `[${startCell}]` : '—';
+  document.getElementById('stat-spaces').textContent = pathCells.length;
+  document.getElementById('stat-target').textContent = target;
+
+  const statusEl = document.getElementById('stat-status');
+  if (!startCell) { statusEl.textContent = 'Set a start cell'; statusEl.className = ''; return; }
+  if (pathCells.length === 0) { statusEl.textContent = 'Draw segments'; statusEl.className = ''; return; }
+
+  const count = pathCells.length;
+  const diff  = count - target;
+  let msgs = [];
+  if (violations.size > 0) msgs.push(`⚠️ ${violations.size} adjacency violations`);
+  if (diff < 0) msgs.push(`Need ${-diff} more spaces`);
+  else if (diff > 0) msgs.push(`${diff} spaces over target`);
+  else msgs.push('✅ Correct length!');
+
+  statusEl.textContent = msgs.join(' · ');
+  statusEl.className   = violations.size > 0 || diff !== 0 ? 'stat-warn' : 'stat-ok';
+}
+
+// ── Segment list ────────────────────────────────────────────────────────────
+function renderSegmentList() {
+  const list = document.getElementById('segment-list');
+  if (!segments.length) { list.innerHTML = '<div style="color:#555;font-size:.75rem;padding:4px">No segments yet</div>'; return; }
+  list.innerHTML = segments.map((s, i) => `
+    <div class="seg-row">
+      <span class="seg-idx">${i+1}</span>
+      <span class="seg-dir dir-${s[0]}">${{up:'↑ Up',down:'↓ Down',left:'← Left',right:'→ Right'}[s[0]]}</span>
+      <span class="seg-steps">${s[1]} cell${s[1]!==1?'s':''}</span>
+      <button onclick="deleteSegment(${i})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── Interaction ─────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-draw').style.outline = m === 'draw' ? '2px solid #e94560' : '';
+}
+
+function handleClick(r, c) {
+  if (mode === 'start') {
+    startCell = [r, c];
+    segments  = [];
+    mode      = 'idle';
+    renderPath();
+    return;
+  }
+  if (mode === 'draw') {
+    const end = currentEnd();
+    if (!end) return;
+    const [er, ec] = end;
+    if (r === er && c === ec) return;
+    const preview = previewSegment(er, ec, r, c);
+    if (!preview) return;
+    const { dir, steps } = preview;
+    // Validate: check no OOB or self-intersection
+    const pathSet = new Set(computePathCells().map(p => `${p.r},${p.c}`));
+    const drs = { up:-1, down:1, left:0,  right:0  };
+    const dcs = { up: 0, down:0, left:-1, right:1  };
+    let pr = er, pc = ec;
+    for (let i = 0; i < steps; i++) {
+      pr += drs[dir]; pc += dcs[dir];
+      if (pr < 0 || pr >= rows || pc < 0 || pc >= cols || pathSet.has(`${pr},${pc}`)) {
+        alert(`Can't draw here — path would go out of bounds or self-intersect.`); return;
+      }
+    }
+    // Merge with last segment if same direction
+    if (segments.length && segments[segments.length-1][0] === dir) {
+      segments[segments.length-1] = [dir, segments[segments.length-1][1] + steps];
+    } else {
+      segments.push([dir, steps]);
+    }
+    renderPath();
+  }
+}
+
+function handleHover(r, c) {
+  hoverCell = [r, c];
+  renderPath();
+}
+
+// Returns { dir, steps } for a single-axis move, or null if diagonal
+function previewSegment(fromR, fromC, toR, toC) {
+  const dr = toR - fromR, dc = toC - fromC;
+  if (dr !== 0 && dc !== 0) {
+    // Diagonal — pick dominant axis
+    if (Math.abs(dr) >= Math.abs(dc)) {
+      return { dir: dr < 0 ? 'up' : 'down', steps: Math.abs(dr) };
+    } else {
+      return { dir: dc < 0 ? 'left' : 'right', steps: Math.abs(dc) };
+    }
+  }
+  if (dr === 0 && dc === 0) return null;
+  if (dr !== 0) return { dir: dr < 0 ? 'up' : 'down',  steps: Math.abs(dr) };
+  return { dir: dc < 0 ? 'left' : 'right', steps: Math.abs(dc) };
+}
+
+function undoSegment() {
+  segments.pop();
+  renderPath();
+}
+
+function deleteSegment(i) {
+  segments.splice(i, 1);
+  renderPath();
+}
+
+function clearPath() {
+  startCell = null; segments = []; mode = 'idle'; renderPath();
+}
+
+// ── Grid size ───────────────────────────────────────────────────────────────
+function applyGridSize() {
+  rows = parseInt(document.getElementById('inp-rows').value) || 12;
+  cols = parseInt(document.getElementById('inp-cols').value) || 12;
+  buildGrid();
+}
+
+// ── Load existing template ──────────────────────────────────────────────────
+function populateLoadSelect() {
+  const sel = document.getElementById('load-select');
+  for (const [len, tmps] of Object.entries(TEMPLATES)) {
+    for (const t of tmps) {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({ ...t, _len: len });
+      opt.textContent = `${len}: ${t.name}`;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+function loadTemplate(val) {
+  if (!val) return;
+  const { _len, ...t } = JSON.parse(val);
+  if (_len) document.getElementById('inp-length').value = _len;
+  // Detect grid size from template or use defaults
+  rows = t.gridRows ?? 12; cols = t.gridCols ?? 12;
+  document.getElementById('inp-rows').value = rows;
+  document.getElementById('inp-cols').value = cols;
+  document.getElementById('inp-name').value = t.name;
+  buildGrid();
+  startCell = [...t.start];
+  segments  = t.segments.map(s => [...s]);
+  renderPath();
+  document.getElementById('load-select').value = '';
+}
+
+// ── JSON output ─────────────────────────────────────────────────────────────
+function generateOutput() {
+  if (!startCell) { alert('Set a start cell first.'); return; }
+  if (!segments.length) { alert('Draw at least one segment.'); return; }
+  const name = document.getElementById('inp-name').value || 'Custom';
+  const obj = { name, start: startCell, segments };
+  // Only add gridRows/gridCols if non-default
+  if (rows !== 12) obj.gridRows = rows;
+  if (cols !== 12) obj.gridCols = cols;
+
+  // Pretty-format as it appears in config.js
+  const segs = segments.map(([d,s]) => `['${d}',${s}]`).join(',');
+  const startStr = `[${startCell[0]},${startCell[1]}]`;
+  let extra = '';
+  if (rows !== 12) extra += `, gridRows: ${rows}`;
+  if (cols !== 12) extra += `, gridCols: ${cols}`;
+  const out = `{ name: '${name}', start: ${startStr}${extra}, segments: [${segs}] }`;
+  document.getElementById('output-textarea').value = out;
+}
+
+function copyOutput() {
+  const ta = document.getElementById('output-textarea');
+  if (!ta.value) { generateOutput(); }
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// ── Length change ───────────────────────────────────────────────────────────
+document.getElementById('inp-length').addEventListener('change', () => updateStats(computePathCells(), computeViolations(computePathCells())));
+
+// ── Init ────────────────────────────────────────────────────────────────────
+populateLoadSelect();
+buildGrid();
+</script>
+</body>
+</html>
