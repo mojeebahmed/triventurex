@@ -31,16 +31,9 @@ A family/group board game engine where players roll dice, move along a path, and
 
 Open `index.html` in any modern browser. No server or build step needed.
 
-For background/landmark images and CSV content to load, run a local server:
-
-```bash
-python3 -m http.server 8080
-# then open http://localhost:8080
-```
-
 Without the server, the game runs from `file://` using the JS fallback data — fully playable, just without CSV hot-reloading.
 
-### V2 — Local network multiplayer ✅ Live
+### V2 — Local network multiplayer (server)
 
 ```bash
 npm install
