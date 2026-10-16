@@ -53,23 +53,7 @@ function _renderActivityList() {
   ).join('');
 }
 
-// ── CSS die rendering ─────────────────────────────────────────────────────────
-
-function renderDie(n, sizeClass = '') {
-  const layouts = {
-    1: [[50,50]],
-    2: [[30,30],[70,70]],
-    3: [[30,30],[50,50],[70,70]],
-    4: [[30,30],[70,30],[30,70],[70,70]],
-    5: [[30,30],[70,30],[50,50],[30,70],[70,70]],
-    6: [[30,30],[70,30],[30,50],[70,50],[30,70],[70,70]],
-  };
-  const dots = layouts[n] || layouts[1];
-  const cls  = sizeClass ? `die-face ${sizeClass}` : 'die-face';
-  return `<div class="${cls}">${dots.map(([x,y]) =>
-    `<span class="die-dot" style="left:${x}%;top:${y}%"></span>`
-  ).join('')}</div>`;
-}
+// renderDie() comes from js/shared/dice.js (loaded before this file)
 
 // ── Action box ────────────────────────────────────────────────────────────────
 
@@ -526,8 +510,14 @@ TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) =>
   _addActivity('📊', `<strong>${esc(name)}</strong>: ${summary}`);
 });
 
-TX_NET.on('host_left', () => {
+TX_NET.on('host_left', ({ msg } = {}) => {
+  if (msg) document.getElementById('host-left-msg').textContent = msg;
   document.getElementById('host-left-overlay').classList.add('visible');
+});
+
+// Host refreshed / reconnected — the game carries on
+TX_NET.on('host_back', () => {
+  document.getElementById('host-left-overlay').classList.remove('visible');
 });
 
 TX_NET.on('player_disconnected', ({ playerId, playerName }) => {

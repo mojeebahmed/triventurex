@@ -25,6 +25,13 @@ const io     = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
+// How long a room is kept once nobody needs it any more (A5). Env overrides
+// are for tests / unusual setups; the defaults suit a home game night.
+const ROOM_TTL = {
+  hostGoneMs: Number(process.env.TX_ROOM_HOST_GONE_MS) || 30 * 60 * 1000, // host disconnected, not back
+  endedMs:    Number(process.env.TX_ROOM_ENDED_MS)     ||  5 * 60 * 1000, // game over — phones still show results
+};
+
 // ── Static file serving ───────────────────────────────────────────────────────
 // Allowlist: only the files the host and player pages need. Everything else in
 // the project folder (server.js, docs, package.json, node_modules, test/) is
@@ -99,6 +106,32 @@ function removeFromRoom(room, idx) {
   const [removed] = room.players.splice(idx, 1);
   room.currentPlayerIndex = indexAfterRemoval(room.currentPlayerIndex, idx, room.players.length);
   return removed;
+}
+
+// ── Room lifecycle ─────────────────────────────────────────────────────────────
+// Rooms are deleted: immediately when the host closes the game (close_room),
+// ROOM_TTL.endedMs after the game ends, or ROOM_TTL.hostGoneMs after the host
+// disconnects without coming back. A host rejoin cancels the countdown.
+
+function scheduleRoomExpiry(room, ms, reason) {
+  clearTimeout(room.expiryTimer);
+  room.expiryTimer = setTimeout(() => closeRoom(room.gameId, reason), ms);
+  room.expiryTimer.unref?.(); // never keep the process alive just for this
+}
+
+function cancelRoomExpiry(room) {
+  clearTimeout(room.expiryTimer);
+  room.expiryTimer = null;
+}
+
+/** Delete a room and take every socket out of it. Rejoins then get rejoin_failed. */
+function closeRoom(gameId, reason) {
+  const room = rooms.get(gameId);
+  if (!room) return;
+  clearTimeout(room.expiryTimer);
+  rooms.delete(gameId);
+  io.in(gameId).socketsLeave(gameId);
+  console.log(`[room]       closed gameId=${gameId} (${reason})`);
 }
 
 /**
@@ -316,6 +349,7 @@ io.on('connection', (socket) => {
     if (turnPhase)                        room.turnPhase          = turnPhase;
     if (finishCount !== undefined)        room.finishCount        = finishCount;
     if (phase)                            room.phase              = phase;
+    if (phase === 'ended') scheduleRoomExpiry(room, ROOM_TTL.endedMs, 'game ended');
 
     // Broadcast the merged state to all clients EXCEPT the host
     socket.to(gameId).emit('state_update', publicState(room));
@@ -376,6 +410,11 @@ io.on('connection', (socket) => {
     socket.data.gameId  = gameId;
     socket.data.isHost  = true;
 
+    // Host is back: stop the "host gone" countdown (an ended game keeps its own)
+    cancelRoomExpiry(room);
+    if (room.phase === 'ended') scheduleRoomExpiry(room, ROOM_TTL.endedMs, 'game ended');
+    socket.to(gameId).emit('host_back');
+
     // A playing host is also a player — reconnect that entry too
     const hostPlayer = room.players.find(p => p.id === room.hostPlayerId);
     if (hostPlayer) {
@@ -399,6 +438,14 @@ io.on('connection', (socket) => {
       io.to(room.gameId).emit('player_removed', { playerId: player.id, players: publicPlayers(room.players) });
       console.log(`[leave_game] ${player.name} left ${room.gameId}`);
     }
+  });
+
+  // ── close_room — host ended the game / cancelled the lobby ─────────────────
+  socket.on('close_room', ({ gameId }) => {
+    const room = rooms.get(gameId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    socket.to(gameId).emit('host_left', { msg: 'The host has ended the game.' });
+    closeRoom(gameId, 'closed by host');
   });
 
   // ── Host → players relays (turn outcome, space card) ──────────────────────
@@ -428,7 +475,8 @@ io.on('connection', (socket) => {
       const isHost = room.hostSocketId === socket.id;
       if (isHost) {
         console.log(`[disconnect] HOST disconnected gameId=${gameId}`);
-        io.to(gameId).emit('host_left', { msg: 'The host has left the game.' });
+        io.to(gameId).emit('host_left', { msg: 'The host disconnected. The game continues if they come back.' });
+        scheduleRoomExpiry(room, ROOM_TTL.hostGoneMs, 'host gone');
       }
 
       const player = room.players.find(p => p.socketId === socket.id);
@@ -449,7 +497,7 @@ io.on('connection', (socket) => {
 // ── Start server ──────────────────────────────────────────────────────────────
 // Only listen when run directly (`node server.js`). Tests require() this file
 // and start it themselves on a random port.
-module.exports = { server, io, rooms };
+module.exports = { server, io, rooms, ROOM_TTL };
 
 if (require.main === module) server.listen(PORT, () => {
   const localIP = getLocalIP();

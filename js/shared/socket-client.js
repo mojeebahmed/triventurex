@@ -23,7 +23,7 @@ const TX_NET = (() => {
       'game_started', 'roll_result', 'state_update',
       'player_disconnected', 'player_removed', 'error',
       'space_card', 'space_card_done',
-      'rejoined', 'rejoin_failed', 'host_rejoined', 'player_reconnected', 'host_left', 'turn_result',
+      'rejoined', 'rejoin_failed', 'host_rejoined', 'player_reconnected', 'host_left', 'host_back', 'turn_result',
     ];
     events.forEach(ev => _socket.on(ev, data => _trigger(ev, data)));
     return true;
@@ -43,6 +43,7 @@ const TX_NET = (() => {
   function leaveGame(gameId) { _socket?.emit('leave_game', { gameId: gameId || _gameId }); }
   function rejoinGame(gameId, playerId, token) { _socket?.emit('rejoin_game', { gameId, playerId, rejoinToken: token }); }
   function hostRejoin(gameId) { _socket?.emit('host_rejoin', { gameId }); }
+  function closeRoom(gameId) { _socket?.emit('close_room', { gameId }); }
 
   function setGameId(id)   { _gameId = id; }
   function setPlayerId(id) { _playerId = id; }
@@ -55,7 +56,7 @@ const TX_NET = (() => {
     on, connect,
     hostGame, joinGame, startGame, requestRoll, manualRoll, syncState,
     removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
-    rejoinGame, hostRejoin,
+    rejoinGame, hostRejoin, closeRoom,
     setGameId, setPlayerId, getGameId, getPlayerId,
     isHostMode, isConnected,
   };

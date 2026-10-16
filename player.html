@@ -625,13 +625,14 @@
   <div id="host-left-overlay">
     <div class="host-left-card">
       <h2>🚪 Host Left</h2>
-      <p>The host has ended the session.</p>
+      <p id="host-left-msg">The host has ended the session.</p>
       <button class="btn btn-primary btn-full" onclick="leaveAndReset()">Back to Join</button>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/shared/utils.js"></script>
+  <script src="js/shared/dice.js"></script>
   <script src="js/shared/socket-client.js"></script>
   <script src="js/player/player.js"></script>
 </body>

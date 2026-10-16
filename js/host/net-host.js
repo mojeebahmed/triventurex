@@ -53,6 +53,7 @@ function startNetworkGame() {
 }
 
 function cancelLobby() {
+  if (_networkGameId) TX_NET.closeRoom(_networkGameId); // phones see "host ended the game"
   _pendingNetworkSetup = null;
   _networkGameId       = null;
   _lobbyPlayers        = [];

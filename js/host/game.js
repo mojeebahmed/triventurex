@@ -199,6 +199,7 @@ function resetToSetup() {
   _bgBounds = null;
   if (_bgProbe) { _bgProbe.onload = null; _bgProbe.onerror = null; _bgProbe = null; }
   try { localStorage.removeItem('tx_net_game'); } catch {}
+  if (_isNetworkGame && _networkGameId) TX_NET.closeRoom(_networkGameId); // done with this room
   _isNetworkGame = false;
   _networkGameId = null;
   state = {

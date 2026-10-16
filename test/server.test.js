@@ -10,7 +10,7 @@ const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { io: Client } = require('socket.io-client');
 
-let server, io, rooms, url;
+let server, io, rooms, ROOM_TTL, url;
 const clients = [];
 let _origLog;
 
@@ -79,7 +79,7 @@ function hostView(room) {
 before(async () => {
   _origLog = console.log;
   console.log = () => {};              // server logs every event — keep output clean
-  ({ server, io, rooms } = require('../server.js'));
+  ({ server, io, rooms, ROOM_TTL } = require('../server.js'));
   await new Promise(r => server.listen(0, r));
   url = `http://localhost:${server.address().port}`;
 });
@@ -401,6 +401,72 @@ describe('state ownership', () => {
     const hp = room.players.find(p => p.id === room.hostPlayerId);
     assert.equal(hp.disconnected, false);
     assert.equal(hp.socketId, newHost.id);
+  });
+});
+
+// ── Room lifecycle (A5) ───────────────────────────────────────────────────────
+
+describe('room lifecycle', () => {
+  let saved;
+  before(() => { saved = { ...ROOM_TTL }; ROOM_TTL.hostGoneMs = 150; ROOM_TTL.endedMs = 100; });
+  after(() => Object.assign(ROOM_TTL, saved));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  it('close_room from the host deletes the room and tells phones', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 1 });
+    const notice = once(players[0].socket, 'host_left');
+    host.emit('close_room', { gameId });
+    assert.match((await notice).msg, /ended the game/);
+    assert.equal(rooms.has(gameId), false);
+
+    const fresh = await connect();
+    fresh.emit('rejoin_game', { gameId, playerId: players[0].id, rejoinToken: players[0].token });
+    await once(fresh, 'rejoin_failed');
+  });
+
+  it('ignores close_room from a phone', async () => {
+    const { gameId, players } = await setupGame({ phones: 1 });
+    players[0].socket.emit('close_room', { gameId });
+    await settle();
+    assert.equal(rooms.has(gameId), true);
+  });
+
+  it('deletes the room a while after the game ends', async () => {
+    const { host, gameId } = await setupGame({ phones: 1 });
+    host.emit('sync_state', { gameId, phase: 'ended' });
+    await settle(30);
+    assert.equal(rooms.has(gameId), true, 'kept for the results screen');
+    await wait(150);
+    assert.equal(rooms.has(gameId), false);
+  });
+
+  it('deletes the room when the host stays away', async () => {
+    const { host, gameId } = await setupGame({ phones: 1 });
+    host.disconnect();
+    await settle(30);
+    assert.equal(rooms.has(gameId), true);
+    await wait(200);
+    assert.equal(rooms.has(gameId), false);
+  });
+
+  it('keeps the room when the host comes back in time, and tells phones', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 1 });
+    host.disconnect();
+    await settle(30);
+    const back = once(players[0].socket, 'host_back');
+    const newHost = await connect();
+    newHost.emit('host_rejoin', { gameId });
+    await once(newHost, 'host_rejoined');
+    await back;
+    await wait(250); // well past hostGoneMs
+    assert.equal(rooms.has(gameId), true);
+  });
+
+  it('tells phones the host only disconnected (not ended)', async () => {
+    const { host, players } = await setupGame({ phones: 1 });
+    const notice = once(players[0].socket, 'host_left');
+    host.disconnect();
+    assert.match((await notice).msg, /disconnected/);
   });
 });
 
