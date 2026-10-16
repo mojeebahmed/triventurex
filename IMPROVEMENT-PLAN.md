@@ -41,6 +41,18 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Fix:** Call `refreshUI()`, `saveGame()`, `_syncStateToServer()` before returning.
   - **Verify:** Land on an `extra_turn` deed from a phone → phone returns to dice mode.
 
+- [ ] **B15 — Host refresh mid-turn leaves the turn stuck** _(found while fixing B1)_
+  - **Where:** `js/game.js` `saveGame()`, `_restoreGame()`, `host_rejoined` handler
+  - **Problem:** `_pendingHistory` was null after restore, so `afterSpaceResolved()` bailed and the turn never ended; undo snapshot lost; finish-space modal not reopened. Also `host_rejoin` was only sent on socket `connect`, which has usually already fired before Resume is clicked.
+  - **Fix:** Save a serialisable `pendingTurn` (roll, posBefore, scoreBefore, snapshot); restore it via `_beginTurn()`; rejoin immediately if already connected; host syncs state after `host_rejoined`.
+
+- [ ] **B16 — Phone roll ignored "skip next turn"** _(found while fixing B1)_
+  - **Fix:** `roll_result` from a phone routes to `_handleSkippedTurn()`. The skip snapshot is now taken before the flag is cleared, so undo re-arms the skip.
+
+- [ ] **B17 — Phones never told the game ended**
+  - **Where:** `state.phase` never became `'ended'`.
+  - **Fix:** `_endGame()` sets `phase='ended'` and syncs; used by `afterSpaceResolved()` and `endTurn()`.
+
 - [ ] **B5 — Removing a player can skip a turn**
   - **Where:** `server.js` `remove_player` / `leave_game`; `js/game.js` `player_removed` handler (~L1046)
   - **Problem:** If the removed player's index < `currentPlayerIndex`, the index isn't decremented.

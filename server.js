@@ -204,6 +204,17 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // A phone may only roll at the start of a turn — blocks double-taps and
+    // late rolls from starting a second, concurrent turn. The host is the
+    // game authority and has already checked its own turnPhase, so it is
+    // always allowed (also avoids a stuck host if this flag is ever stale).
+    if (!isHost && room.turnPhase !== 'roll') {
+      socket.emit('error', { message: 'Turn already in progress.' });
+      return;
+    }
+    // Host's next sync_state (end of turn / undo) sets this back to 'roll'
+    room.turnPhase = 'resolving';
+
     const roll = rollDie();
     console.log(`[roll]       gameId=${gameId} result=${roll} player=${currentPlayer?.name}`);
     io.to(gameId).emit('roll_result', { roll, playerId: currentPlayer?.id });
@@ -217,6 +228,7 @@ io.on('connection', (socket) => {
     if (!room) { socket.emit('error', { message: 'Game not found.' }); return; }
     if (socket.id !== room.hostSocketId) { socket.emit('error', { message: 'Only the host can set a manual roll.' }); return; }
     const n = Math.min(6, Math.max(1, parseInt(roll, 10) || 1));
+    room.turnPhase = 'resolving'; // phones can't roll while the host resolves this turn
     const currentPlayer = room.players[room.currentPlayerIndex];
     console.log(`[manual_roll] gameId=${gameId} result=${n} player=${currentPlayer?.name}`);
     socket.to(gameId).emit('roll_result', { roll: n, playerId: currentPlayer?.id });
