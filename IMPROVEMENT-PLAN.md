@@ -89,11 +89,11 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ### 1c. Engine/edition leaks & finish logic
 
-- [ ] **B11 — Edition text and score values hardcoded in engine**
+- [x] **B11 — Edition text and score values hardcoded in engine**
   - **Where:** `js/ui.js` landmark modal (~L131: "Holy Site", literal `5`), action modal (~L104 "+1"), question choice (~L271 "+1"), guesser modal (~L593 "+1"); stale comment in `js/config.js` `SCORE_VALUES`
   - **Fix:** Use `CONFIG.SCORE_VALUES.*` everywhere; move landmark fallback title to `CONFIG.GAME` (edition-overridable).
 
-- [ ] **B12 — Finishing via deed/GM move gives no bonus or finish order**
+- [x] **B12 — Finishing via deed/GM move gives no bonus or finish order**
   - **Where:** bonus only awarded in `_processRoll()` (~L1389)
   - **Fix:** Move finish-order/bonus into a single `_checkFinish(player)` called after any movement (roll, deed, GM).
   - **Done as:** `_recordFinish(player)`; deed/GM finishes show a toast; a GM move that finishes the last player ends the game. B11 also: landmark/action modal icons from `SPACE_INFO`, editions can override `SCORE_VALUES` / `FINISH_BONUS`, removed "ptss" pluralisation.
