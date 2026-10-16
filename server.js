@@ -1,8 +1,15 @@
 /**
  * server.js
  * Triventurex V2 — Express + Socket.IO game server.
- * Serves all static files from the project root.
- * Manages game rooms and authoritative dice rolling.
+ * Serves the client files, manages game rooms and rolls the dice.
+ *
+ * STATE OWNERSHIP
+ *  - The HOST (js/game.js) owns all game state: positions, scores, turn order,
+ *    finish order, sitting out. It pushes it here with `sync_state`; the
+ *    server stores it only to answer late joiners / rejoins and to validate rolls.
+ *  - The SERVER owns connection state: socketId, rejoinToken, `disconnected`,
+ *    room membership, plus dice rolls. `sync_state` never overwrites these.
+ *  - Server-only fields (SERVER_ONLY_FIELDS) are never sent to any client.
  */
 
 const express   = require('express');
@@ -10,6 +17,7 @@ const http      = require('http');
 const { Server } = require('socket.io');
 const path      = require('path');
 const os        = require('os');
+const { indexAfterRemoval } = require('./js/turn.js'); // shared with the host
 
 const app    = express();
 const server = http.createServer(app);
@@ -63,13 +71,34 @@ function cleanProfile({ name, token, color } = {}, fallbackName) {
   };
 }
 
-/**
- * Keep currentPlayerIndex pointing at the same player after the player at
- * `removedIdx` has been spliced out of room.players.
- */
-function _adjustIndexAfterRemoval(room, removedIdx) {
-  if (removedIdx < room.currentPlayerIndex) room.currentPlayerIndex--;
-  if (room.currentPlayerIndex >= room.players.length) room.currentPlayerIndex = 0;
+// Fields that exist only on the server — stripped from everything sent out.
+// rejoinToken in particular lets whoever holds it take over that player's seat.
+const SERVER_ONLY_FIELDS = ['socketId', 'rejoinToken', 'awaitingHostSync'];
+
+/** A player as clients may see it (no server-only fields). */
+function publicPlayer(p) {
+  const out = { ...p };
+  for (const f of SERVER_ONLY_FIELDS) delete out[f];
+  return out;
+}
+const publicPlayers = players => players.map(publicPlayer);
+
+/** The state slice clients receive in state_update / rejoined. */
+function publicState(room) {
+  return {
+    playerStates:       publicPlayers(room.players),
+    currentPlayerIndex: room.currentPlayerIndex,
+    turnPhase:          room.turnPhase,
+    finishCount:        room.finishCount,
+    phase:              room.phase,
+  };
+}
+
+/** Take a player out of the room, keeping currentPlayerIndex on the same player. */
+function removeFromRoom(room, idx) {
+  const [removed] = room.players.splice(idx, 1);
+  room.currentPlayerIndex = indexAfterRemoval(room.currentPlayerIndex, idx, room.players.length);
+  return removed;
 }
 
 /**
@@ -118,6 +147,7 @@ io.on('connection', (socket) => {
     const room = {
       gameId,
       hostSocketId: socket.id,
+      hostPlayerId: players[0]?.id ?? null,   // host's own player entry (if playing)
       isGMOnly,
       editionId,
       gameLength,
@@ -168,6 +198,9 @@ io.on('connection', (socket) => {
 
     const rejoinToken = Math.random().toString(36).slice(2, 10);
     player.rejoinToken = rejoinToken;
+    // Until a host sync includes this player, a sync with an older player list
+    // must not drop them (they joined after the host built that list)
+    player.awaitingHostSync = true;
 
     room.players.push(player);
     socket.join(gameId);
@@ -178,25 +211,17 @@ io.on('connection', (socket) => {
       gameId,
       playerId,
       phase:       room.phase,
-      players:     room.players,
-      rejoinToken,
+      players:     publicPlayers(room.players),
+      rejoinToken,                              // only ever sent to its owner
     });
 
     io.to(gameId).emit('player_joined', {
-      player,
-      players: room.players,
+      player:  publicPlayer(player),
+      players: publicPlayers(room.players),
     });
 
     // If game already started, send current state immediately
-    if (room.phase === 'playing') {
-      socket.emit('state_update', {
-        playerStates:       room.players,
-        currentPlayerIndex: room.currentPlayerIndex,
-        turnPhase:          room.turnPhase,
-        finishCount:        room.finishCount,
-        phase:              room.phase,
-      });
-    }
+    if (room.phase === 'playing') socket.emit('state_update', publicState(room));
 
     console.log(`[join_game]  playerId=${playerId} joined gameId=${gameId} total=${room.players.length}`);
   });
@@ -210,7 +235,7 @@ io.on('connection', (socket) => {
     if (socket.id !== room.hostSocketId) { socket.emit('error', { message: 'Only the host can start.' }); return; }
 
     room.phase = 'playing';
-    io.to(gameId).emit('game_started', { players: room.players });
+    io.to(gameId).emit('game_started', { players: publicPlayers(room.players) });
     console.log(`[start_game] gameId=${gameId} started with ${room.players.length} players`);
   });
 
@@ -269,24 +294,31 @@ io.on('connection', (socket) => {
     if (!room) return;
     if (socket.id !== room.hostSocketId) return; // only host can sync
 
-    // Update server-side room state
-    if (playerStates)          room.players = playerStates.map(ps => {
-      const existing = room.players.find(rp => rp.id === ps.id);
-      return { ...ps, socketId: existing?.socketId || null, rejoinToken: existing?.rejoinToken || null };
-    });
+    if (playerStates) {
+      // Game fields come from the host; connection fields stay the server's
+      const hostIds = new Set(playerStates.map(ps => ps.id));
+      const synced = playerStates.map(ps => {
+        const existing = room.players.find(rp => rp.id === ps.id);
+        return {
+          ...ps,
+          socketId:         existing?.socketId    ?? null,
+          rejoinToken:      existing?.rejoinToken ?? null,
+          disconnected:     existing?.disconnected ?? false,
+          awaitingHostSync: false,
+        };
+      });
+      // Joined after the host built this list — keep them; the host's
+      // player_joined handler will include them in its next sync
+      const unseen = room.players.filter(rp => rp.awaitingHostSync && !hostIds.has(rp.id));
+      room.players = [...synced, ...unseen];
+    }
     if (currentPlayerIndex !== undefined) room.currentPlayerIndex = currentPlayerIndex;
-    if (turnPhase)             room.turnPhase            = turnPhase;
+    if (turnPhase)                        room.turnPhase          = turnPhase;
     if (finishCount !== undefined)        room.finishCount        = finishCount;
-    if (phase)                 room.phase                = phase;
+    if (phase)                            room.phase              = phase;
 
-    // Broadcast to all clients EXCEPT the host
-    socket.to(gameId).emit('state_update', {
-      playerStates,
-      currentPlayerIndex,
-      turnPhase,
-      finishCount,
-      phase,
-    });
+    // Broadcast the merged state to all clients EXCEPT the host
+    socket.to(gameId).emit('state_update', publicState(room));
   });
 
   // ── remove_player ──────────────────────────────────────────────────────────
@@ -299,16 +331,12 @@ io.on('connection', (socket) => {
 
     const idx = room.players.findIndex(p => p.id === playerId);
     if (idx !== -1) {
-      room.players.splice(idx, 1);
-      _adjustIndexAfterRemoval(room, idx);
+      const removed = removeFromRoom(room, idx);
+      // Tell everyone (incl. the removed phone), then stop sending that phone
+      // room broadcasts. No state_update here — the host owns turn order and
+      // syncs the result itself (see player_removed in game.js).
       io.to(gameId).emit('player_removed', { playerId });
-      io.to(gameId).emit('state_update', {
-        playerStates:        room.players,
-        currentPlayerIndex:  room.currentPlayerIndex,
-        turnPhase:           room.turnPhase,
-        finishCount:         room.finishCount,
-        phase:               room.phase,
-      });
+      io.sockets.sockets.get(removed.socketId)?.leave(gameId);
     }
   });
 
@@ -330,12 +358,8 @@ io.on('connection', (socket) => {
     socket.emit('rejoined', {
       gameId,
       playerId,
-      phase:              room.phase,
-      players:            room.players,
-      playerStates:       room.players,
-      currentPlayerIndex: room.currentPlayerIndex,
-      turnPhase:          room.turnPhase,
-      finishCount:        room.finishCount,
+      players: publicPlayers(room.players),
+      ...publicState(room),
     });
 
     // Notify others that player reconnected
@@ -351,7 +375,15 @@ io.on('connection', (socket) => {
     socket.join(gameId);
     socket.data.gameId  = gameId;
     socket.data.isHost  = true;
-    socket.emit('host_rejoined', { gameId, players: room.players, phase: room.phase });
+
+    // A playing host is also a player — reconnect that entry too
+    const hostPlayer = room.players.find(p => p.id === room.hostPlayerId);
+    if (hostPlayer) {
+      hostPlayer.socketId     = socket.id;
+      hostPlayer.disconnected = false;
+      socket.to(gameId).emit('player_reconnected', { playerId: hostPlayer.id, playerName: hostPlayer.name });
+    }
+    socket.emit('host_rejoined', { gameId, players: publicPlayers(room.players), phase: room.phase });
     console.log(`[host_rejoin] host rejoined gameId=${gameId}`);
   });
 
@@ -362,26 +394,28 @@ io.on('connection', (socket) => {
     const idx = room.players.findIndex(p => p.socketId === socket.id);
     const player = room.players[idx];
     if (player) {
-      room.players.splice(idx, 1);
-      _adjustIndexAfterRemoval(room, idx);
+      removeFromRoom(room, idx);
       socket.leave(room.gameId);
-      io.to(room.gameId).emit('player_removed', { playerId: player.id, players: room.players });
+      io.to(room.gameId).emit('player_removed', { playerId: player.id, players: publicPlayers(room.players) });
       console.log(`[leave_game] ${player.name} left ${room.gameId}`);
     }
   });
 
-  // ── turn_result — relay outcome from host to players ──────────────────────
+  // ── Host → players relays (turn outcome, space card) ──────────────────────
+  // Only the host may send these — otherwise any phone could fake a card or
+  // an activity-feed entry on everyone else's screen.
+  const fromHost = gameId => rooms.get(gameId)?.hostSocketId === socket.id;
+
   socket.on('turn_result', ({ gameId, ...data }) => {
-    socket.to(gameId).emit('turn_result', data);
+    if (fromHost(gameId)) socket.to(gameId).emit('turn_result', data);
   });
 
-  // ── space_card / space_card_done — relay from host to all players ──────────
   socket.on('space_card', ({ gameId, ...cardData }) => {
-    socket.to(gameId).emit('space_card', cardData);
+    if (fromHost(gameId)) socket.to(gameId).emit('space_card', cardData);
   });
 
   socket.on('space_card_done', ({ gameId }) => {
-    socket.to(gameId).emit('space_card_done');
+    if (fromHost(gameId)) socket.to(gameId).emit('space_card_done');
   });
 
   // ── disconnect ─────────────────────────────────────────────────────────────

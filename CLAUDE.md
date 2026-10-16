@@ -108,7 +108,11 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **Authority**: Host (`game.js`) runs all game logic; server relays state via `sync_state` → `state_update`
 - **Dice**: server rolls (authoritative); player taps → `roll` event → server generates → broadcasts `roll_result`
 - **Game ID**: 4-digit numeric, unique among active rooms; easy to type on a phone
-- **sync_state MUST preserve server-only fields**: `rejoinToken` and `socketId` come from the server's existing `room.players` — never overwrite them with the host's `playerStates`
+- **State ownership (A3)**: HOST owns game state (positions, scores, turn order, finish order, sitting out) and pushes it with `sync_state`. SERVER owns connection state (`socketId`, `rejoinToken`, `disconnected`, room membership) + dice; `sync_state` never overwrites these. Rules are written at the top of server.js
+- **Server-only fields never leave the server**: `SERVER_ONLY_FIELDS` (`socketId`, `rejoinToken`, `awaitingHostSync`) are stripped by `publicPlayer(s)()` / `publicState()` from every emit. A player's own `rejoinToken` is only sent once, in its `joined` reply
+- **Late joiners survive syncs**: a joiner is `awaitingHostSync` until a host sync includes them; a sync with an older list keeps them. The host's `player_joined` handler adds them + syncs. A player the host has synced before and then leaves out IS dropped (host authority)
+- **Host → phone relays** (`turn_result`, `space_card`, `space_card_done`) are accepted from the host socket only
+- **remove_player** on the server only changes membership (+ removed socket leaves the room); it sends no `state_update` — the host's `player_removed` handler syncs the result
 - **Token-based rejoin**: each player gets a `rejoinToken` on join; saved to `triventurex_game_session`; used to re-register the socket on any reconnect (page refresh OR phone screen wake)
 - **Mid-session reconnect**: `connect` handler in player.js checks `_myId` + `_gameId`; if set, loads session and calls `rejoinGame()` automatically — no page refresh needed
 - **Host rejoin**: `tx_net_game` localStorage key saves the host's gameId; on refresh, `_pendingHostRejoin` triggers `host_rejoin` event to re-register host socket

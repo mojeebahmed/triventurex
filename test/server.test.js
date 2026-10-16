@@ -71,7 +71,7 @@ async function setupGame({ phones = 2, hostPlays = false, start = true } = {}) {
 
 /** Player states as the host sends them — no server-only fields. */
 function hostView(room) {
-  return room.players.map(({ socketId, rejoinToken, ...rest }) => rest);
+  return room.players.map(({ socketId, rejoinToken, awaitingHostSync, ...rest }) => rest);
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -240,11 +240,30 @@ describe('removing players', () => {
 
   it('keeps the turn on the same player when an earlier player is removed', async () => {
     const { host, gameId, players, room } = await threePlayersOnTurnOf(2);
-    const update = once(players[2].socket, 'state_update');
+    const removed = once(players[2].socket, 'player_removed');
     host.emit('remove_player', { gameId, playerId: players[0].id });
-    const state = await update;
-    assert.equal(state.playerStates[state.currentPlayerIndex].id, players[2].id);
+    assert.equal((await removed).playerId, players[0].id);
     assert.equal(room.players[room.currentPlayerIndex].id, players[2].id);
+  });
+
+  it('sends no server-computed state_update on removal (host syncs the result)', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 3 });
+    const updates = collect(players[2].socket, 'state_update');
+    host.emit('remove_player', { gameId, playerId: players[0].id });
+    await settle();
+    assert.equal(updates.length, 0);
+  });
+
+  it('stops sending room broadcasts to the removed phone', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 2 });
+    const gone = players[0].socket;
+    const notice = once(gone, 'player_removed');
+    host.emit('remove_player', { gameId, playerId: players[0].id });
+    await notice;
+    const later = collect(gone, 'state_update');
+    host.emit('sync_state', { gameId, playerStates: hostView(room) });
+    await settle();
+    assert.equal(later.length, 0);
   });
 
   it('does not move the turn when a later player is removed', async () => {
@@ -275,6 +294,113 @@ describe('removing players', () => {
     players[0].socket.emit('remove_player', { gameId, playerId: players[1].id });
     await settle();
     assert.equal(room.players.length, 2);
+  });
+});
+
+// ── State ownership (A3) ──────────────────────────────────────────────────────
+
+const SERVER_ONLY = ['socketId', 'rejoinToken', 'awaitingHostSync'];
+function assertNoServerOnly(list, where) {
+  for (const p of list) for (const f of SERVER_ONLY) {
+    assert.equal(f in p, false, `${where}: player ${p.id} exposes ${f}`);
+  }
+}
+
+describe('state ownership', () => {
+  it('never sends server-only fields (rejoin tokens!) to clients', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 2, start: false });
+    const late = await connect();
+    const joined   = once(late, 'joined');
+    const announce = once(players[0].socket, 'player_joined');
+    late.emit('join_game', { gameId, playerName: 'Late' });
+    const j = await joined, a = await announce;
+    assertNoServerOnly(j.players, 'joined');
+    assertNoServerOnly(a.players, 'player_joined.players');
+    assertNoServerOnly([a.player], 'player_joined.player');
+    assert.ok(j.rejoinToken, 'the joiner still gets its OWN token');
+
+    const started = once(players[0].socket, 'game_started');
+    host.emit('start_game', { gameId });
+    assertNoServerOnly((await started).players, 'game_started');
+
+    const update = once(players[0].socket, 'state_update');
+    host.emit('sync_state', { gameId, playerStates: hostView(room) });
+    assertNoServerOnly((await update).playerStates, 'state_update');
+
+    const fresh = await connect();
+    fresh.emit('rejoin_game', { gameId, playerId: players[1].id, rejoinToken: players[1].token });
+    const r = await once(fresh, 'rejoined');
+    assertNoServerOnly(r.players, 'rejoined.players');
+    assertNoServerOnly(r.playerStates, 'rejoined.playerStates');
+  });
+
+  it('keeps the server’s connection state when the host syncs', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 2 });
+    // Host still thinks P0 is disconnected (stale) — server knows it is connected
+    const stale = hostView(room).map(p => ({ ...p, disconnected: p.id === players[0].id }));
+    const update = once(players[1].socket, 'state_update');
+    host.emit('sync_state', { gameId, playerStates: stale });
+    const st = await update;
+    assert.equal(st.playerStates.find(p => p.id === players[0].id).disconnected, false);
+    assert.equal(room.players.find(p => p.id === players[0].id).disconnected, false);
+  });
+
+  it('does not drop a player who joined after the host built its list', async () => {
+    const { host, gameId, room } = await setupGame({ phones: 2 });
+    host.emit('sync_state', { gameId, playerStates: hostView(room) });
+    await settle();
+    const hostsList = hostView(room);                       // host's view: 2 players
+
+    const late = await connect();
+    late.emit('join_game', { gameId, playerName: 'Late' });
+    const { playerId, rejoinToken } = await once(late, 'joined');
+
+    host.emit('sync_state', { gameId, playerStates: hostsList }); // older list
+    await settle();
+    const kept = room.players.find(p => p.id === playerId);
+    assert.ok(kept, 'late joiner kept');
+    assert.equal(kept.rejoinToken, rejoinToken);
+  });
+
+  it('drops a player the host has synced before and now leaves out', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 3 });
+    host.emit('sync_state', { gameId, playerStates: hostView(room) });
+    await settle();
+    host.emit('sync_state', { gameId, playerStates: hostView(room).filter(p => p.id !== players[1].id) });
+    await settle();
+    assert.deepEqual(room.players.map(p => p.id), [players[0].id, players[2].id]);
+  });
+
+  it('relays turn_result / space_card / space_card_done from the host only', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 2 });
+    const watcher = players[1].socket;
+    const seen = { turn_result: collect(watcher, 'turn_result'),
+                   space_card: collect(watcher, 'space_card'),
+                   space_card_done: collect(watcher, 'space_card_done') };
+
+    for (const ev of Object.keys(seen)) players[0].socket.emit(ev, { gameId, spaceType: 'fake' });
+    await settle();
+    for (const ev of Object.keys(seen)) assert.equal(seen[ev].length, 0, `${ev} from a phone relayed`);
+
+    for (const ev of Object.keys(seen)) host.emit(ev, { gameId, spaceType: 'question' });
+    await settle();
+    for (const ev of Object.keys(seen)) assert.equal(seen[ev].length, 1, `${ev} from host not relayed`);
+  });
+
+  it('reconnects a playing host’s own player entry on host_rejoin', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 1, hostPlays: true });
+    host.disconnect();
+    await settle();
+    assert.equal(room.players.find(p => p.id === room.hostPlayerId).disconnected, true);
+
+    const back = once(players[0].socket, 'player_reconnected');
+    const newHost = await connect();
+    newHost.emit('host_rejoin', { gameId });
+    await once(newHost, 'host_rejoined');
+    assert.equal((await back).playerId, room.hostPlayerId);
+    const hp = room.players.find(p => p.id === room.hostPlayerId);
+    assert.equal(hp.disconnected, false);
+    assert.equal(hp.socketId, newHost.id);
   });
 });
 

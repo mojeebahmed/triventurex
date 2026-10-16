@@ -918,7 +918,7 @@ function _syncStateToServer() {
       skipNextTurn:         p.skipNextTurn,
       finishOrder:          p.finishOrder,
       inactive:             p.inactive    || false,
-      disconnected:         p.disconnected || false,
+      // `disconnected` is NOT sent — the server owns connection state
     })),
     currentPlayerIndex: state.currentPlayerIndex,
     turnPhase:          state.turnPhase,
@@ -986,12 +986,14 @@ function _initSocketHandlers() {
     if (statusEl) statusEl.textContent =
       `${players.length} player${players.length !== 1 ? 's' : ''} joined`;
 
-    // Mid-game join
-    if (_isNetworkGame && state.phase === 'playing') {
+    // Mid-game join — add them to the host's game state and sync, so the
+    // server stops treating them as "not yet seen by the host"
+    if (_isNetworkGame && state.phase === 'playing' && !state.players.some(p => p.id === player.id)) {
       state.players.push(createPlayer(player.id, player.name, player.color, player.token));
-      updateScoreboard(state.players);
-      updateGMPlayerSelect(state.players);
-      _renderGMNetworkPlayers(players);
+      refreshUI();
+      _renderGMNetworkPlayers(state.players);
+      saveGame();
+      _syncStateToServer();
     }
   });
 
@@ -1045,11 +1047,20 @@ function _initSocketHandlers() {
     _playRoll(roll);
   });
 
-  TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
+  // Connection state is owned by the server; the host mirrors it for the GM list
+  TX_NET.on('player_disconnected', ({ playerId }) => {
     if (!_isNetworkGame) return;
     const p = state.players.find(pl => pl.id === playerId);
     if (p) p.disconnected = true;
+    _renderGMNetworkPlayers(state.players);
     _updateNetworkStatusBar();
+  });
+
+  TX_NET.on('player_reconnected', ({ playerId }) => {
+    if (!_isNetworkGame) return;
+    const p = state.players.find(pl => pl.id === playerId);
+    if (p) p.disconnected = false;
+    _renderGMNetworkPlayers(state.players);
   });
 
   TX_NET.on('player_removed', ({ playerId }) => {
