@@ -82,6 +82,11 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Problem:** Inserting/deleting a CSV row reshuffles IDs and corrupts asked-tracking.
   - **Fix:** Add an `id` column to `questions.csv` (both editions + template); parser uses it, falls back to row index only if missing. Pairs well with C2 (validator checks uniqueness).
 
+- [ ] **B18 — 10 Football Quest questions broken by unquoted commas** _(found while fixing B10)_
+  - **Problem:** ids 35, 40, 54, 57, 62, 66, 70, 73, 82, 86 had commas in question/answer text without CSV quotes → columns shifted, no valid difficulty, so they were never asked (and showed garbage if they had been).
+  - **Fix:** Re-quoted the fields (wording unchanged), filled the lost category/difficulty, regenerated `questions.js`. Swab Quest and both deed files checked clean.
+  - **Follow-up for content owner:** truncated notes and suspected factual errors listed in the batch-3 hand-off; C2 validator should catch this class of error automatically.
+
 ### 1c. Engine/edition leaks & finish logic
 
 - [ ] **B11 — Edition text and score values hardcoded in engine**

@@ -56,6 +56,9 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 
 ## Content workflow
 Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
+- `questions.csv` first column is `id` — unique per edition, never reuse or renumber (asked-question tracking is stored by id). New question → next unused number.
+- Any field containing a comma MUST be wrapped in double quotes (`"Madrid, Spain"`). Unquoted commas silently shift columns — this broke 10 Football Quest questions before 2026-10-16.
+- Regenerate JS with the game's own parser (`_parseQuestionsCSV` in game.js) so CSV and JS can't drift.
 
 ## Terminology
 - **Edition** = interchangeable game content pack (was "theme" before 2026-06-01)

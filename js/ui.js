@@ -206,9 +206,16 @@ function _playerBadgeHtml(player) {
 // ── Question tracking (no-repeat) ─────────────────────────────────────────────
 
 function _askedKey(diff) {
-  const themeId = window._activeThemeId || 'default';
-  return `triventurex_asked_${themeId}_${diff}`;
+  const editionId = (typeof getActiveEditionId === 'function' && getActiveEditionId()) || 'default';
+  return `triventurex_asked_${editionId}_${diff}`;
 }
+
+// One-off cleanup: before this was fixed every edition shared the
+// '..._default_*' keys, so their contents are a mix of editions — drop them.
+try {
+  localStorage.removeItem('triventurex_asked_default_easy');
+  localStorage.removeItem('triventurex_asked_default_hard');
+} catch {}
 
 function _getAskedIds(diff) {
   try { return new Set(JSON.parse(localStorage.getItem(_askedKey(diff))) || []); } catch { return new Set(); }

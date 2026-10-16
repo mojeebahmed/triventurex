@@ -1858,6 +1858,9 @@ function resetToSetup() {
 
 let _activeThemeId = null;
 
+/** Active edition id for other scripts (a top-level `let` is not on `window`). */
+function getActiveEditionId() { return _activeThemeId; }
+
 function _resetToEngineDefaults() {
   Object.assign(CONFIG.GAME,             _ENGINE_DEFAULTS.GAME);
   Object.assign(CONFIG.THEME,            _ENGINE_DEFAULTS.THEME);
@@ -1979,12 +1982,15 @@ function _parseCSV(text) {
  * Parse questions.csv into the QUESTIONS_DATA format.
  *
  * CSV columns (header row required):
- *   question, type, answer, opt_a, opt_b, opt_c, opt_d, difficulty, category, subcategory, topic, note
+ *   id, question, type, answer, opt_a, opt_b, opt_c, opt_d, difficulty, category, subcategory, topic, note
  *
+ * id     = unique number per edition; never reuse or renumber — asked-question
+ *          tracking is stored by id. New question → next unused number.
  * type = "multi"  → answer is the correct option NUMBER (1=opt_a, 2=opt_b, …)
  * type = "open"   → answer is the text; opt_a-d left blank
  */
 function _parseQuestionsCSV(text) {
+  const seen = new Set();
   return _parseCSV(text)
     .filter(r => r.question && r.type)
     .map((r, i) => {
@@ -1993,8 +1999,13 @@ function _parseQuestionsCSV(text) {
       const answer  = isMulti
         ? (['A','B','C','D'][parseInt(r.answer, 10) - 1] ?? 'A')
         : r.answer;
+      // Fall back to row position only for old CSVs without an id column
+      const id = Number(r.id) || i + 1;
+      if (!r.id)        console.warn(`questions.csv: row ${i + 2} has no id — using ${id}`);
+      if (seen.has(id)) console.warn(`questions.csv: duplicate id ${id} (row ${i + 2})`);
+      seen.add(id);
       return {
-        id:     i + 1,
+        id,
         q:      r.question,
         opts:   isMulti ? opts : [],
         answer,
