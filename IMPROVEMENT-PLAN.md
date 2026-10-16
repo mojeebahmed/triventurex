@@ -100,11 +100,11 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ### 1d. Security (LAN-scale)
 
-- [ ] **B13 — Player names rendered via `innerHTML`**
+- [x] **B13 — Player names rendered via `innerHTML`**
   - **Where:** `js/ui.js` scoreboard/end screen, `js/game.js` lobby + GM list, `js/player.js` other-players list
   - **Fix:** Add `esc()` helper; escape names everywhere they're interpolated. Server: trim/limit name length.
 
-- [ ] **B14 — Whole project folder served statically**
+- [x] **B14 — Whole project folder served statically**
   - **Where:** `server.js` `express.static(__dirname)`
   - **Fix:** Short term: serve only an allowlist (`index.html`, `player.html`, `css/`, `js/`, `game_editions/`, `images/`). Long term: `public/` folder (A6).
 
