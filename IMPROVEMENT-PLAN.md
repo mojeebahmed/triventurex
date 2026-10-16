@@ -113,7 +113,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ## Phase 2 — Architecture
 
 - [x] **A1 — Finish the theme → edition rename in code** (`loadTheme`, `_activeThemeId`, `themeId`, `CONFIG.THEME`, `onThemePicked`, server `themeId`). Mechanical; do first so later refactors use final names.
-- [ ] **A2 — Single turn pipeline.** `beginTurn() → move → resolveSpace() → finishTurn()`, where `finishTurn` *always* does history → finish check → extra-turn/endTurn → save → sync. Replaces scattered `_pendingHistory` / `_awaitingRoll` / early returns. Absorbs B1, B3, B4, B12.
+- [x] **A2 — Single turn pipeline.** `beginTurn() → move → resolveSpace() → finishTurn()`, where `finishTurn` *always* does history → finish check → extra-turn/endTurn → save → sync. Replaces scattered `_pendingHistory` / `_awaitingRoll` / early returns. Absorbs B1, B3, B4, B12.
 - [ ] **A3 — Decide state ownership.** Recommended: host is sole authority; server is a relay + roll generator + room registry. Server forwards GM actions (`remove_player`, `set_player_active`) to the host instead of mutating `room.players` itself. Also: host-only checks on `turn_result` / `space_card` relays.
 - [ ] **A4 — Split `game.js` (~2000 lines)** into `setup.js`, `badge-picker.js` (dedupe host + local), `net-host.js`, `viewport.js` (pan/zoom/background), `content-loader.js` (CSV + edition loading), `turn.js`. Consider native ES modules (`<script type="module">`, no build step).
 - [ ] **A5 — Room lifecycle on server.** Delete rooms on game end, and after host absent > N minutes.
