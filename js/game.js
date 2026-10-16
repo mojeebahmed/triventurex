@@ -4,6 +4,8 @@
  * a game, refreshing the game screen, and page bootstrap. Loaded last.
  */
 
+// ── State ───────────────────────────────────────────────────────────────────────
+
 let state = {
   gameId:             null,
   players:            [],
@@ -20,25 +22,17 @@ let state = {
   turn:               null,
 };
 
-// ── Multiplayer state ──────────────────────────────────────────────────────────
-
 window._onScoreChange = (player, amount) => {
   showScoreFlyout(player, amount);
   // Scoreboard is refreshed in _finishTurn / refreshUI — not here to avoid
   // triggering during animation mid-steps.
 };
 
-// ── Turn state helpers ────────────────────────────────────────────────────────
-// Pure turn logic (next player, snapshots, undo restore, history rows) lives in
-// js/turn.js. These helpers tie it to `state` and the page.
-
 // Expose board globally so ui.js deed effects can access it
 Object.defineProperty(window, '_gameBoard', { get: () => state.board });
 
 // Expose players globally so ui.js deed effects can access all players
 Object.defineProperty(window, '_gamePlayers', { get: () => state.players });
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function currentPlayer() { return state.players[state.currentPlayerIndex]; }
 
@@ -47,6 +41,8 @@ function generateGameId() {
   const rand   = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${rand}`;
 }
+
+// ── Start / resume a game ───────────────────────────────────────────────────────
 
 function _restoreGame(save) {
   // Re-attach the non-enumerable grid properties
@@ -65,16 +61,7 @@ function _restoreGame(save) {
   state.turn      = null;
   state.turnPhase = 'roll';
 
-  showScreen('game-screen');
-  renderBoard(state.board, state.players);
-  renderLegend();
-  _showGameIdBadge();
-  wireGameControls();
-  refreshUI();
-  highlightSpace(currentPlayer().position);
-  renderHistoryPanel(state.history);
-  _updateUndoButton();
-  fitBoardInView();
+  _enterGameScreen();
 
   // Restore host network game connection if applicable
   const savedNetId = (() => { try { return localStorage.getItem('tx_net_game'); } catch { return null; } })();
@@ -103,8 +90,6 @@ function _restoreGame(save) {
   }
 }
 
-// ── LocalStorage keys ─────────────────────────────────────────────────────────
-
 function startGame() {
   if (_mpMode === 'host') { _hostNetworkGame(); return; }
 
@@ -123,32 +108,43 @@ function startGame() {
   CONFIG.RULES.questionTracking   = document.getElementById('question-tracking-select')?.value ?? 'session';
   if (CONFIG.RULES.questionTracking === 'game') resetAskedQuestions();
 
-  state.gameId             = generateGameId();
-  _savePlayerPrefs(); _saveGameSettings(gameLength, pathIndex);
-  state.players            = players;
-  state.gameLength         = gameLength;
-  state.pathIndex          = pathIndex;
-  state.board              = _buildBoard(gameLength, pathIndex);
-  state.currentPlayerIndex = 0;
-  state.finishCount        = 0;
-  state.phase              = 'playing';
-  state.turnPhase          = 'roll';
-  state.history            = [];
-  state.turn               = null;
+  _savePlayerPrefs(); // reads the setup rows — before state.players is replaced
+  _saveGameSettings(gameLength, pathIndex);
+  _startNewGame({ gameId: generateGameId(), players, gameLength, pathIndex });
+}
 
+/** Reset `state` for a brand-new game, show the game screen and save. */
+function _startNewGame({ gameId, players, gameLength, pathIndex }) {
+  Object.assign(state, {
+    gameId, players, gameLength, pathIndex,
+    board:              _buildBoard(gameLength, pathIndex),
+    currentPlayerIndex: 0,
+    finishCount:        0,
+    phase:              'playing',
+    turnPhase:          'roll',
+    history:            [],
+    turn:               null,
+  });
+  _enterGameScreen();
+  saveGame();
+}
+
+/**
+ * Show the game screen for the current `state`. Shared by new local games,
+ * network games (game_started) and resumed games.
+ */
+function _enterGameScreen() {
   showScreen('game-screen');
   renderBoard(state.board, state.players);
   renderLegend();
   _showGameIdBadge();
   wireGameControls();
   refreshUI();
-  highlightSpace(0);
+  highlightSpace(currentPlayer().position);
   renderHistoryPanel(state.history);
-  fitBoardInView(); // calls _applyBoardBackground internally
-  saveGame();
+  _updateUndoButton();
+  fitBoardInView(); // also applies the board background
 }
-
-// ── Network game helpers ──────────────────────────────────────────────────────
 
 function _buildBoard(gameLength, pathIndex) {
   if (pathIndex === 'random') {
@@ -176,7 +172,7 @@ function wireGameControls() {
   }
 }
 
-// ── Refresh UI ────────────────────────────────────────────────────────────────
+// ── Game screen ─────────────────────────────────────────────────────────────────
 
 function refreshUI() {
   const player    = currentPlayer();
@@ -188,21 +184,7 @@ function refreshUI() {
   _setRollControlsEnabled(state.turnPhase === 'roll');
 }
 
-// ── Turn Logic ────────────────────────────────────────────────────────────────
-//
-// Every turn follows ONE path:
-//
-//   handleRoll / handleManualRoll / phone roll_result
-//        │                                  └─ skipNextTurn ─▶ _skipTurn ──┐
-//        ▼                                                                 │
-//   _beginTurn ─▶ _playRoll ─▶ move ─▶ _resolveSpace (modal) ──────────────┤
-//                               └─ exact-finish blocked ───────────────────┤
-//                                                                          ▼
-//                                                                    _finishTurn
-//
-// _finishTurn is the ONLY place a turn ends. Every async step checks
-// _isStale(token) first, so undo / player removal (which clear state.turn)
-// cancel whatever is still in flight.
+// ── Back to setup ───────────────────────────────────────────────────────────────
 
 function resetToSetup() {
   const legend = document.getElementById('board-legend');
@@ -231,7 +213,7 @@ function resetToSetup() {
   showScreen('setup-screen');
 }
 
-// ── Edition loading ─────────────────────────────────────────────────────────────
+// ── Bootstrap ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Validate saved edition against the registry — if the ID no longer exists

@@ -4,6 +4,10 @@
  * _finishTurn), undo, and GM controls. Pure turn logic lives in turn.js.
  */
 
+// ── Turn state ──────────────────────────────────────────────────────────────────
+// Pure turn logic (next player, snapshots, undo restore, history rows) lives in
+// js/turn.js. These helpers tie it to `state` and the page.
+
 let _turnCounter = 0; // source of state.turn.token values
 
 /** The player whose turn is in progress (state.turn), or undefined. */
@@ -89,6 +93,22 @@ async function _showDiceOverlay(result, player) {
   overlay.classList.remove('visible');
   await new Promise(r => setTimeout(r, 200)); // fade-out transition
 }
+
+// ── Turn pipeline ───────────────────────────────────────────────────────────────
+//
+// Every turn follows ONE path:
+//
+//   handleRoll / handleManualRoll / phone roll_result
+//        │                                  └─ skipNextTurn ─▶ _skipTurn ──┐
+//        ▼                                                                 │
+//   _beginTurn ─▶ _playRoll ─▶ move ─▶ _resolveSpace (modal) ──────────────┤
+//                               └─ exact-finish blocked ───────────────────┤
+//                                                                          ▼
+//                                                                    _finishTurn
+//
+// _finishTurn is the ONLY place a turn ends. Every async step checks
+// _isStale(token) first, so undo / player removal (which clear state.turn)
+// cancel whatever is still in flight.
 
 /** Enable/disable the Roll button and the manual dice together. */
 function _setRollControlsEnabled(enabled) {
@@ -327,7 +347,7 @@ function _endGame() {
   setTimeout(() => showEndScreen(state.players), 600);
 }
 
-// ── GM Controls ───────────────────────────────────────────────────────────────
+// ── GM controls ─────────────────────────────────────────────────────────────────
 
 function getGMSelectedPlayer() {
   const id = parseInt(document.getElementById('gm-player-select').value, 10);
@@ -412,5 +432,3 @@ function gmToggleSitOut() {
   saveGame();
   _syncStateToServer();
 }
-
-// ── Pan + Zoom ────────────────────────────────────────────────────────────────

@@ -4,33 +4,7 @@
  * config into CONFIG, renders the edition picker, applies colours + branding.
  */
 
-/**
- * Inject CONFIG.GAME branding into the setup screen and document title.
- * Called once on load and can be re-called if the edition changes in future.
- */
-function _applyBranding() {
-  const g = CONFIG.GAME || {};
-  const engine   = g.engineName || 'Triventurex';
-  const edition  = g.editionName  || '';
-  const icon     = g.editionIcon  || '🎯';
-  const subtitle = g.subtitle   || '';
-
-  document.title = edition ? `${engine} — ${edition}` : engine;
-
-  const set = (id, text, isHtml = false) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (isHtml) el.innerHTML = text;
-    else el.textContent = text;
-  };
-
-  set('brand-engine',       engine);
-  set('brand-edition',        edition ? `${icon} ${edition}` : '', true);
-  set('brand-subtitle',     subtitle);
-  set('end-screen-message', g.endScreenMessage || 'All players have reached the finish!');
-}
-
-// ── LocalStorage ──────────────────────────────────────────────────────────────
+// ── Loading ─────────────────────────────────────────────────────────────────────
 
 let _activeEditionId = null;
 
@@ -103,13 +77,13 @@ async function loadEdition(editionId) {
   try { localStorage.setItem('triventurex_edition', editionId); } catch {}
 }
 
-// ── CSV content loading ───────────────────────────────────────────────────────
-
 /**
  * Try to fetch and parse questions.csv and deeds.csv for the given edition.
  * Overrides JS-loaded QUESTIONS_DATA / DEEDS_DATA if CSV has content.
  * Fails silently when running from file:// (fetch not allowed).
  */
+// ── CSV content ─────────────────────────────────────────────────────────────────
+
 async function _loadEditionCSV(editionId) {
   const get = async (url) => {
     try { const r = await fetch(url); return r.ok ? r.text() : null; }
@@ -128,6 +102,8 @@ async function _loadEditionCSV(editionId) {
     if (parsed.length) { window.DEEDS_DATA = parsed; }
   }
 }
+
+// ── Edition picker ──────────────────────────────────────────────────────────────
 
 function renderEditionPicker(currentId) {
   const section = document.getElementById('edition-section');
@@ -158,13 +134,13 @@ async function onEditionPicked(editionId) {
   if (picker) picker.style.opacity = '1';
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
-
 /**
  * Apply CONFIG.COLORS and CONFIG.SPACE_INFO colours as CSS custom properties.
  * This is the single handoff point: config.js controls all colours,
  * CSS rules read them via var(--name) — no hardcoded hex in CSS needed.
  */
+// ── Colours + branding ──────────────────────────────────────────────────────────
+
 function _applyColors() {
   const root = document.documentElement;
 
@@ -181,4 +157,30 @@ function _applyColors() {
       root.style.setProperty(`--c-${type.replace(/_/g, '-')}`, info.color);
     }
   }
+}
+
+/**
+ * Inject CONFIG.GAME branding into the setup screen and document title.
+ * Called once on load and can be re-called if the edition changes in future.
+ */
+function _applyBranding() {
+  const g = CONFIG.GAME || {};
+  const engine   = g.engineName || 'Triventurex';
+  const edition  = g.editionName  || '';
+  const icon     = g.editionIcon  || '🎯';
+  const subtitle = g.subtitle   || '';
+
+  document.title = edition ? `${engine} — ${edition}` : engine;
+
+  const set = (id, text, isHtml = false) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isHtml) el.innerHTML = text;
+    else el.textContent = text;
+  };
+
+  set('brand-engine',       engine);
+  set('brand-edition',        edition ? `${icon} ${edition}` : '', true);
+  set('brand-subtitle',     subtitle);
+  set('end-screen-message', g.endScreenMessage || 'All players have reached the finish!');
 }

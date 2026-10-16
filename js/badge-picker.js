@@ -1,27 +1,60 @@
 /**
  * badge-picker.js
  * Badge picker modal (token emoji + colour) for setup-screen players and the host player.
+ * One implementation for both — the "target" decides where the choice is stored.
  */
 
-// openHostBadgeModal reuses the badge modal but saves to host prefs
-function openHostBadgeModal() {
-  const name = document.getElementById('host-player-name')?.value?.trim() || 'Host';
-  _badgeModalIndex = 'host';
+// What the open modal is editing: a local setup-row index (number) or 'host'
+let _badgeModalTarget = null;
 
-  const p = _hostPlayerState || CONFIG.PLAYERS.defaults[0];
+/**
+ * Adapter for the current target, so the modal code doesn't care which it is.
+ *   badge()   → { token, color } currently chosen
+ *   set(p)    → store a partial change ({ token } or { color })
+ *   typed()   → name typed in that row's input ('' if none)
+ *   label()   → name for the modal title (typed name or a default)
+ *   setupEl() → the badge element on the setup screen
+ */
+function _badgeTarget() {
+  if (_badgeModalTarget === 'host') {
+    const typed = () => document.getElementById('host-player-name')?.value?.trim() || '';
+    return {
+      badge:   () => _hostPlayerState || CONFIG.PLAYERS.defaults[0],
+      set:     patch => { _hostPlayerState = { ..._hostPlayerState, ...patch }; },
+      typed,
+      label:   () => typed() || 'Host',
+      setupEl: () => document.getElementById('setup-badge-host'),
+    };
+  }
+  const i = _badgeModalTarget;
+  const typed = () => state.players[i]?.nameInput?.value?.trim() || '';
+  return {
+    badge:   () => state.players[i],
+    set:     patch => Object.assign(state.players[i], patch),
+    typed,
+    label:   () => typed() || `Player ${i + 1}`,
+    setupEl: () => document.getElementById(`setup-badge-${i}`),
+  };
+}
+
+/** Open the picker for a local setup row (index) or the host player ('host'). */
+function openBadgeModal(target) {
+  _badgeModalTarget = target;
+  const t = _badgeTarget();
+  const p = t.badge();
   const tokens = CONFIG.PLAYERS.tokens;
   const colors = CONFIG.PLAYERS.colors;
 
-  document.getElementById('badge-modal-title').textContent = name + "'s Badge";
-  _renderHostBadgePreview(p);
+  document.getElementById('badge-modal-title').textContent = t.label() + "'s Badge";
+  _renderBadgePreview();
 
   document.getElementById('badge-modal-body').innerHTML = `
     <div class="picker-section">
       <span class="picker-label">Icon</span>
       <div class="picker-grid picker-tokens">
-        ${tokens.map(t =>
-          `<div class="picker-token ${t === p.token ? 'selected' : ''}"
-               onclick="selectHostToken('${t}')">${t}</div>`
+        ${tokens.map(tok =>
+          `<div class="picker-token ${tok === p.token ? 'selected' : ''}"
+               onclick="selectBadgeToken('${tok}')">${tok}</div>`
         ).join('')}
       </div>
     </div>
@@ -31,75 +64,7 @@ function openHostBadgeModal() {
         ${colors.map(c =>
           `<div class="picker-color ${c === p.color ? 'selected' : ''}"
                style="background:${c}" data-color="${c}"
-               onclick="selectHostColor('${c}')"></div>`
-        ).join('')}
-      </div>
-    </div>`;
-
-  document.getElementById('badge-modal-overlay').classList.remove('hidden');
-}
-
-function _renderHostBadgePreview(p) {
-  const previewEl = document.getElementById('badge-preview');
-  if (!previewEl) return;
-  const name = document.getElementById('host-player-name')?.value?.trim() || 'Host';
-  previewEl.style.background = p.color;
-  const emojiEl = previewEl.querySelector('.token-emoji');
-  const initEl  = previewEl.querySelector('.token-initial');
-  if (emojiEl) emojiEl.textContent = p.token;
-  if (initEl)  initEl.textContent  = name.slice(0, 2).toUpperCase();
-}
-
-function selectHostToken(token) {
-  _hostPlayerState = { ..._hostPlayerState, token };
-  document.querySelectorAll('#badge-modal-body .picker-token').forEach(el => {
-    el.classList.toggle('selected', el.textContent === token);
-  });
-  const badgeEl = document.getElementById('setup-badge-host');
-  if (badgeEl) badgeEl.querySelector('.token-emoji').textContent = token;
-  _renderHostBadgePreview(_hostPlayerState);
-}
-
-function selectHostColor(color) {
-  _hostPlayerState = { ..._hostPlayerState, color };
-  document.querySelectorAll('#badge-modal-body .picker-color').forEach(el => {
-    el.classList.toggle('selected', el.dataset.color === color);
-  });
-  const badgeEl = document.getElementById('setup-badge-host');
-  if (badgeEl) { badgeEl.style.background = color; }
-  _renderHostBadgePreview(_hostPlayerState);
-}
-
-let _badgeModalIndex = null;
-
-function openBadgeModal(index) {
-  _badgeModalIndex = index;
-  const p      = state.players[index];
-  const tokens = CONFIG.PLAYERS.tokens;
-  const colors = CONFIG.PLAYERS.colors;
-
-  document.getElementById('badge-modal-title').textContent =
-    (p.nameInput?.value?.trim() || `Player ${index + 1}`) + "'s Badge";
-
-  _renderBadgePreview(p);
-
-  document.getElementById('badge-modal-body').innerHTML = `
-    <div class="picker-section">
-      <span class="picker-label">Icon</span>
-      <div class="picker-grid picker-tokens">
-        ${tokens.map(t =>
-          `<div class="picker-token ${t === p.token ? 'selected' : ''}"
-               onclick="selectPlayerToken(${index},'${t}')">${t}</div>`
-        ).join('')}
-      </div>
-    </div>
-    <div class="picker-section">
-      <span class="picker-label">Colour</span>
-      <div class="picker-grid picker-colors">
-        ${colors.map(c =>
-          `<div class="picker-color ${c === p.color ? 'selected' : ''}"
-               style="background:${c}" data-color="${c}"
-               onclick="selectPlayerColor(${index},'${c}')"></div>`
+               onclick="selectBadgeColor('${c}')"></div>`
         ).join('')}
       </div>
     </div>`;
@@ -110,38 +75,39 @@ function openBadgeModal(index) {
 function closeBadgeModal(e) {
   if (e && e.target !== document.getElementById('badge-modal-overlay')) return;
   document.getElementById('badge-modal-overlay').classList.add('hidden');
-  _badgeModalIndex = null;
+  _badgeModalTarget = null;
 }
 
-function _renderBadgePreview(p) {
-  const name    = p.nameInput?.value?.trim() || '';
-  const initials = name.slice(0, 2).toUpperCase() || '?';
-  const preview  = document.getElementById('badge-modal-preview');
-  if (!preview) return;
+/** Large preview at the top of the modal: emoji + initials on the chosen colour. */
+function _renderBadgePreview() {
+  const preview = document.getElementById('badge-modal-preview');
+  if (!preview || _badgeModalTarget === null) return;
+  const t = _badgeTarget();
+  const p = t.badge();
   preview.style.background = p.color;
   preview.innerHTML = `
     <div class="token-emoji">${esc(p.token)}</div>
-    <div class="token-initial">${esc(initials)}</div>`;
+    <div class="token-initial">${esc(t.typed().slice(0, 2).toUpperCase() || '?')}</div>`;
 }
 
-function selectPlayerToken(index, token) {
-  if (!state.players[index]) return;
-  state.players[index].token = token;
-  const badge = document.getElementById(`setup-badge-${index}`);
+function selectBadgeToken(token) {
+  if (_badgeModalTarget === null) return;
+  const t = _badgeTarget();
+  t.set({ token });
+  const badge = t.setupEl();
   if (badge) badge.querySelector('.token-emoji').textContent = token;
   document.getElementById('badge-modal-body')?.querySelectorAll('.picker-token')
     .forEach(el => el.classList.toggle('selected', el.textContent === token));
-  _renderBadgePreview(state.players[index]);
+  _renderBadgePreview();
 }
 
-function selectPlayerColor(index, color) {
-  if (!state.players[index]) return;
-  state.players[index].color = color;
-  const badge = document.getElementById(`setup-badge-${index}`);
+function selectBadgeColor(color) {
+  if (_badgeModalTarget === null) return;
+  const t = _badgeTarget();
+  t.set({ color });
+  const badge = t.setupEl();
   if (badge) badge.style.background = color;
   document.getElementById('badge-modal-body')?.querySelectorAll('.picker-color')
     .forEach(el => el.classList.toggle('selected', el.dataset.color === color));
-  _renderBadgePreview(state.players[index]);
+  _renderBadgePreview();
 }
-
-// ── Start Game ────────────────────────────────────────────────────────────────

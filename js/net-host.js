@@ -14,7 +14,7 @@ let _lobbyPlayers     = [];       // players accumulated via player_joined event
 
 let _pendingHostRejoin = null;    // saved gameId to rejoin as host after refresh
 
-// ── Score change hook ─────────────────────────────────────────────────────────
+// ── Lobby ───────────────────────────────────────────────────────────────────────
 
 function _hostNetworkGame() {
   const gameLength = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
@@ -91,6 +91,8 @@ function gmRemoveNetworkPlayer(playerId) {
   TX_NET.removePlayer(_networkGameId, playerId);
 }
 
+// ── Host → server ───────────────────────────────────────────────────────────────
+
 function _syncStateToServer() {
   if (!_isNetworkGame || !_networkGameId) return;
   TX_NET.syncState(_networkGameId, {
@@ -138,6 +140,8 @@ function _updateNetworkStatusBar() {
   document.getElementById('net-status-text').textContent  = '📡 Network Game';
   document.getElementById('net-game-id-label').textContent = _networkGameId;
 }
+
+// ── Socket event handlers ───────────────────────────────────────────────────────
 
 function _initSocketHandlers() {
   TX_NET.on('connect', () => {
@@ -188,28 +192,12 @@ function _initSocketHandlers() {
     const setup     = _pendingNetworkSetup;
     _isNetworkGame  = true;
 
-    state.players            = players.map(p => createPlayer(p.id, p.name, p.color, p.token));
-    state.gameId             = _networkGameId;
-    state.gameLength         = setup.gameLength;
-    state.pathIndex          = setup.pathIndex;
-    state.board              = _buildBoard(setup.gameLength, setup.pathIndex);
-    state.currentPlayerIndex = 0;
-    state.finishCount        = 0;
-    state.phase              = 'playing';
-    state.turnPhase          = 'roll';
-    state.history            = [];
-    state.turn               = null;
-
-    showScreen('game-screen');
-    renderBoard(state.board, state.players);
-    renderLegend();
-    _showGameIdBadge();
-    wireGameControls();
-    refreshUI();
-    highlightSpace(0);
-    renderHistoryPanel(state.history);
-    fitBoardInView();
-    saveGame();
+    _startNewGame({
+      gameId:     _networkGameId,
+      players:    players.map(p => createPlayer(p.id, p.name, p.color, p.token)),
+      gameLength: setup.gameLength,
+      pathIndex:  setup.pathIndex,
+    });
 
     try { localStorage.setItem('tx_net_game', _networkGameId); } catch {}
     _updateNetworkStatusBar();

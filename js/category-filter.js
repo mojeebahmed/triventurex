@@ -183,5 +183,3 @@ function _populateCategoryFilter() {
 
   row.style.display = '';
 }
-
-// ── Setup Screen ──────────────────────────────────────────────────────────────

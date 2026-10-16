@@ -13,6 +13,8 @@
  * Blur affects only this element, leaving board spaces above it crisp.
  */
 // Keep a reference to the active probe so we can cancel stale loads.
+// ── Board background ────────────────────────────────────────────────────────────
+
 let _bgProbe = null;
 
 function _applyBoardBackground() {
@@ -99,7 +101,7 @@ function _applyBoardBackground() {
   probe.src = cfg.image;
 }
 
-// ── Wire Game-Screen Controls ─────────────────────────────────────────────────
+// ── Pan + zoom ──────────────────────────────────────────────────────────────────
 
 const view = { x: 0, y: 0, scale: 1 };
 
@@ -255,5 +257,3 @@ function zoomIn()    { const vp = document.getElementById('board-viewport'); _zo
 function zoomOut()   { const vp = document.getElementById('board-viewport'); _zoomAt(vp.offsetWidth/2, vp.offsetHeight/2, 1/1.2); }
 
 function zoomReset() { fitBoardInView(); }
-
-// ── Reset ─────────────────────────────────────────────────────────────────────

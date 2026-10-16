@@ -34,26 +34,47 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 
 ## Tests
 `npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`.
+- `test/turn-flow.test.js` drives the real host turn pipeline (scripts loaded in index.html order, UI stubbed) — add a scenario here when changing turn behaviour
+- `test/csv.test.js` — CSV parser + every edition's content (CSV must match the generated JS; valid answers/effects)
+- `test/turn.test.js`, `test/utils.test.js` — pure unit tests
 - `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
 - `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
-- Run `npm test` before merging any change to `server.js`
+- Run `npm test` before merging any change (it takes ~3 s)
 
 ## Key files
-- `js/config.js` — engine settings (board, space types, zoom, animation, score, rules)
-- `js/board.js` — board generation (`generateBoard`) and rendering (`buildBoard`, `updateBoardTokens`)
+Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `game.js` is loaded last.
+
+Engine (shared, no game flow):
 - `js/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
+- `js/config.js` — engine settings (board, space types, zoom, animation, score, rules)
+- `js/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`)
+- `js/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
+- `js/turn.js` — pure turn logic (next player, snapshots, undo restore, history rows); unit-tested
+- `js/csv.js` — pure CSV parsing for questions/deeds; unit-tested
 - `js/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
+- `js/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 - `js/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
-- `js/game.js` — main controller; handles both local and network game modes
-- `js/ui.js` — modal flow (question, deed, action), timer, scoreboard, toast, category filter
-- `js/players.js` — player setup row rendering, badge picker
-- `js/player.js` — player screen logic (join, action box, session management)
+
+Host controller (was one 2000-line game.js before A4):
+- `js/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
+- `js/turn-flow.js` — the turn pipeline (`_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`), undo, GM controls
+- `js/net-host.js` — host side of network play: lobby, `_syncStateToServer`, all socket handlers
+- `js/setup.js` — setup screen: local / host / join tabs, player rows, host player row
+- `js/badge-picker.js` — one badge modal for setup rows and the host (`openBadgeModal(index | 'host')`)
+- `js/category-filter.js` — 3-level question topic tree in Game Settings
+- `js/edition-loader.js` — `loadEdition`, config merge, edition picker, colours + branding
+- `js/storage.js` — saved game + remembered preferences (localStorage)
+- `js/viewport.js` — pan / zoom / fit and the board background
+
+Player page + server:
+- `player.html` + `js/player.js` — phone screen (join, action box, session management)
+- `server.js` — rooms, dice rolling, host → phone relays (ownership rules at the top)
+
+Content:
 - `game_editions/editions.js` — edition registry (loaded via `<script>` in index.html)
 - `game_editions/<id>/config.js` — edition config (name, colours, landmarks, finish text, SPACE_INFO, SPACE_DISTRIBUTION)
 - `game_editions/<id>/questions.csv` + `deeds.csv` — edit content here
 - `game_editions/<id>/questions.js` + `deeds.js` — auto-generated from CSV
-- `server.js` — room management, dice rolling, event relay
-- `player.html` — lightweight player screen
 
 ## Content workflow
 Edit CSV → ask Claude "regenerate the JS files" → refresh browser.

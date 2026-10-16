@@ -62,7 +62,9 @@ function makeWorld() {
     showScreen: noop, renderBoard: noop, renderLegend: noop, updateScoreboard: noop,
     updateGMPlayerSelect: noop, updateBoardTokens: noop, updateCurrentPlayerDisplay: noop,
     highlightSpace: noop, renderHistoryPanel: noop, showScoreFlyout: noop, timerStop: noop,
-    renderDie: () => '', populatePathSelector: noop, renderThemePicker: noop,
+    renderDie: () => '', populatePathSelector: noop,
+    generateBoard: () => Array.from({ length: 10 }, (_, i) =>
+      ({ id: i, type: i === 0 ? 'start' : i === 9 ? 'finish' : 'question' })),
     animateDice: async () => {},
     animatePlayerMovement: async (player, spaces, steps) => {
       const max = spaces.length - 1;
@@ -277,6 +279,19 @@ describe('players and GM', () => {
     const w = makeWorld(); w.network();
     w.handlers.player_joined({ player: { id: 7, name: 'Late', color: '#444', token: 'L' }, players: [] });
     assert.ok(w.run('state.players.some(p => p.id === 7)'));
+    assert.ok(w.log.emits.some(e => e[0] === 'syncState'));
+  });
+
+  it('network game_started starts a fresh game and syncs it', async () => {
+    const w = makeWorld(); w.network();
+    w.run("_pendingNetworkSetup = { gameLength: 'short', pathIndex: 'random' }; state.phase = 'setup'");
+    w.handlers.game_started({ players: [{ id: 0, name: 'A', color: '#111', token: 'a' },
+                                        { id: 3, name: 'B', color: '#222', token: 'b' }] });
+    assert.equal(w.run('state.phase'), 'playing');
+    assert.equal(w.run('state.board.length'), 10);
+    assert.deepEqual(w.run('state.players.map(p => p.id)'), [0, 3]);
+    assert.equal(w.run('state.history.length'), 0);
+    assert.ok(w.store.triventurex_save, 'saved');
     assert.ok(w.log.emits.some(e => e[0] === 'syncState'));
   });
 

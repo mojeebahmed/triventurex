@@ -20,7 +20,7 @@ function _renderHostPlayerRow() {
   row.className = 'player-row';
   row.innerHTML = `
     <div class="player-token-setup" id="setup-badge-host"
-         style="background:${esc(color)}" onclick="openHostBadgeModal()" title="Customize badge">
+         style="background:${esc(color)}" onclick="openBadgeModal('host')" title="Customize badge">
       <div class="token-emoji">${esc(token)}</div>
     </div>
     <input type="text" id="host-player-name" placeholder="${esc(name)}" value="${esc(name)}" maxlength="20">`;
@@ -43,8 +43,6 @@ function _restoreGameSettings() {
   const qtSel = document.getElementById('question-tracking-select');
   if (qtSel && s.questionTracking) qtSel.value = s.questionTracking;
 }
-
-// ── Question category filter (3-level: cat > subcat > topic) ─────────────────
 
 function initSetupScreen() {
   renderEditionPicker(_activeEditionId);
@@ -69,14 +67,10 @@ function initSetupScreen() {
     renderPlayerRows();
   });
 
-
-
   document.getElementById('start-game-btn').addEventListener('click', startGame);
   document.getElementById('play-again-btn').addEventListener('click', resetToSetup);
   document.getElementById('gm-only-toggle')?.addEventListener('change', _applyGMOnlyUI);
 }
-
-// ── Multiplayer mode UI ───────────────────────────────────────────────────────
 
 function setMPMode(mode) {
   _mpMode = mode;
@@ -150,5 +144,3 @@ function addPlayerRow() {
   container.appendChild(wrapper);
   state.players.push({ color, token, nameInput: row.querySelector('input') });
 }
-
-// ── Badge picker modal ────────────────────────────────────────────────────────

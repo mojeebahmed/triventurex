@@ -4,6 +4,8 @@
  * player + settings preferences.
  */
 
+// ── Saved game ──────────────────────────────────────────────────────────────────
+
 function saveGame() {
   if (state.phase !== 'playing') return;
   try {
@@ -61,6 +63,8 @@ function _friendlyTime(isoString) {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
+// ── Remembered preferences ──────────────────────────────────────────────────────
+
 const LS_PLAYER_PREFS  = 'triventurex_player_prefs';
 
 const LS_HOST_PLAYER   = 'triventurex_host_player';
@@ -88,8 +92,6 @@ function _loadPlayerPrefs() {
 function _clearPlayerPrefs() {
   localStorage.removeItem(LS_PLAYER_PREFS);
 }
-
-// ── Host player prefs (separate from local game prefs) ────────────────────────
 
 function _saveHostPlayerPref(name, color, token) {
   try { localStorage.setItem(LS_HOST_PLAYER, JSON.stringify({ name, color, token })); } catch {}
