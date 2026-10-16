@@ -18,38 +18,38 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ### 1a. Turn flow (network) — highest priority
 
-- [ ] **B1 — Phone-initiated rolls skip turn setup**
+- [x] **B1 — Phone-initiated rolls skip turn setup**
   - **Where:** `js/game.js` `TX_NET.on('roll_result')` (~L1033), `handleRoll()` (~L1273), `handleManualRoll()` (~L1235)
   - **Problem:** Only host-initiated rolls take `_preRollSnapshot`, set `turnPhase='resolving'`, bump `_turnToken`. Phone rolls go straight to `_processRoll()`. Undo then restores a stale snapshot; host Roll button stays enabled mid-turn; resume-reopen-modal never fires.
   - **Fix:** Extract `_beginTurn()` (snapshot + token + `turnPhase='resolving'` + disable roll/manual dice). Call it from `handleRoll`, `handleManualRoll`, and from `roll_result` when the roll was not host-initiated (i.e. when `!_awaitingRoll`).
   - **Verify:** Phone rolls → host Roll button disabled during turn → Undo restores the state from before *that* roll.
 
-- [ ] **B2 — Server accepts rolls at any time**
+- [x] **B2 — Server accepts rolls at any time**
   - **Where:** `server.js` `roll` handler (~L191)
   - **Problem:** No `room.turnPhase` check; a second roll request would start a second concurrent turn.
   - **Fix:** Reject if `room.turnPhase !== 'roll'`; set `room.turnPhase = 'resolving'` when a roll is generated (host's next `sync_state` returns it to `'roll'`). Also guard on the host: ignore `roll_result` while `state.turnPhase === 'resolving'` and not `_awaitingRoll`.
   - **Depends on:** B1 (host must sync `'resolving'`/`'roll'` reliably).
 
-- [ ] **B3 — Exact-finish block never syncs to phones**
+- [x] **B3 — Exact-finish block never syncs to phones**
   - **Where:** `js/game.js` `_processRoll()` blocked branch (~L1366)
   - **Problem:** No `_syncStateToServer()` → next phone player can't roll. Also `saveGame()` runs before `endTurn()` (violates the "save after endTurn" invariant).
   - **Fix:** Route through the same end-of-turn path as `afterSpaceResolved` (see A2); minimal fix = `endTurn(); saveGame(); _syncStateToServer();`.
 
-- [ ] **B4 — Extra turn leaves phones stuck (likely)**
+- [x] **B4 — Extra turn leaves phones stuck (likely)**
   - **Where:** `js/game.js` `afterSpaceResolved()` extra-turn branch (~L1460)
   - **Problem:** Returns without `saveGame()` / `_syncStateToServer()`; manual dice stay disabled (only `roll-btn` re-enabled).
   - **Fix:** Call `refreshUI()`, `saveGame()`, `_syncStateToServer()` before returning.
   - **Verify:** Land on an `extra_turn` deed from a phone → phone returns to dice mode.
 
-- [ ] **B15 — Host refresh mid-turn leaves the turn stuck** _(found while fixing B1)_
+- [x] **B15 — Host refresh mid-turn leaves the turn stuck** _(found while fixing B1)_
   - **Where:** `js/game.js` `saveGame()`, `_restoreGame()`, `host_rejoined` handler
   - **Problem:** `_pendingHistory` was null after restore, so `afterSpaceResolved()` bailed and the turn never ended; undo snapshot lost; finish-space modal not reopened. Also `host_rejoin` was only sent on socket `connect`, which has usually already fired before Resume is clicked.
   - **Fix:** Save a serialisable `pendingTurn` (roll, posBefore, scoreBefore, snapshot); restore it via `_beginTurn()`; rejoin immediately if already connected; host syncs state after `host_rejoined`.
 
-- [ ] **B16 — Phone roll ignored "skip next turn"** _(found while fixing B1)_
+- [x] **B16 — Phone roll ignored "skip next turn"** _(found while fixing B1)_
   - **Fix:** `roll_result` from a phone routes to `_handleSkippedTurn()`. The skip snapshot is now taken before the flag is cleared, so undo re-arms the skip.
 
-- [ ] **B17 — Phones never told the game ended**
+- [x] **B17 — Phones never told the game ended**
   - **Where:** `state.phase` never became `'ended'`.
   - **Fix:** `_endGame()` sets `phase='ended'` and syncs; used by `afterSpaceResolved()` and `endTurn()`.
 
