@@ -50,6 +50,8 @@ Starter folder for a new Triventurex edition.
 | `all_players_gain` / `all_players_lose` | points for every player |
 | `protection` | ignored (use 1). Cancels the player's next bad deed. |
 
+Board generation places deeds sensibly. For example, `move_back 3` never appears within the first 3 spaces.
+
 ## actions.csv
 
 Optional. Without it, action spaces ask players to draw a card from a physical deck.
@@ -62,5 +64,3 @@ Optional. Without it, action spaces ask players to draw a card from a physical d
 | `note` | Optional extra rule for this card, shown with it |
 
 In a network game the card appears **only on the performer's phone**. Otherwise the host screen keeps it hidden until the performer taps *Show card* while everyone else looks away.
-
-Board generation places deeds sensibly. For example, `move_back 3` never appears within the first 3 spaces.
