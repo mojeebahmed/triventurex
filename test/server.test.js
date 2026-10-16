@@ -318,6 +318,86 @@ describe('rejoining', () => {
   });
 });
 
+// ── Static files (B14) ────────────────────────────────────────────────────────
+
+/** GET a raw path (no URL normalisation, so ../ reaches the server as sent). */
+function rawGet(pathname) {
+  return new Promise((resolve, reject) => {
+    require('node:http').get(`${url}${pathname}`, { path: pathname }, res => {
+      let body = '';
+      res.on('data', c => { body += c; });
+      res.on('end', () => resolve({ status: res.statusCode, body }));
+    }).on('error', reject);
+  });
+}
+
+describe('static files', () => {
+  for (const p of ['/', '/index.html', '/player', '/player.html', '/js/game.js', '/js/utils.js',
+                   '/css/styles.css', '/game_editions/editions.js',
+                   '/game_editions/swab-quest/questions.csv', '/images/game-length-short.png']) {
+    it(`serves ${p}`, async () => {
+      assert.equal((await rawGet(p)).status, 200);
+    });
+  }
+
+  for (const p of ['/server.js', '/package.json', '/CLAUDE.md', '/IMPROVEMENT-PLAN.md',
+                   '/test/server.test.js', '/node_modules/express/package.json']) {
+    it(`does not serve ${p}`, async () => {
+      assert.equal((await rawGet(p)).status, 404);
+    });
+  }
+
+  for (const p of ['/js/../server.js', '/css/..%2fserver.js', '/game_editions/../package.json']) {
+    it(`blocks path traversal ${p}`, async () => {
+      const { status, body } = await rawGet(p);
+      assert.notEqual(status, 200);
+      assert.doesNotMatch(body, /require\(|"dependencies"/);
+    });
+  }
+});
+
+// ── Player profile cleaning (B13) ─────────────────────────────────────────────
+
+describe('player profile cleaning', () => {
+  async function joinWith(profile) {
+    const { gameId } = await setupGame({ phones: 0, start: false });
+    const s = await connect();
+    s.emit('join_game', { gameId, ...profile });
+    return (await once(s, 'joined')).players.at(-1);
+  }
+
+  it('rejects a colour that is not a hex value', async () => {
+    const p = await joinWith({ playerName: 'X', color: 'red" onmouseover="alert(1)' });
+    assert.equal(p.color, '#4CAF50');
+  });
+
+  it('keeps a valid hex colour', async () => {
+    assert.equal((await joinWith({ playerName: 'X', color: '#1565C0' })).color, '#1565C0');
+  });
+
+  it('limits name length and trims whitespace', async () => {
+    const p = await joinWith({ playerName: `   ${'A'.repeat(50)}   ` });
+    assert.equal(p.name, 'A'.repeat(20));
+  });
+
+  it('falls back to a default name when empty', async () => {
+    assert.equal((await joinWith({ playerName: '   ' })).name, 'Player 1');
+  });
+
+  it('limits token length without splitting an emoji', async () => {
+    assert.equal((await joinWith({ playerName: 'X', token: '🛡️' })).token, '🛡️');
+    assert.equal(Array.from((await joinWith({ playerName: 'X', token: 'x'.repeat(100) })).token).length, 8);
+  });
+
+  it('cleans the host player profile too', async () => {
+    const host = await connect();
+    host.emit('host_game', { themeId: 't', isGMOnly: false,
+      hostPlayer: { id: 0, name: 'H', token: 'H', color: 'javascript:alert(1)' } });
+    const { gameId } = await once(host, 'hosted');
+    assert.equal(rooms.get(gameId).players[0].color, '#4CAF50');
+  });
+});
+
 // ── Disconnects (B6) ──────────────────────────────────────────────────────────
 
 describe('disconnects', () => {

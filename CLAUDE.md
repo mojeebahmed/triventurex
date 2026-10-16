@@ -41,6 +41,7 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 ## Key files
 - `js/config.js` — engine settings (board, space types, zoom, animation, score, rules)
 - `js/board.js` — board generation (`generateBoard`) and rendering (`buildBoard`, `updateBoardTokens`)
+- `js/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
 - `js/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
 - `js/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
 - `js/game.js` — main controller; handles both local and network game modes
@@ -97,6 +98,8 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **Host player**: separate from local player list; stored in `triventurex_host_player` localStorage; GM-only toggle disables (not hides) the player input
 
 ## Architecture — V2 (don't revert)
+- **Escaping**: any player-supplied value (name, token, colour) inserted via innerHTML/template MUST go through `esc()`. Not needed for `textContent` (toasts, button labels, modal titles). Server also cleans profiles on join (`cleanProfile`: name ≤20, token ≤8 code points, hex-only colour)
+- **Static files**: server.js serves an allowlist only (`/`, `/player`, `css/ js/ game_editions/ images/ tools/`). New top-level client folder → add it to `PUBLIC_DIRS`
 - **Offline fallback**: `index.html` dynamically loads `/socket.io/socket.io.js`; `onerror` leaves V1 untouched
 - **Authority**: Host (`game.js`) runs all game logic; server relays state via `sync_state` → `state_update`
 - **Dice**: server rolls (authoritative); player taps → `roll` event → server generates → broadcasts `roll_result`

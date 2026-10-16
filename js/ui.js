@@ -16,8 +16,8 @@ function updateCurrentPlayerDisplay(player, phaseText) {
   const tokenEl = document.getElementById('current-player-token');
   tokenEl.style.backgroundColor = player.color;
   tokenEl.innerHTML = `
-    <div class="token-emoji">${player.token || '●'}</div>
-    <div class="token-initial">${(player.name || '?').slice(0, 2).toUpperCase()}</div>`;
+    <div class="token-emoji">${esc(player.token || '●')}</div>
+    <div class="token-initial">${esc((player.name || '?').slice(0, 2).toUpperCase())}</div>`;
   document.getElementById('current-player-name').textContent = player.name;
   document.getElementById('current-turn-phase').textContent  = phaseText;
 }
@@ -28,11 +28,11 @@ function updateScoreboard(players) {
   const el = document.getElementById('scoreboard');
   el.innerHTML = getSortedPlayers(players).map(p => `
     <div class="score-row">
-      <div class="score-token" style="background:${p.color}">
-        <div class="token-emoji">${p.token || '●'}</div>
-        <div class="token-initial">${(p.name || '?').slice(0, 2).toUpperCase()}</div>
+      <div class="score-token" style="background:${esc(p.color)}">
+        <div class="token-emoji">${esc(p.token || '●')}</div>
+        <div class="token-initial">${esc((p.name || '?').slice(0, 2).toUpperCase())}</div>
       </div>
-      <div class="score-name">${p.name}</div>
+      <div class="score-name">${esc(p.name)}</div>
       <div>
         <div class="score-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
         <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}</div>
@@ -47,7 +47,7 @@ function updateGMPlayerSelect(players) {
   const sel = document.getElementById('gm-player-select');
   const selected = sel.value; // keep the GM's choice across refreshes
   sel.innerHTML = players.map(p =>
-    `<option value="${p.id}">${p.name}${p.inactive ? ' 💤' : ''}</option>`).join('');
+    `<option value="${p.id}">${esc(p.name)}${p.inactive ? ' 💤' : ''}</option>`).join('');
   if (players.some(p => String(p.id) === selected)) sel.value = selected;
 }
 
@@ -144,7 +144,7 @@ function showSpaceModal(space, player, onDone) {
         icon: lmInfo.icon ?? '🌍',
         title: lmName,
         content: `${imgHtml}${descHtml}
-                  <p style="margin-top:8px"><strong>${player.name}</strong> has arrived at
+                  <p style="margin-top:8px"><strong>${esc(player.name)}</strong> has arrived at
                   <strong>${lmName}</strong>!</p>
                   <p style="margin-top:8px;font-size:.85rem;color:#666">
                   GM: award <strong>${lmPts} ${pts}</strong> or treat as a visual stop.<br>
@@ -162,7 +162,7 @@ function showSpaceModal(space, player, onDone) {
       showModal({
         icon: '⏭',
         title: 'Skip a Turn',
-        content: `<strong>${player.name}</strong> must skip their next turn.`,
+        content: `<strong>${esc(player.name)}</strong> must skip their next turn.`,
         actions: [{ label: 'OK', class: 'btn btn-primary',
           callback: () => { player.skipNextTurn = true; onDone(); } }],
       });
@@ -206,9 +206,9 @@ function showSpaceModal(space, player, onDone) {
 // ── Question Flow ─────────────────────────────────────────────────────────────
 
 function _playerBadgeHtml(player) {
-  return `<div class="modal-player-badge" style="background:${player.color}">
-    <div class="token-emoji">${player.token || '●'}</div>
-    <span>${player.name}</span>
+  return `<div class="modal-player-badge" style="background:${esc(player.color)}">
+    <div class="token-emoji">${esc(player.token || '●')}</div>
+    <span>${esc(player.name)}</span>
   </div>`;
 }
 
@@ -321,7 +321,7 @@ function _showQuestion(diff, player, onDone) {
     showModal({
       icon: diff === 'easy' ? '🟢' : '🔵',
       title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question`,
-      content: `<strong>${player.name}</strong>, draw a <em>${diff === 'easy' ? 'Easy' : 'Hard'}</em>
+      content: `<strong>${esc(player.name)}</strong>, draw a <em>${diff === 'easy' ? 'Easy' : 'Hard'}</em>
                 question card from the physical deck and read it aloud.
                 <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
       actions: [
@@ -412,7 +412,7 @@ function _showPhysicalCard(diff, player, pts, onDone) {
   showModal({
     icon: diff === 'easy' ? '🟢' : '🔵',
     title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question (physical card)`,
-    content: `<strong>${player.name}</strong>, draw a <em>${diff}</em> card from the deck and read it aloud.
+    content: `<strong>${esc(player.name)}</strong>, draw a <em>${diff}</em> card from the deck and read it aloud.
               <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
     actions: [
       { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
@@ -449,7 +449,7 @@ function _showDeedCard(space, player, onDone) {
     showModal({
       icon: deedIcon,
       title: deedLabel,
-      content: `<strong>${player.name}</strong>, draw a <em>${deedLabel}</em>
+      content: `<strong>${esc(player.name)}</strong>, draw a <em>${deedLabel}</em>
                 card and read it aloud. Apply the effect shown on the card.
                 <br>Use GM controls to adjust score or position if needed.`,
       actions: [{ label: 'Done', class: 'btn btn-primary', callback: onDone }],
@@ -624,11 +624,11 @@ function showEndScreen(players) {
   document.getElementById('final-scores').innerHTML = sorted.map((p, i) => `
     <div class="final-score-row">
       <div class="final-rank">${ranks[i] || `${i + 1}.`}</div>
-      <div class="end-token" style="background:${p.color}">
-        <div class="token-emoji">${p.token || '●'}</div>
-        <div class="token-initial">${(p.name || '?').slice(0, 2).toUpperCase()}</div>
+      <div class="end-token" style="background:${esc(p.color)}">
+        <div class="token-emoji">${esc(p.token || '●')}</div>
+        <div class="token-initial">${esc((p.name || '?').slice(0, 2).toUpperCase())}</div>
       </div>
-      <div class="final-name">${p.name}</div>
+      <div class="final-name">${esc(p.name)}</div>
       <div class="final-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
     </div>`).join('');
   showScreen('end-screen');
@@ -675,9 +675,9 @@ function renderHistoryPanel(history) {
       : '';
     const rollStr   = e.roll ? `🎲 ${e.roll}` : (e.spaceType === 'gm' ? '⚙️ GM' : '⏭ skipped');
     return `<div class="history-entry${i === 0 ? ' history-latest' : ''}">
-      <div class="history-badge" style="background:${e.playerColor}">${e.playerToken}</div>
+      <div class="history-badge" style="background:${esc(e.playerColor)}">${esc(e.playerToken)}</div>
       <div class="history-info">
-        <div class="history-main">${e.playerName} · ${rollStr}</div>
+        <div class="history-main">${esc(e.playerName)} · ${rollStr}</div>
         <div class="history-detail">${_spaceIcon(e.spaceType)} Sp.${e.posAfter}${e.spaceName && e.spaceType !== 'skip' ? ' · ' + e.spaceName : ''} ${scoreStr}</div>
       </div>
     </div>`;

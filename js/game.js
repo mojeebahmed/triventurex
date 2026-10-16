@@ -345,10 +345,10 @@ function _renderHostPlayerRow() {
   row.className = 'player-row';
   row.innerHTML = `
     <div class="player-token-setup" id="setup-badge-host"
-         style="background:${color}" onclick="openHostBadgeModal()" title="Customize badge">
-      <div class="token-emoji">${token}</div>
+         style="background:${esc(color)}" onclick="openHostBadgeModal()" title="Customize badge">
+      <div class="token-emoji">${esc(token)}</div>
     </div>
-    <input type="text" id="host-player-name" placeholder="${name}" value="${name}" maxlength="20">`;
+    <input type="text" id="host-player-name" placeholder="${esc(name)}" value="${esc(name)}" maxlength="20">`;
   wrapper.appendChild(row);
   container.appendChild(wrapper);
   _hostPlayerState = { color, token };
@@ -730,10 +730,10 @@ function addPlayerRow() {
   row.className = 'player-row';
   row.innerHTML = `
     <div class="player-token-setup" id="setup-badge-${index}"
-         style="background:${color}" onclick="openBadgeModal(${index})" title="Customize badge">
-      <div class="token-emoji">${token}</div>
+         style="background:${esc(color)}" onclick="openBadgeModal(${index})" title="Customize badge">
+      <div class="token-emoji">${esc(token)}</div>
     </div>
-    <input type="text" placeholder="${name}" value="${name}" maxlength="20">`;
+    <input type="text" placeholder="${esc(name)}" value="${esc(name)}" maxlength="20">`;
 
   wrapper.appendChild(row);
   container.appendChild(wrapper);
@@ -792,8 +792,8 @@ function _renderBadgePreview(p) {
   if (!preview) return;
   preview.style.background = p.color;
   preview.innerHTML = `
-    <div class="token-emoji">${p.token}</div>
-    <div class="token-initial">${initials}</div>`;
+    <div class="token-emoji">${esc(p.token)}</div>
+    <div class="token-initial">${esc(initials)}</div>`;
 }
 
 function selectPlayerToken(index, token) {
@@ -913,10 +913,10 @@ function _renderLobbyPlayers(players) {
     ? '<p class="lobby-empty">No players yet...</p>'
     : players.map(p => `
         <div class="lobby-player-row">
-          <div class="score-token" style="background:${p.color}">
-            <div class="token-emoji">${p.token}</div>
+          <div class="score-token" style="background:${esc(p.color)}">
+            <div class="token-emoji">${esc(p.token)}</div>
           </div>
-          <span>${p.name}</span>
+          <span>${esc(p.name)}</span>
         </div>`).join('');
 }
 
@@ -925,10 +925,10 @@ function _renderGMNetworkPlayers(serverPlayers) {
   if (!el) return;
   el.innerHTML = serverPlayers.map(p => `
     <div class="gm-net-player">
-      <div class="score-token" style="background:${p.color}">
-        <div class="token-emoji">${p.token}</div>
+      <div class="score-token" style="background:${esc(p.color)}">
+        <div class="token-emoji">${esc(p.token)}</div>
       </div>
-      <span class="gm-net-name">${p.name}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
+      <span class="gm-net-name">${esc(p.name)}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
       <button class="btn btn-small btn-danger" onclick="gmRemoveNetworkPlayer(${p.id})">✕</button>
     </div>`).join('');
 }
@@ -1358,7 +1358,7 @@ function _handleSkippedTurn(player) {
   player.skipNextTurn = false;
   showModal({
     icon: '⏭', title: 'Turn Skipped',
-    content: `<strong>${player.name}</strong> must skip this turn.`,
+    content: `<strong>${esc(player.name)}</strong> must skip this turn.`,
     actions: [{ label: 'OK', class: 'btn btn-primary', callback: () => {
       if (_turnToken !== myToken) return; // undo was pressed while modal was open
       state.history.push({

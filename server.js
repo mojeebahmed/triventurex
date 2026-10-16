@@ -18,7 +18,15 @@ const io     = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 // ── Static file serving ───────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname)));
+// Allowlist: only the files the host and player pages need. Everything else in
+// the project folder (server.js, docs, package.json, node_modules, test/) is
+// NOT served.
+const PUBLIC_DIRS = ['css', 'js', 'game_editions', 'images', 'tools'];
+for (const dir of PUBLIC_DIRS) {
+  app.use(`/${dir}`, express.static(path.join(__dirname, dir)));
+}
+app.get(['/', '/index.html'],      (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get(['/player', '/player.html'], (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 
 // ── Room state ────────────────────────────────────────────────────────────────
 // Map<gameId, RoomState>
@@ -39,6 +47,20 @@ function generateGameId() {
  */
 function rollDie() {
   return Math.floor(Math.random() * 6) + 1;
+}
+
+/**
+ * Clean a player profile sent by a client: bounded name and token, and a
+ * colour that must be a hex value (it ends up inside style="" attributes).
+ * Clients also escape on render — this is the second layer.
+ */
+function cleanProfile({ name, token, color } = {}, fallbackName) {
+  return {
+    name:  String(name ?? '').trim().slice(0, 20) || fallbackName,
+    // Array.from splits by code point so multi-code-point emoji aren't cut in half
+    token: Array.from(String(token ?? '').trim()).slice(0, 8).join('') || '●',
+    color: /^#[0-9a-f]{3,8}$/i.test(String(color ?? '')) ? color : '#4CAF50',
+  };
 }
 
 /**
@@ -80,9 +102,7 @@ io.on('connection', (socket) => {
       players.push({
         id:                   hostPlayer.id ?? 0,
         socketId:             socket.id,
-        name:                 hostPlayer.name,
-        token:                hostPlayer.token,
-        color:                hostPlayer.color,
+        ...cleanProfile(hostPlayer, 'Host'),
         position:             0,
         score:                0,
         finished:             false,
@@ -134,9 +154,7 @@ io.on('connection', (socket) => {
     const player = {
       id:                   playerId,
       socketId:             socket.id,
-      name:                 playerName || `Player ${playerId + 1}`,
-      token:                token  || '●',
-      color:                color  || '#4CAF50',
+      ...cleanProfile({ name: playerName, token, color }, `Player ${playerId + 1}`),
       position:             0,
       score:                0,
       finished:             false,

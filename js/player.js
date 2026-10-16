@@ -335,11 +335,11 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
     const isActive = idx === currentPlayerIndex;
     return `
       <div class="other-player-row">
-        <div class="mini-badge" style="background:${p.color}">
-          <span class="badge-emoji">${p.token}</span>
-          <span class="badge-initials">${_initials(p.name)}</span>
+        <div class="mini-badge" style="background:${esc(p.color)}">
+          <span class="badge-emoji">${esc(p.token)}</span>
+          <span class="badge-initials">${esc(_initials(p.name))}</span>
         </div>
-        <span class="other-name">${p.name}${p.finished ? ' ✅' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
+        <span class="other-name">${esc(p.name)}${p.finished ? ' ✅' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
         <span class="other-pos">pos ${p.position ?? 0}</span>
         <span class="other-score">${p.score ?? 0} pts</span>
         <div class="other-active-indicator ${isActive ? '' : 'inactive'}"></div>
@@ -353,11 +353,11 @@ function renderLobbyPlayers(players) {
   const list = document.getElementById('lobby-player-list');
   list.innerHTML = players.map(p => `
     <div class="lobby-player-row">
-      <div class="mini-badge" style="background:${p.color}">
-        <span class="badge-emoji">${p.token}</span>
-        <span class="badge-initials">${_initials(p.name)}</span>
+      <div class="mini-badge" style="background:${esc(p.color)}">
+        <span class="badge-emoji">${esc(p.token)}</span>
+        <span class="badge-initials">${esc(_initials(p.name))}</span>
       </div>
-      <span class="lobby-player-name">${p.name}</span>
+      <span class="lobby-player-name">${esc(p.name)}</span>
     </div>`).join('');
 }
 
@@ -447,7 +447,7 @@ TX_NET.on('rejoin_failed', () => {
 });
 
 TX_NET.on('player_reconnected', ({ playerId, playerName }) => {
-  _addActivity('🔄', `<strong>${playerName}</strong> reconnected`);
+  _addActivity('🔄', `<strong>${esc(playerName)}</strong> reconnected`);
 });
 
 TX_NET.on('player_joined', ({ players }) => {
@@ -478,7 +478,7 @@ TX_NET.on('roll_result', ({ roll, playerId }) => {
   clearTimeout(_rollTimeout);
   _lastRoll = roll;
   const name = _lastCurrentPlayerName || 'Someone';
-  _addActivity('🎲', `<strong>${name}</strong> rolled <strong>${roll}</strong>`);
+  _addActivity('🎲', `<strong>${esc(name)}</strong> rolled <strong>${roll}</strong>`);
 
   if (_isMyTurn) {
     // Show rolled mode: die face + number until space_card arrives
@@ -501,7 +501,7 @@ TX_NET.on('space_card', (data) => {
     const detail = data.deedText
       ? data.deedText.slice(0, 60) + (data.deedText.length > 60 ? '…' : '')
       : (data.spaceName || meta.label);
-    _addActivity(meta.icon, `<strong>${name}</strong> landed on ${meta.label}: ${detail}`);
+    _addActivity(meta.icon, `<strong>${esc(name)}</strong> landed on ${meta.label}: ${detail}`);
   }
 });
 
@@ -514,7 +514,7 @@ TX_NET.on('space_card_done', () => {
 TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) => {
   const name = playerName || 'Someone';
   if (spaceType === 'skip_turn') {
-    _addActivity('⏭', `<strong>${name}</strong>'s turn was skipped`);
+    _addActivity('⏭', `<strong>${esc(name)}</strong>'s turn was skipped`);
     return;
   }
   let parts = [];
@@ -523,7 +523,7 @@ TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) =>
   if (spaceType === 'skip_turn') parts.push('skip next turn');
   if (spaceType === 'finish')    parts.push('reached the finish!');
   const summary = parts.length ? parts.join(', ') : 'no change';
-  _addActivity('📊', `<strong>${name}</strong>: ${summary}`);
+  _addActivity('📊', `<strong>${esc(name)}</strong>: ${summary}`);
 });
 
 TX_NET.on('host_left', () => {
@@ -532,7 +532,7 @@ TX_NET.on('host_left', () => {
 
 TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
   console.log(`[player] ${playerName} disconnected`);
-  _addActivity('⚠️', `<strong>${playerName}</strong> disconnected`);
+  _addActivity('⚠️', `<strong>${esc(playerName)}</strong> disconnected`);
 });
 
 TX_NET.on('player_removed', ({ playerId }) => {
