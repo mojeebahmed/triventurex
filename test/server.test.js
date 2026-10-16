@@ -404,6 +404,27 @@ describe('state ownership', () => {
   });
 });
 
+// ── Private cards (C3) ────────────────────────────────────────────────────────
+
+describe('private cards', () => {
+  it('reach only the target player', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 3 });
+    const got = players.map(p => collect(p.socket, 'private_card'));
+    host.emit('private_card', { gameId, playerId: players[1].id, card: { text: 'Mime a goal' } });
+    await settle();
+    assert.deepEqual(got.map(g => g.length), [0, 1, 0]);
+    assert.equal(got[1][0].text, 'Mime a goal');
+  });
+
+  it('can only be sent by the host', async () => {
+    const { gameId, players } = await setupGame({ phones: 2 });
+    const got = collect(players[1].socket, 'private_card');
+    players[0].socket.emit('private_card', { gameId, playerId: players[1].id, card: { text: 'fake' } });
+    await settle();
+    assert.equal(got.length, 0);
+  });
+});
+
 // ── Room lifecycle (A5) ───────────────────────────────────────────────────────
 
 describe('room lifecycle', () => {

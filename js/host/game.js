@@ -20,6 +20,7 @@ let state = {
   // The turn in progress, or null between turns. Plain data (saved with the game):
   // { token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }
   turn:               null,
+  hostPlayerId:       null,       // network game: the host's own player (no phone), else null
 };
 
 window._onScoreChange = (player, amount) => {
@@ -114,9 +115,9 @@ function startGame() {
 }
 
 /** Reset `state` for a brand-new game, show the game screen and save. */
-function _startNewGame({ gameId, players, gameLength, pathIndex }) {
+function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = null }) {
   Object.assign(state, {
-    gameId, players, gameLength, pathIndex,
+    gameId, players, gameLength, pathIndex, hostPlayerId,
     board:              _buildBoard(gameLength, pathIndex),
     currentPlayerIndex: 0,
     finishCount:        0,
@@ -206,7 +207,7 @@ function resetToSetup() {
     gameId: null, players: [], board: [], gameLength: 'medium',
     pathIndex: 'random', currentPlayerIndex: 0,
     phase: 'setup', turnPhase: 'roll', finishCount: 0,
-    history: [], turn: null,
+    history: [], turn: null, hostPlayerId: null,
   };
   renderPlayerRows();
   populatePathSelector('medium');

@@ -465,6 +465,13 @@ io.on('connection', (socket) => {
     if (fromHost(gameId)) socket.to(gameId).emit('space_card_done');
   });
 
+  // ── private_card — host → ONE player's phone only (e.g. the action card) ──
+  socket.on('private_card', ({ gameId, playerId, card }) => {
+    if (!fromHost(gameId)) return;
+    const target = rooms.get(gameId).players.find(p => p.id === playerId);
+    if (target?.socketId) io.to(target.socketId).emit('private_card', card);
+  });
+
   // ── disconnect ─────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`[disconnect] socket=${socket.id}`);

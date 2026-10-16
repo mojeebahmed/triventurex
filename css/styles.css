@@ -1187,6 +1187,19 @@ body {
   font-style: italic;
 }
 
+/* ── Action card (action space modal) ───────────────────────── */
+.action-card {
+  border: 1.5px dashed var(--modal-accent, var(--border));
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+.action-card-kind { font-weight: 800; font-size: 1rem; }
+.action-card-rule { font-size: .8rem; color: var(--text-muted); margin-bottom: 6px; }
+.action-card-who  { margin: 6px 0 8px; }
+.action-card-text { font-size: 1.1rem; font-weight: 700; margin-top: 10px; }
+.action-card-note { font-size: .8rem; color: var(--text-muted); font-style: italic; margin-top: 4px; }
+
 /* ── Landmark modal image ────────────────────────────────────── */
 .landmark-modal-img {
   width: 100%;

@@ -102,6 +102,14 @@ const CONFIG = {
     diceOverlayMs: 900,   // ms the large dice result is shown on the board before token moves
   },
 
+  // Action card kinds (actions.csv `kind` column). Shown on the host modal and
+  // sent to the performer's phone with the card.
+  ACTION_KINDS: {
+    act:     { icon: '🎭', label: 'Act it out',   rule: 'No words, no sounds — just actions.' },
+    explain: { icon: '💬', label: 'Explain it',   rule: "Describe it without saying the word(s) on the card." },
+    sound:   { icon: '🎵', label: 'Hum or sound', rule: 'Hum or make sounds — no words.' },
+  },
+
   // Timer defaults (seconds)
   TIMER: {
     question: 30,

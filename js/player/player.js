@@ -489,6 +489,17 @@ TX_NET.on('space_card', (data) => {
   }
 });
 
+// A card only this phone receives (the server forwards it to one socket)
+TX_NET.on('private_card', ({ title, text, rule, note } = {}) => {
+  document.getElementById('ab-card-title').textContent = title || '';
+  document.getElementById('ab-card-body').innerHTML = `
+    <div class="ab-private">🤫 Only you can see this</div>
+    <div class="ab-private-text">${esc(text)}</div>
+    ${rule ? `<div class="ab-private-rule">${esc(rule)}</div>` : ''}
+    ${note ? `<div class="ab-private-rule">${esc(note)}</div>` : ''}`;
+  _setActionMode('card');
+});
+
 TX_NET.on('space_card_done', () => {
   if (_isMyTurn) {
     _setActionMode('activity');

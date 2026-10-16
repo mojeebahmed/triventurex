@@ -9,7 +9,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV } = require('../js/shared/csv.js');
+const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = require('../js/shared/csv.js');
 
 const { listEditions, loadEdition, makeEdition, checkEdition, generateEditionJs } = require('../scripts/content.js');
 
@@ -60,6 +60,14 @@ describe('_parseDeedsCSV', () => {
     assert.equal(d.effects.length, 2);
     assert.equal(d.effect, 'score_add');
     assert.equal(d.effects[1].value, 3);
+  });
+});
+
+describe('_parseActionsCSV', () => {
+  it('parses id, text, kind and note', () => {
+    const [a, b] = _parseActionsCSV('id,text,kind,note\n3,"Explain it, quickly",explain,No hands\n4,Hum,sound,\n');
+    assert.deepEqual({ ...a }, { id: 3, text: 'Explain it, quickly', kind: 'explain', note: 'No hands' });
+    assert.equal(b.note, '');
   });
 });
 
@@ -124,6 +132,15 @@ describe('content checker', () => {
     assert.match(messages(r.warnings), /deeds\.csv:4 move_to_next_landmark 5, but the edition only has 2 landmarks/);
     assert.match(messages(r.warnings), /deeds\.csv:5 text uses \{landmark\}/);
     assert.doesNotMatch(messages(r.errors), /:2 /, 'the valid landmark row is fine');
+  });
+
+  it('checks action cards: kind, ids, empty text, column count', () => {
+    const r = check({ actionsCsv: 'id,text,kind,note\n1,Mime it,act,\n1,Again,act,\n2,,explain,\n3,Dance,dance,\n4,Too, many,act,\n' });
+    const m = messages(r.errors);
+    assert.match(m, /actions\.csv:3 duplicate id 1/);
+    assert.match(m, /actions\.csv:4 card text is empty/);
+    assert.match(m, /actions\.csv:5 kind "dance" must be one of: act, explain, sound/);
+    assert.match(m, /actions\.csv:6 5 columns, expected 4/);
   });
 
   it('reports relative landmark effects in an edition without landmarks', () => {

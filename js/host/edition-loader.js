@@ -49,10 +49,12 @@ async function loadEdition(editionId) {
   window.EDITION_CONFIG   = null;
   window.QUESTIONS_DATA = [];
   window.DEEDS_DATA     = [];
+  window.ACTIONS_DATA   = [];
 
-  // Load JS files (config.js required; questions.js + deeds.js are fallbacks
-  // used when the HTTP server isn't running and CSV fetch would fail)
-  const files = ['config.js', 'questions.js', 'deeds.js'];
+  // Load JS files (config.js required; questions.js / deeds.js / actions.js are
+  // fallbacks used when the HTTP server isn't running and CSV fetch would fail).
+  // An edition without actions.js simply has no digital action cards.
+  const files = ['config.js', 'questions.js', 'deeds.js', 'actions.js'];
   for (const file of files) {
     const src = `game_editions/${editionId}/${file}`;
     await new Promise((resolve) => {
@@ -100,6 +102,12 @@ async function _loadEditionCSV(editionId) {
   if (dText) {
     const parsed = _parseDeedsCSV(dText);
     if (parsed.length) { window.DEEDS_DATA = parsed; }
+  }
+
+  const aText = await get(`game_editions/${editionId}/actions.csv`);
+  if (aText) {
+    const parsed = _parseActionsCSV(aText);
+    if (parsed.length) { window.ACTIONS_DATA = parsed; }
   }
 }
 

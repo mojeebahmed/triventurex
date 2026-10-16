@@ -6,8 +6,8 @@ Starter folder for a new Triventurex edition.
 
 1. Copy this folder to `game_editions/<your-id>/`.
 2. Edit `config.js`: the name, icon, points name, colours, landmarks and `SPACE_INFO`. Each option is explained in the file.
-3. Edit `questions.csv` and `deeds.csv` (columns are described below). A spreadsheet app works fine. Save as CSV.
-4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
+3. Edit `questions.csv`, `deeds.csv` and `actions.csv` (columns are described below). A spreadsheet app works fine. Save as CSV.
+4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js` / `actions.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
 5. Add your edition to `game_editions/editions.js`.
 
 `npm run check:content` checks every edition without writing anything. `npm test` runs the same checks.
@@ -49,5 +49,18 @@ Starter folder for a new Triventurex edition.
 | `extra_turn` | ignored (use 0). The player rolls again. |
 | `all_players_gain` / `all_players_lose` | points for every player |
 | `protection` | ignored (use 1). Cancels the player's next bad deed. |
+
+## actions.csv
+
+Optional. Without it, action spaces ask players to draw a card from a physical deck.
+
+| Column | Meaning |
+|---|---|
+| `id` | Unique whole number. Never reuse or renumber: cards are not repeated until all have been used, tracked by id. |
+| `text` | The card, e.g. `Act out a goalkeeper saving a penalty` or `Explain 'offside' without saying offside, line or defender` |
+| `kind` | `act` (mime: no words, no sounds), `explain` (describe without the key words) or `sound` (hum or make sounds, no words) |
+| `note` | Optional extra rule for this card, shown with it |
+
+In a network game the card appears **only on the performer's phone**. Otherwise the host screen keeps it hidden until the performer taps *Show card* while everyone else looks away.
 
 Board generation places deeds sensibly. For example, `move_back 3` never appears within the first 3 spaces.

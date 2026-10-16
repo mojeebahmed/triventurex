@@ -116,6 +116,27 @@ function _parseDeedsCSV(text) {
     });
 }
 
+/**
+ * Parse actions.csv into the ACTIONS_DATA format (digital action cards).
+ *
+ * CSV columns (header row required):
+ *   id, text, kind, note
+ *
+ * id   = unique number per edition; never reuse or renumber (no-repeat tracking)
+ * kind = act | explain | sound   (see CONFIG.ACTION_KINDS)
+ * note = optional extra rule for this card, shown to the performer
+ */
+function _parseActionsCSV(text) {
+  return _parseCSV(text)
+    .filter(r => r.text)
+    .map((r, i) => ({
+      id:   Number(r.id) || i + 1,
+      text: r.text,
+      kind: r.kind || 'act',
+      note: r.note || '',
+    }));
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV };
+  module.exports = { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV };
 }

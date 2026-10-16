@@ -295,6 +295,24 @@ describe('players and GM', () => {
     assert.ok(w.log.emits.some(e => e[0] === 'syncState'));
   });
 
+  it('a private card goes to a phone player only (not the host player, not offline)', async () => {
+    const card = { id: 1, text: 'Mime it', kind: 'act', note: '' };
+    const offline = makeWorld();
+    offline.ctx.__card = card;
+    assert.equal(offline.run('_sendPrivateCard(state.players[1], __card)'), false, 'offline game');
+
+    const w = makeWorld(); w.network(); w.ctx.__card = card;
+    w.run('state.hostPlayerId = 0');
+    assert.equal(w.run('_sendPrivateCard(state.players[0], __card)'), false, "host's own player");
+    assert.equal(w.run('_sendPrivateCard(state.players[1], __card)'), true, 'phone player');
+    const sent = w.log.emits.find(e => e[0] === 'sendPrivateCard');
+    assert.equal(sent[2], 1);
+    assert.equal(sent[3].text, 'Mime it');
+    assert.match(sent[3].title, /Act it out/);
+    w.run('state.players[1].disconnected = true');
+    assert.equal(w.run('_sendPrivateCard(state.players[1], __card)'), false, 'disconnected phone');
+  });
+
   it('player_reconnected clears the disconnected marker', async () => {
     const w = makeWorld(); w.network();
     w.handlers.player_disconnected({ playerId: 1 });

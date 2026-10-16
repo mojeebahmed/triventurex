@@ -117,6 +117,25 @@ function _syncStateToServer() {
   });
 }
 
+/**
+ * Send a card ONLY to `player`'s phone (the server forwards it to that one
+ * socket). Returns true if sent — a network game where the player is on a
+ * connected phone, i.e. not the host's own player and not disconnected.
+ * Generic payload so other private cards (e.g. answering on the phone) can reuse it.
+ */
+function _sendPrivateCard(player, card) {
+  if (!_isNetworkGame || !_networkGameId) return false;
+  if (player.id === state.hostPlayerId || player.disconnected) return false;
+  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: '🎬', label: 'Action', rule: '' };
+  TX_NET.sendPrivateCard(_networkGameId, player.id, {
+    title: `${kind.icon} ${kind.label}`,
+    text:  card.text,
+    rule:  kind.rule,
+    note:  card.note || '',
+  });
+  return true;
+}
+
 function _emitSpaceCard(space, player) {
   if (!_isNetworkGame || !_networkGameId) return;
   const card = {
@@ -198,6 +217,7 @@ function _initSocketHandlers() {
       players:    players.map(p => createPlayer(p.id, p.name, p.color, p.token)),
       gameLength: setup.gameLength,
       pathIndex:  setup.pathIndex,
+      hostPlayerId: setup.hostPlayer?.id ?? null,   // the host's own player has no phone
     });
 
     try { localStorage.setItem('tx_net_game', _networkGameId); } catch {}

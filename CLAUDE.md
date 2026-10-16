@@ -82,7 +82,7 @@ Content:
 - `game_editions/<id>/questions.js` + `deeds.js` — auto-generated from CSV
 
 ## Content workflow
-Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js) → refresh browser.
+Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js / actions.js) → refresh browser.
 - `npm run check:content` — check only; fails if a CSV has errors or a generated JS file is out of date. `npm test` includes the same checks
 - The checker (`scripts/content.js`) reports `file:line message`: wrong column count (unquoted comma), bad/duplicate ids, type/difficulty, multi answer not pointing at a filled option, unknown deed effects, landmark effects vs config.js `LANDMARKS`; warnings for missing topics and `{landmark}` text without a landmark effect
 - `questions.csv` first column is `id` — unique per edition, never reuse or renumber (asked-question tracking is stored by id). New question → next unused number
@@ -141,6 +141,8 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **State ownership (A3)**: HOST owns game state (positions, scores, turn order, finish order, sitting out) and pushes it with `sync_state`. SERVER owns connection state (`socketId`, `rejoinToken`, `disconnected`, room membership) + dice; `sync_state` never overwrites these. Rules are written at the top of server.js
 - **Server-only fields never leave the server**: `SERVER_ONLY_FIELDS` (`socketId`, `rejoinToken`, `awaitingHostSync`) are stripped by `publicPlayer(s)()` / `publicState()` from every emit. A player's own `rejoinToken` is only sent once, in its `joined` reply
 - **Late joiners survive syncs**: a joiner is `awaitingHostSync` until a host sync includes them; a sync with an older list keeps them. The host's `player_joined` handler adds them + syncs. A player the host has synced before and then leaves out IS dropped (host authority)
+- **Private cards (C3)**: `private_card` (host-only) is forwarded by the server to ONE player's socket. `_sendPrivateCard(player, card)` in net-host.js sends it unless offline, the host's own player (`state.hostPlayerId`) or disconnected — then the host modal hides the card behind a show/hide toggle instead. Generic `{ title, text, rule, note }` payload — reuse it for other per-player secrets
+- **Action cards (C3)**: optional `actions.csv` per edition (`id, text, kind, note`; kinds in `CONFIG.ACTION_KINDS`: act / explain / sound). Drawn without repeats (`_drawActionCard`, tracked like questions under the `actions` key); the drawn card is stored on `state.turn.actionCard` so a resumed turn shows the same card. No actions.csv → physical-deck prompt
 - **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's "Play again" / lobby Cancel — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)
 - **Host → phone relays** (`turn_result`, `space_card`, `space_card_done`) are accepted from the host socket only
 - **remove_player** on the server only changes membership (+ removed socket leaves the room); it sends no `state_update` — the host's `player_removed` handler syncs the result

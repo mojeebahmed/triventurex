@@ -101,12 +101,18 @@ function showSpaceModal(space, player, onDone) {
       timerSet(CONFIG.TIMER.action);
       const perf  = CONFIG.SCORE_VALUES.action_performer;
       const guess = CONFIG.SCORE_VALUES.action_guesser;
+      // Digital card from actions.csv. A resumed turn (host refresh) shows the
+      // same card again; editions without action cards keep the physical deck.
+      const card = state.turn?.actionCard ?? _drawActionCard();
+      if (card && state.turn) state.turn.actionCard = card;
+      const onPhone = card ? _sendPrivateCard(player, card) : false;
       showModal({
         icon: CONFIG.SPACE_INFO.action?.icon ?? '🎬',
         title: 'Action Card!',
         content: _playerBadgeHtml(player) +
-                 `<p>Draw an <em>Action Card</em> and perform it!</p>
-                  <p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
+                 (card ? _actionCardHtml(card, player, onPhone)
+                       : `<p>Draw an <em>Action Card</em> and perform it!</p>`) +
+                 `<p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
                   <small>Use the timer in the sidebar to manage time.</small></p>`,
         actions: [
           { label: perf === guess ? `✅ Guessed! (+${perf} each)` : `✅ Guessed! (+${perf})`,
@@ -244,6 +250,7 @@ function _clearAskedIds(diff) {
 function resetAskedQuestions() {
   _clearAskedIds('easy');
   _clearAskedIds('hard');
+  _clearAskedIds('actions');
 }
 
 /** Returns the unasked pool for a difficulty. Resets tracking if all are asked. */
@@ -420,6 +427,54 @@ function _showPhysicalCard(diff, player, pts, onDone) {
       { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
     ],
   });
+}
+
+// ── Action cards ──────────────────────────────────────────────────────────────
+
+/**
+ * Draw an action card the table hasn't had yet (same no-repeat tracking as
+ * questions, under the 'actions' key). Reshuffles when all have been used.
+ * Returns null if the edition has no action cards.
+ */
+function _drawActionCard() {
+  const all = window.ACTIONS_DATA || [];
+  if (!all.length) return null;
+  const used = _getAskedIds('actions');
+  let pool = all.filter(a => !used.has(a.id));
+  if (!pool.length) {
+    _clearAskedIds('actions');
+    pool = all;
+    showToast('All action cards used — reshuffling!');
+  }
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  _markAsked('actions', card.id);
+  return card;
+}
+
+/**
+ * The card section of the action modal. The card text starts hidden behind a
+ * toggle: on a phone game the performer already has it (the GM can peek);
+ * otherwise the performer reveals it while the others look away.
+ */
+function _actionCardHtml(card, player, onPhone) {
+  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: '🎬', label: 'Action', rule: '' };
+  const who = onPhone
+    ? `📱 The card is on <strong>${esc(player.name)}</strong>'s phone.`
+    : `<strong>${esc(player.name)}</strong>, reveal your card — everyone else look away!`;
+  return `
+    <div class="action-card">
+      <div class="action-card-kind">${kind.icon} ${esc(kind.label)}</div>
+      <div class="action-card-rule">${esc(kind.rule)}</div>
+      <p class="action-card-who">${who}</p>
+      <button type="button" class="btn btn-secondary btn-small"
+              onclick="this.nextElementSibling.classList.toggle('hidden')">
+        ${onPhone ? '👁 GM: show / hide card' : '👁 Show / hide card'}
+      </button>
+      <div class="action-card-secret hidden">
+        <div class="action-card-text">${esc(card.text)}</div>
+        ${card.note ? `<div class="action-card-note">${esc(card.note)}</div>` : ''}
+      </div>
+    </div>`;
 }
 
 // ── Deed Card Flow ────────────────────────────────────────────────────────────

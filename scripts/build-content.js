@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * scripts/build-content.js
- * Check every edition's CSV content and regenerate questions.js / deeds.js.
+ * Check every edition's CSV content and regenerate questions.js / deeds.js /
+ * actions.js.
  *
  *   npm run build:content            check, then write the JS files
  *   npm run build:content swab-quest only that edition
@@ -31,7 +32,7 @@ for (const id of editions) {
   const ed = loadEdition(id);
   const { errors, warnings } = checkEdition(ed);
 
-  const counts = `${ed.questions.length} questions, ${ed.deeds.length} deeds`;
+  const counts = `${ed.questions.length} questions, ${ed.deeds.length} deeds, ${ed.actions.length} action cards`;
   console.log(`${errors.length ? '✗' : '✓'} ${id} — ${counts}` +
               (errors.length ? `, ${errors.length} error(s)` : '') +
               (warnings.length ? `, ${warnings.length} warning(s)` : ''));

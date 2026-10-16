@@ -16,7 +16,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { _csvSplit, _parseQuestionsCSV, _parseDeedsCSV } = require('../js/shared/csv.js');
+const { _csvSplit, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = require('../js/shared/csv.js');
 
 const EDITIONS_DIR = path.join(__dirname, '..', 'game_editions');
 
@@ -24,6 +24,7 @@ const EFFECTS = new Set(['score_add', 'score_remove', 'move_forward', 'move_back
   'move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark', 'skip_turn',
   'extra_turn', 'all_players_gain', 'all_players_lose', 'protection']);
 const LANDMARK_EFFECTS = new Set(['move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark']);
+const ACTION_KINDS = new Set(['act', 'explain', 'sound']); // keep in sync with CONFIG.ACTION_KINDS
 
 /** Edition folders that have content CSVs (includes `template`). */
 function listEditions() {
@@ -44,17 +45,19 @@ function loadEdition(id) {
     vm.runInContext(configJs, ctx, { filename: `${id}/config.js` });
     config = ctx.window.EDITION_CONFIG || {};
   }
-  return { ...makeEdition({ id, config, questionsCsv: read('questions.csv'), deedsCsv: read('deeds.csv') }), dir };
+  return { ...makeEdition({ id, config, questionsCsv: read('questions.csv'), deedsCsv: read('deeds.csv'),
+                           actionsCsv: read('actions.csv') }), dir };
 }
 
 /** Build an edition object from CSV text (also used by tests for made-up content). */
-function makeEdition({ id = 'test', config = {}, questionsCsv = null, deedsCsv = null }) {
+function makeEdition({ id = 'test', config = {}, questionsCsv = null, deedsCsv = null, actionsCsv = null }) {
   // Parser warnings (e.g. a missing id) are reported by checkEdition instead
   const quiet = fn => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
   return {
-    id, config, questionsCsv, deedsCsv,
+    id, config, questionsCsv, deedsCsv, actionsCsv,
     questions: questionsCsv ? quiet(() => _parseQuestionsCSV(questionsCsv)) : [],
     deeds:     deedsCsv     ? quiet(() => _parseDeedsCSV(deedsCsv))         : [],
+    actions:   actionsCsv   ? _parseActionsCSV(actionsCsv)                  : [],
   };
 }
 
@@ -79,7 +82,8 @@ function checkEdition(ed) {
   const warn = (file, line, message) => warnings.push({ file, line, message });
 
   // Column count per row — the classic "comma inside a field without quotes"
-  for (const [file, text] of [['questions.csv', ed.questionsCsv], ['deeds.csv', ed.deedsCsv]]) {
+  for (const [file, text] of [['questions.csv', ed.questionsCsv], ['deeds.csv', ed.deedsCsv],
+                               ['actions.csv', ed.actionsCsv]]) {
     if (!text) continue;
     const [header, ...rows] = csvLines(text);
     const width = _csvSplit(header.line).length;
@@ -146,6 +150,26 @@ function checkEdition(ed) {
     });
   }
 
+  // Action cards
+  if (ed.actionsCsv) {
+    const lines = csvLines(ed.actionsCsv).slice(1);
+    const rows  = lines.map(l => _csvSplit(l.line));
+    const header = _csvSplit(csvLines(ed.actionsCsv)[0].line).map(h => h.trim().toLowerCase());
+    const col = name => header.indexOf(name);
+    const seen = new Map();
+    rows.forEach((cells, i) => {
+      const n = lines[i].n, f = 'actions.csv';
+      const id   = (cells[col('id')]   ?? '').trim();
+      const text = (cells[col('text')] ?? '').trim();
+      const kind = (cells[col('kind')] ?? '').trim();
+      if (!text) err(f, n, 'card text is empty');
+      if (!/^\d+$/.test(id)) err(f, n, `id "${id}" must be a whole number`);
+      else if (seen.has(id)) err(f, n, `duplicate id ${id} (also on line ${seen.get(id)})`);
+      else seen.set(id, n);
+      if (!ACTION_KINDS.has(kind)) err(f, n, `kind "${kind}" must be one of: ${[...ACTION_KINDS].join(', ')}`);
+    });
+  }
+
   return { errors, warnings };
 }
 
@@ -196,6 +220,14 @@ function generateEditionJs(ed) {
       id: ed.id, file: 'deeds.js', source: 'deeds.csv', globalName: 'DEEDS_DATA',
       summary: `${ed.deeds.length} deed cards  (${good} good / ${ed.deeds.length - good} bad)`,
       items: ed.deeds,
+    });
+  }
+  if (ed.actionsCsv) {
+    const kinds = [...ACTION_KINDS].map(k => `${ed.actions.filter(a => a.kind === k).length} ${k}`).join(' / ');
+    out['actions.js'] = generatedFile({
+      id: ed.id, file: 'actions.js', source: 'actions.csv', globalName: 'ACTIONS_DATA',
+      summary: `${ed.actions.length} action cards  (${kinds})`,
+      items: ed.actions,
     });
   }
   return out;
