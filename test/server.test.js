@@ -533,7 +533,8 @@ describe('static files', () => {
   }
 
   for (const p of ['/server.js', '/package.json', '/CLAUDE.md', '/IMPROVEMENT-PLAN.md',
-                   '/test/server.test.js', '/node_modules/express/package.json']) {
+                   '/test/server.test.js', '/node_modules/express/package.json',
+                   '/scripts/content.js']) {
     it(`does not serve ${p}`, async () => {
       assert.equal((await rawGet(p)).status, 404);
     });
