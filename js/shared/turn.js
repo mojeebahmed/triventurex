@@ -4,7 +4,7 @@
  * and returns data, so it can be unit-tested in Node (test/turn.test.js).
  *
  * Browser: loaded as a plain <script> before game.js (functions become globals).
- * Node:    require('../js/turn.js') via the module.exports guard at the bottom.
+ * Node:    require('../js/shared/turn.js') via the module.exports guard at the bottom.
  */
 
 /** A player takes turns unless they have finished or are sitting out. */

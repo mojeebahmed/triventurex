@@ -15,7 +15,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
-const STUBBED = new Set(['js/ui.js', 'js/board.js', 'js/dice.js', 'js/socket-client.js']);
+const STUBBED = new Set(['js/host/ui.js', 'js/host/board.js', 'js/shared/dice.js', 'js/shared/socket-client.js']);
 
 /** Local js/ scripts in index.html order, minus the ones replaced by stubs. */
 function hostScripts() {

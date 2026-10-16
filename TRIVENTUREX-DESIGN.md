@@ -43,14 +43,14 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 
 | File | Responsibility |
 |---|---|
-| `js/config.js` | Engine defaults: board sizes, space types, scoring, zoom, animation, paths |
-| `js/board.js` | Board generation algorithm + DOM rendering |
-| `js/players.js` | Player state helpers (`createPlayer`, `movePlayer`, `addScore`) |
-| `js/dice.js` | `renderDie(n, sizeClass)` — CSS dot-die; no images; used on host + player screens |
-| `js/ui.js` | Modals, scoreboard, legend, timer, deed display, landmark info popup, history |
-| `js/game.js` | Main controller: state, turns, pan/zoom, localStorage, edition loading, setup screen |
-| `js/socket-client.js` | `TX_NET` singleton — shared Socket.IO layer; safe no-ops when offline |
-| `js/player.js` | Player screen logic: join, action box, session management |
+| `js/shared/config.js` | Engine defaults: board sizes, space types, scoring, zoom, animation, paths |
+| `js/host/board.js` | Board generation algorithm + DOM rendering |
+| `js/shared/players.js` | Player state helpers (`createPlayer`, `movePlayer`, `addScore`) |
+| `js/shared/dice.js` | `renderDie(n, sizeClass)` — CSS dot-die; no images; used on host + player screens |
+| `js/host/ui.js` | Modals, scoreboard, legend, timer, deed display, landmark info popup, history |
+| `js/host/game.js` | Main controller: state, turns, pan/zoom, localStorage, edition loading, setup screen |
+| `js/shared/socket-client.js` | `TX_NET` singleton — shared Socket.IO layer; safe no-ops when offline |
+| `js/player/player.js` | Player screen logic: join, action box, session management |
 | `game_editions/editions.js` | Edition registry — lists all available editions |
 | `game_editions/<id>/config.js` | Edition config: name, colours, landmarks, background, space overrides |
 | `game_editions/<id>/questions.csv` | Source of truth for questions — edit this; regenerate JS after |
@@ -234,7 +234,7 @@ Deed card score effects are defined per edition in `deeds.csv`.
 
 ### Path Designer (`tools/path-designer.html`)
 
-A visual drag-and-click tool for designing new board path templates. Open it in a browser served from the project root (requires a local server so it can load `js/config.js`):
+A visual drag-and-click tool for designing new board path templates. Open it in a browser served from the project root (requires a local server so it can load `js/shared/config.js`):
 
 ```bash
 python3 -m http.server 8080
@@ -245,7 +245,7 @@ Features:
 - Click to set start, click to extend path segment by segment
 - Violation detection (highlights cells that are too close to adjacent path runs)
 - Space counter vs. short/medium/long targets
-- Generates JSON in the exact `PATH_TEMPLATES` format — copy and paste into `js/config.js`
+- Generates JSON in the exact `PATH_TEMPLATES` format — copy and paste into `js/shared/config.js`
 - Load dropdown shows all existing templates live from `CONFIG.PATH_TEMPLATES`
 
 ---

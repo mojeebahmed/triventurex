@@ -6,7 +6,7 @@
    FALLBACK values only — real values are set at runtime by
    _applyColors() in game.js, reading from config.js.
    To change colours: edit CONFIG.COLORS or CONFIG.SPACE_INFO
-   in js/config.js. Do NOT change values here directly.
+   in js/shared/config.js. Do NOT change values here directly.
    ─────────────────────────────────────────────────────────── */
 :root {
   /* Brand / UI — driven by CONFIG.COLORS */

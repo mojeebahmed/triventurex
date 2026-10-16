@@ -6,7 +6,7 @@
 
 // ── Turn state ──────────────────────────────────────────────────────────────────
 // Pure turn logic (next player, snapshots, undo restore, history rows) lives in
-// js/turn.js. These helpers tie it to `state` and the page.
+// js/shared/turn.js. These helpers tie it to `state` and the page.
 
 let _turnCounter = 0; // source of state.turn.token values
 

@@ -153,7 +153,7 @@ window.EDITION_CONFIG = {
   // Ratios for each non-question space type. Questions always fill whatever
   // space remains after all other types are counted — no 'question' key needed.
   // Can be flat (same for all lengths) or keyed by 'short'/'medium'/'long'.
-  // Omit entirely to use the engine defaults from js/config.js.
+  // Omit entirely to use the engine defaults from js/shared/config.js.
   SPACE_DISTRIBUTION: {
     short: {
       action:    0.10,

@@ -13,7 +13,7 @@ Save project files to this project's folder.
 # Coding Standards
 - Vanilla HTML + CSS + JS (no framework, no build step) for client
 - V2 server: Node.js + Socket.IO + Express — keep client code vanilla
-- All configurable values in `js/config.js` (engine) or `game_editions/<id>/config.js` (edition) — never hardcode
+- All configurable values in `js/shared/config.js` (engine) or `game_editions/<id>/config.js` (edition) — never hardcode
 
 # Project: Triventurex
 
@@ -42,32 +42,37 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - Run `npm test` before merging any change (it takes ~3 s)
 
 ## Key files
-Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `game.js` is loaded last.
+`js/` is grouped by who loads a file:
+- `js/shared/` — no page access at load time; used by more than one place (host page, phone page, server, tests). A change here can affect all of them. Rule: top-level code in `shared/` must not touch `document`/`window` (only inside functions)
+- `js/host/` — host page (`index.html`) only
+- `js/player/` — phone page (`player.html`) only
 
-Engine (shared, no game flow):
-- `js/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
-- `js/config.js` — engine settings (board, space types, zoom, animation, score, rules)
-- `js/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`)
-- `js/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
-- `js/turn.js` — pure turn logic (next player, snapshots, undo restore, history rows); unit-tested
-- `js/csv.js` — pure CSV parsing for questions/deeds; unit-tested
-- `js/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
-- `js/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
-- `js/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
+Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `js/host/game.js` is loaded last.
 
-Host controller (was one 2000-line game.js before A4):
-- `js/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
-- `js/turn-flow.js` — the turn pipeline (`_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`), undo, GM controls
-- `js/net-host.js` — host side of network play: lobby, `_syncStateToServer`, all socket handlers
-- `js/setup.js` — setup screen: local / host / join tabs, player rows, host player row
-- `js/badge-picker.js` — one badge modal for setup rows and the host (`openBadgeModal(index | 'host')`)
-- `js/category-filter.js` — 3-level question topic tree in Game Settings
-- `js/edition-loader.js` — `loadEdition`, config merge, edition picker, colours + branding
-- `js/storage.js` — saved game + remembered preferences (localStorage)
-- `js/viewport.js` — pan / zoom / fit and the board background
+`js/shared/`:
+- `js/shared/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
+- `js/shared/config.js` — engine settings (board, space types, zoom, animation, score, rules)
+- `js/shared/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
+- `js/shared/turn.js` — pure turn logic (next player, snapshots, undo restore, history rows); unit-tested
+- `js/shared/csv.js` — pure CSV parsing for questions/deeds; unit-tested
+- `js/shared/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
+- `js/shared/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
+
+`js/host/` (the controller was one 2000-line game.js before A4):
+- `js/host/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
+- `js/host/turn-flow.js` — the turn pipeline (`_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`), undo, GM controls
+- `js/host/net-host.js` — host side of network play: lobby, `_syncStateToServer`, all socket handlers
+- `js/host/setup.js` — setup screen: local / host / join tabs, player rows, host player row
+- `js/host/badge-picker.js` — one badge modal for setup rows and the host (`openBadgeModal(index | 'host')`)
+- `js/host/category-filter.js` — 3-level question topic tree in Game Settings
+- `js/host/edition-loader.js` — `loadEdition`, config merge, edition picker, colours + branding
+- `js/host/storage.js` — saved game + remembered preferences (localStorage)
+- `js/host/viewport.js` — pan / zoom / fit and the board background
+- `js/host/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`)
+- `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 
 Player page + server:
-- `player.html` + `js/player.js` — phone screen (join, action box, session management)
+- `player.html` + `js/player/player.js` — phone screen (join, action box, session management)
 - `server.js` — rooms, dice rolling, host → phone relays (ownership rules at the top)
 
 Content:
@@ -93,7 +98,7 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 ## Architecture — V1 (don't revert)
 - **Edition loading**: `loadEdition()` in game.js; validates saved ID against registry before use; `_ENGINE_DEFAULTS` snapshot for clean edition switching; calls `_populateCategoryFilter()` after load
 - **Board generation**: `generateBoard()` in board.js — pre-picks deed effects → constraint-aware deed-to-slot assignment (`_assignDeedsToSlots`) → no consecutive same-type → resolved landmark names stored on each deed
-- **SPACE_DISTRIBUTION**: defined in `js/config.js` as engine default. Editions override via `SPACE_DISTRIBUTION` in their `config.js` — can be flat (all lengths) or keyed by `short`/`medium`/`long`. Questions always fill whatever space remains; no `question` key is needed in the distribution object.
+- **SPACE_DISTRIBUTION**: defined in `js/shared/config.js` as engine default. Editions override via `SPACE_DISTRIBUTION` in their `config.js` — can be flat (all lengths) or keyed by `short`/`medium`/`long`. Questions always fill whatever space remains; no `question` key is needed in the distribution object.
 - **Constraint-aware placement** (`_assignDeedsToSlots`):
   - `move_back N` → slot index ≥ N (not near start)
   - `move_forward N` → slot index ≤ poolLen-1-N (not near finish)
@@ -117,7 +122,7 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **Turn pipeline (A2)**: every turn = `_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`; skipped turns (`_skipTurn`) and exact-finish blocks also end in `_finishTurn`, the ONLY end-of-turn path (finish bonus → history → turn_result/space_card_done → game over? → extra turn or `endTurn` → save → sync). Never end a turn any other way
 - **`state.turn`**: the turn in progress (`{ token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }`) or `null`. Plain data, saved with the game; on resume a saved `state.turn` re-opens the space modal via `_resolveSpace`
 - **Stale continuations**: every async step / modal callback captures `token` and checks `_isStale(token)`; undo and player removal clear `state.turn`, which cancels everything in flight
-- **Pure turn logic** lives in `js/turn.js` (`nextTurnIndex`, `takeSnapshot`, `restoreFromSnapshot`, `indexAfterRemoval`, `makeHistoryEntry`) — no DOM; unit-tested in `test/turn.test.js`
+- **Pure turn logic** lives in `js/shared/turn.js` (`nextTurnIndex`, `takeSnapshot`, `restoreFromSnapshot`, `indexAfterRemoval`, `makeHistoryEntry`) — no DOM; unit-tested in `test/turn.test.js`
 - **Badge picker modal**: clicking player badge on setup screen opens a fixed overlay modal; shows live preview with emoji + initials; width = 80% of setup container
 - **Setup screen**: resume prompt is a slim single-line bar; Game Settings is a collapsible `<details>` section with rows: Board Layout, Exact Finish, Question Tracking, Question Categories
 - **Host player**: separate from local player list; stored in `triventurex_host_player` localStorage; GM-only toggle disables (not hides) the player input

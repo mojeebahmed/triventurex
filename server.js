@@ -4,7 +4,7 @@
  * Serves the client files, manages game rooms and rolls the dice.
  *
  * STATE OWNERSHIP
- *  - The HOST (js/game.js) owns all game state: positions, scores, turn order,
+ *  - The HOST (js/host/game.js) owns all game state: positions, scores, turn order,
  *    finish order, sitting out. It pushes it here with `sync_state`; the
  *    server stores it only to answer late joiners / rejoins and to validate rolls.
  *  - The SERVER owns connection state: socketId, rejoinToken, `disconnected`,
@@ -17,7 +17,7 @@ const http      = require('http');
 const { Server } = require('socket.io');
 const path      = require('path');
 const os        = require('os');
-const { indexAfterRemoval } = require('./js/turn.js'); // shared with the host
+const { indexAfterRemoval } = require('./js/shared/turn.js'); // shared with the host
 
 const app    = express();
 const server = http.createServer(app);

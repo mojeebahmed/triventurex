@@ -1,6 +1,6 @@
 /**
  * test/csv.test.js
- * Unit tests for js/csv.js, plus content checks on every edition's CSV files:
+ * Unit tests for js/shared/csv.js, plus content checks on every edition's CSV files:
  * the CSV must parse to exactly what the generated questions.js holds, and
  * every row must be valid (catches unquoted commas shifting columns — see B18).
  */
@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV } = require('../js/csv.js');
+const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV } = require('../js/shared/csv.js');
 
 const EDITIONS_DIR = path.join(__dirname, '../game_editions');
 const EDITIONS = fs.readdirSync(EDITIONS_DIR)

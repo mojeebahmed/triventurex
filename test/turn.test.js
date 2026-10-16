@@ -1,6 +1,6 @@
 /**
  * test/turn.test.js
- * Unit tests for js/turn.js — pure turn logic (T5).
+ * Unit tests for js/shared/turn.js — pure turn logic (T5).
  */
 
 const { describe, it } = require('node:test');
@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const {
   isTurnEligible, nextTurnIndex, takeSnapshot, restoreFromSnapshot,
   indexAfterRemoval, makeHistoryEntry,
-} = require('../js/turn.js');
+} = require('../js/shared/turn.js');
 
 /** Minimal player for these tests. */
 const P = (id, extra = {}) => ({

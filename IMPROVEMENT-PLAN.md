@@ -19,7 +19,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ### 1a. Turn flow (network) — highest priority
 
 - [x] **B1 — Phone-initiated rolls skip turn setup**
-  - **Where:** `js/game.js` `TX_NET.on('roll_result')` (~L1033), `handleRoll()` (~L1273), `handleManualRoll()` (~L1235)
+  - **Where:** `js/host/game.js` `TX_NET.on('roll_result')` (~L1033), `handleRoll()` (~L1273), `handleManualRoll()` (~L1235)
   - **Problem:** Only host-initiated rolls take `_preRollSnapshot`, set `turnPhase='resolving'`, bump `_turnToken`. Phone rolls go straight to `_processRoll()`. Undo then restores a stale snapshot; host Roll button stays enabled mid-turn; resume-reopen-modal never fires.
   - **Fix:** Extract `_beginTurn()` (snapshot + token + `turnPhase='resolving'` + disable roll/manual dice). Call it from `handleRoll`, `handleManualRoll`, and from `roll_result` when the roll was not host-initiated (i.e. when `!_awaitingRoll`).
   - **Verify:** Phone rolls → host Roll button disabled during turn → Undo restores the state from before *that* roll.
@@ -31,18 +31,18 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Depends on:** B1 (host must sync `'resolving'`/`'roll'` reliably).
 
 - [x] **B3 — Exact-finish block never syncs to phones**
-  - **Where:** `js/game.js` `_processRoll()` blocked branch (~L1366)
+  - **Where:** `js/host/game.js` `_processRoll()` blocked branch (~L1366)
   - **Problem:** No `_syncStateToServer()` → next phone player can't roll. Also `saveGame()` runs before `endTurn()` (violates the "save after endTurn" invariant).
   - **Fix:** Route through the same end-of-turn path as `afterSpaceResolved` (see A2); minimal fix = `endTurn(); saveGame(); _syncStateToServer();`.
 
 - [x] **B4 — Extra turn leaves phones stuck (likely)**
-  - **Where:** `js/game.js` `afterSpaceResolved()` extra-turn branch (~L1460)
+  - **Where:** `js/host/game.js` `afterSpaceResolved()` extra-turn branch (~L1460)
   - **Problem:** Returns without `saveGame()` / `_syncStateToServer()`; manual dice stay disabled (only `roll-btn` re-enabled).
   - **Fix:** Call `refreshUI()`, `saveGame()`, `_syncStateToServer()` before returning.
   - **Verify:** Land on an `extra_turn` deed from a phone → phone returns to dice mode.
 
 - [x] **B15 — Host refresh mid-turn leaves the turn stuck** _(found while fixing B1)_
-  - **Where:** `js/game.js` `saveGame()`, `_restoreGame()`, `host_rejoined` handler
+  - **Where:** `js/host/game.js` `saveGame()`, `_restoreGame()`, `host_rejoined` handler
   - **Problem:** `_pendingHistory` was null after restore, so `afterSpaceResolved()` bailed and the turn never ended; undo snapshot lost; finish-space modal not reopened. Also `host_rejoin` was only sent on socket `connect`, which has usually already fired before Resume is clicked.
   - **Fix:** Save a serialisable `pendingTurn` (roll, posBefore, scoreBefore, snapshot); restore it via `_beginTurn()`; rejoin immediately if already connected; host syncs state after `host_rejoined`.
 
@@ -54,7 +54,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Fix:** `_endGame()` sets `phase='ended'` and syncs; used by `afterSpaceResolved()` and `endTurn()`.
 
 - [x] **B5 — Removing a player can skip a turn**
-  - **Where:** `server.js` `remove_player` / `leave_game`; `js/game.js` `player_removed` handler (~L1046)
+  - **Where:** `server.js` `remove_player` / `leave_game`; `js/host/game.js` `player_removed` handler (~L1046)
   - **Problem:** If the removed player's index < `currentPlayerIndex`, the index isn't decremented.
   - **Fix:** `if (idx < currentPlayerIndex) currentPlayerIndex--; else if (currentPlayerIndex >= length) currentPlayerIndex = 0;` in both places (or only on host once A3 makes the server a relay).
 
@@ -63,7 +63,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Fix:** Check `room.hostSocketId === socket.id` before the player match / `break`.
 
 - [x] **B7 — GM score/move changes not synced or undoable**
-  - **Where:** `js/game.js` `gmAdjustScore`, `gmMovePlayer`, `gmSkipTurn` (~L1497)
+  - **Where:** `js/host/game.js` `gmAdjustScore`, `gmMovePlayer`, `gmSkipTurn` (~L1497)
   - **Fix:** Call `_syncStateToServer()` after each. Decide whether GM actions go into history (recommended: yes, as a `gm` entry with snapshot, so they're undoable and visible in the log).
 
 - [x] **B8 — Active/inactive player feature not wired**
@@ -73,12 +73,12 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ### 1b. Question tracking
 
 - [x] **B9 — Asked-question keys shared across editions**
-  - **Where:** `js/ui.js` `_askedKey()` (~L206)
+  - **Where:** `js/host/ui.js` `_askedKey()` (~L206)
   - **Problem:** `window._activeThemeId` is always undefined (`let` doesn't attach to `window`) → all editions write `triventurex_asked_default_*`.
   - **Fix:** Expose the active edition id properly (e.g. `window.getActiveEditionId()` or pass it in). Optionally clear the old `triventurex_asked_default_*` keys once.
 
 - [x] **B10 — Question IDs are row positions**
-  - **Where:** `js/game.js` `_parseQuestionsCSV()` (~L1832)
+  - **Where:** `js/host/game.js` `_parseQuestionsCSV()` (~L1832)
   - **Problem:** Inserting/deleting a CSV row reshuffles IDs and corrupts asked-tracking.
   - **Fix:** Add an `id` column to `questions.csv` (both editions + template); parser uses it, falls back to row index only if missing. Pairs well with C2 (validator checks uniqueness).
 
@@ -90,7 +90,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ### 1c. Engine/edition leaks & finish logic
 
 - [x] **B11 — Edition text and score values hardcoded in engine**
-  - **Where:** `js/ui.js` landmark modal (~L131: "Holy Site", literal `5`), action modal (~L104 "+1"), question choice (~L271 "+1"), guesser modal (~L593 "+1"); stale comment in `js/config.js` `SCORE_VALUES`
+  - **Where:** `js/host/ui.js` landmark modal (~L131: "Holy Site", literal `5`), action modal (~L104 "+1"), question choice (~L271 "+1"), guesser modal (~L593 "+1"); stale comment in `js/shared/config.js` `SCORE_VALUES`
   - **Fix:** Use `CONFIG.SCORE_VALUES.*` everywhere; move landmark fallback title to `CONFIG.GAME` (edition-overridable).
 
 - [x] **B12 — Finishing via deed/GM move gives no bonus or finish order**
@@ -101,7 +101,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ### 1d. Security (LAN-scale)
 
 - [x] **B13 — Player names rendered via `innerHTML`**
-  - **Where:** `js/ui.js` scoreboard/end screen, `js/game.js` lobby + GM list, `js/player.js` other-players list
+  - **Where:** `js/host/ui.js` scoreboard/end screen, `js/host/game.js` lobby + GM list, `js/player/player.js` other-players list
   - **Fix:** Add `esc()` helper; escape names everywhere they're interpolated. Server: trim/limit name length.
 
 - [x] **B14 — Whole project folder served statically**
@@ -119,7 +119,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 - [ ] **A5 — Room lifecycle on server.** Delete rooms on game end, and after host absent > N minutes.
 - [ ] **A6 — `public/` folder** for client files (completes B14).
 - [ ] **A7 — `TX_NET.on` supports multiple handlers** per event.
-- [ ] **A8 — Remove duplicate `renderDie`** inline copy in `player.html` (load `js/dice.js` instead).
+- [ ] **A8 — Remove duplicate `renderDie`** inline copy in `player.html` (load `js/shared/dice.js` instead).
 
 ## Phase 3 — Content pipeline
 

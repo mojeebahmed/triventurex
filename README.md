@@ -123,7 +123,7 @@ Editions are loaded **dynamically** at startup. The engine never changes when yo
 
 ---
 
-## Configuration — `js/config.js`
+## Configuration — `js/shared/config.js`
 
 Engine-level settings only. Edition values live in `game_editions/<id>/config.js`.
 

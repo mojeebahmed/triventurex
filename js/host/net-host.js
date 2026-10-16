@@ -1,7 +1,7 @@
 /**
  * net-host.js
  * Host side of network play (V2): lobby, hosting, syncing state to the
- * server and all Socket.IO event handlers. Phones run js/player.js instead.
+ * server and all Socket.IO event handlers. Phones run js/player/player.js instead.
  */
 
 let _isNetworkGame    = false;    // true once a network game is active

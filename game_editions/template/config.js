@@ -45,7 +45,7 @@ window.EDITION_CONFIG = {
   // ── Space distribution (optional) ───────────────────────────────────────────
   // Ratios for each non-question type. Questions fill whatever space remains.
   // Can be flat (same for all lengths) or keyed by 'short'/'medium'/'long'.
-  // Omit to use the engine defaults from js/config.js.
+  // Omit to use the engine defaults from js/shared/config.js.
   // SPACE_DISTRIBUTION: {
   //   short:  { action: 0.10, good_deed: 0.12, bad_deed: 0.12, landmark: 0.06, skip: 0.04 },
   //   medium: { action: 0.10, good_deed: 0.12, bad_deed: 0.12, landmark: 0.06, skip: 0.04 },
@@ -53,7 +53,7 @@ window.EDITION_CONFIG = {
   // },
 
   // ── Space type overrides ────────────────────────────────────────────────────
-  // Only specify what differs from the engine defaults in js/config.js SPACE_INFO.
+  // Only specify what differs from the engine defaults in js/shared/config.js SPACE_INFO.
   // Must include `finish` to set the destination name for your edition.
   SPACE_INFO: {
     finish: { icon: '🏁', label: 'Finish' },   // change label to your destination

@@ -1,6 +1,6 @@
 /**
  * test/utils.test.js
- * Unit tests for js/utils.js (browser script — loaded into a vm context).
+ * Unit tests for js/shared/utils.js (browser script — loaded into a vm context).
  */
 
 const { describe, it } = require('node:test');
@@ -11,7 +11,7 @@ const vm = require('node:vm');
 
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/utils.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/shared/utils.js'), 'utf8'), ctx);
 const { esc } = ctx;
 
 describe('esc()', () => {
