@@ -14,8 +14,8 @@ window.EDITION_CONFIG = {
   // ── Brand identity ──────────────────────────────────────────────────────────
   GAME: {
     engineName:   'Triventurex',
-    themeName:    'Football Quest',
-    themeIcon:    '⚽',
+    editionName:  'Football Quest',
+    editionIcon:  '⚽',
     subtitle:     'Score Goals and reach the Final — the beautiful game on a board.',
     gameIdPrefix: 'FQ',
     pointsName:   'Goals',
@@ -180,7 +180,7 @@ window.EDITION_CONFIG = {
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
-  THEME: {
+  COLORS: {
     // Primary brand colour (pitch green)
     '--green':          '#1B5E20',
     '--green-dark':     '#003300',

@@ -64,11 +64,13 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 ## Terminology
 - **Edition** = interchangeable game content pack (was "theme" before 2026-06-01)
 - `EDITION_CONFIG` — the `window` global set by each edition's `config.js`
+- `CONFIG.COLORS` — CSS colour variables (was `CONFIG.THEME`); edition configs use a `COLORS` block. `GAME.editionName` / `GAME.editionIcon` (were `themeName` / `themeIcon`)
+- No "theme" identifiers remain in code (2026-10-16) — use "edition" for content packs, "colors" for styling
 - `TRIVENTUREX_EDITIONS` — the registry array in `game_editions/editions.js`
 - localStorage key: `triventurex_edition` (saves last-used edition ID)
 
 ## Architecture — V1 (don't revert)
-- **Edition loading**: `loadTheme()` in game.js; validates saved ID against registry before use; `_ENGINE_DEFAULTS` snapshot for clean edition switching; calls `_populateCategoryFilter()` after load
+- **Edition loading**: `loadEdition()` in game.js; validates saved ID against registry before use; `_ENGINE_DEFAULTS` snapshot for clean edition switching; calls `_populateCategoryFilter()` after load
 - **Board generation**: `generateBoard()` in board.js — pre-picks deed effects → constraint-aware deed-to-slot assignment (`_assignDeedsToSlots`) → no consecutive same-type → resolved landmark names stored on each deed
 - **SPACE_DISTRIBUTION**: defined in `js/config.js` as engine default. Editions override via `SPACE_DISTRIBUTION` in their `config.js` — can be flat (all lengths) or keyed by `short`/`medium`/`long`. Questions always fill whatever space remains; no `question` key is needed in the distribution object.
 - **Constraint-aware placement** (`_assignDeedsToSlots`):

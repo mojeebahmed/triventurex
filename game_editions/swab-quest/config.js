@@ -20,8 +20,8 @@ window.EDITION_CONFIG = {
   // ── Brand identity ──────────────────────────────────────────────────────────
   GAME: {
     engineName:   'Triventurex',
-    themeName:    'Swab Quest',
-    themeIcon:    '🕌',
+    editionName:  'Swab Quest',
+    editionIcon:  '🕌',
     subtitle:     'Collect Sawab points on your journey from start to finish.',
     gameIdPrefix: 'TX',
     pointsName:   'Sawab',   // replaces the engine default 'pts' everywhere in the UI
@@ -181,7 +181,7 @@ window.EDITION_CONFIG = {
   // ── Space type overrides ────────────────────────────────────────────────────
   // Optional — only specify types whose icon, label or colour differs from
   // the engine defaults in config.js SPACE_INFO.
-  // The 'finish' label says "Finish" for this theme — other themes can change it.
+  // The 'finish' label says "Finish" for this edition — other editions can change it.
   SPACE_INFO: {
     finish: { icon: '🕌', label: 'Finish' },
     good_deed: { icon: '🌟', label: 'Good Deed',  color: '#2E7D32' },
@@ -189,9 +189,9 @@ window.EDITION_CONFIG = {
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
-  // CSS custom properties applied via _applyTheme() in game.js.
+  // CSS custom properties applied via _applyColors() in game.js.
   // All values here override the fallbacks in styles.css :root.
-  THEME: {
+  COLORS: {
     // Primary brand colour (Islamic green)
     '--green':          '#2E7D32',
     '--green-dark':     '#1B5E20',

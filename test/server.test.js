@@ -48,7 +48,7 @@ async function connect() {
 async function setupGame({ phones = 2, hostPlays = false, start = true } = {}) {
   const host = await connect();
   host.emit('host_game', {
-    themeId: 'test', gameLength: 'short', pathIndex: 'random',
+    editionId: 'test', gameLength: 'short', pathIndex: 'random',
     isGMOnly: !hostPlays,
     hostPlayer: hostPlays ? { id: 0, name: 'Host', token: 'H', color: '#000' } : null,
   });
@@ -391,7 +391,7 @@ describe('player profile cleaning', () => {
 
   it('cleans the host player profile too', async () => {
     const host = await connect();
-    host.emit('host_game', { themeId: 't', isGMOnly: false,
+    host.emit('host_game', { editionId: 't', isGMOnly: false,
       hostPlayer: { id: 0, name: 'H', token: 'H', color: 'javascript:alert(1)' } });
     const { gameId } = await once(host, 'hosted');
     assert.equal(rooms.get(gameId).players[0].color, '#4CAF50');

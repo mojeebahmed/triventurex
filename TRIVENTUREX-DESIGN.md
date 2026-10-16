@@ -67,8 +67,8 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 
 1. `game_editions/editions.js` (loaded via `<script>` in `index.html`) sets `window.TRIVENTUREX_EDITIONS`
 2. On `DOMContentLoaded`, `game.js` reads the last-used edition from localStorage (`triventurex_edition`)
-3. `loadTheme()` dynamically injects the edition's `config.js`, `questions.js`, and `deeds.js`
-4. `config.js` sets `window.EDITION_CONFIG` → merged into `CONFIG` via `_mergeThemeConfig()`
+3. `loadEdition()` dynamically injects the edition's `config.js`, `questions.js`, and `deeds.js`
+4. `config.js` sets `window.EDITION_CONFIG` → merged into `CONFIG` via `_mergeEditionConfig()`
 5. `_ENGINE_DEFAULTS` snapshot allows `_resetToEngineDefaults()` before an edition switch
 
 ### What an edition defines
@@ -78,7 +78,7 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 - `BOARD_BACKGROUND` — image, overlay opacity, blur
 - `SPACE_DISTRIBUTION` — ratios per space type, optionally keyed by `short/medium/long`
 - `SPACE_INFO` — icon, label, colour overrides (e.g. Football Quest: "Good Play" / "Foul Play")
-- `THEME` — CSS custom properties (`--green`, `--gold`, `--bg`, etc.)
+- `COLORS` — CSS custom properties (`--green`, `--gold`, `--bg`, etc.)
 
 ---
 
@@ -222,7 +222,7 @@ Deed card score effects are defined per edition in `deeds.csv`.
 ## Adding a New Edition
 
 1. Copy `game_editions/template/` to `game_editions/<your-id>/`
-2. Edit `config.js` — fill in `GAME`, `LANDMARKS`, `THEME`, `SPACE_INFO`
+2. Edit `config.js` — fill in `GAME`, `LANDMARKS`, `COLORS`, `SPACE_INFO`
 3. Edit `questions.csv` and `deeds.csv` — add your content
 4. Ask Claude to "regenerate the JS files" to produce `questions.js` and `deeds.js`
 5. Add your edition to `game_editions/editions.js`

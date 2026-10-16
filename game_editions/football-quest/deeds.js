@@ -1,5 +1,5 @@
 /**
- * themes/football-quest/deeds.js
+ * game_editions/football-quest/deeds.js
  * AUTO-GENERATED from deeds.csv — do not edit directly.
  * To update deed cards, edit deeds.csv and re-run the generation step in Claude.
  *

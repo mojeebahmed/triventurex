@@ -131,16 +131,16 @@ function generateGameId() {
 
 /**
  * Inject CONFIG.GAME branding into the setup screen and document title.
- * Called once on load and can be re-called if the theme changes in future.
+ * Called once on load and can be re-called if the edition changes in future.
  */
 function _applyBranding() {
   const g = CONFIG.GAME || {};
   const engine   = g.engineName || 'Triventurex';
-  const theme    = g.themeName  || 'Swab Quest';
-  const icon     = g.themeIcon  || '🎯';
+  const edition  = g.editionName  || '';
+  const icon     = g.editionIcon  || '🎯';
   const subtitle = g.subtitle   || '';
 
-  document.title = `${engine} — ${theme}`;
+  document.title = edition ? `${engine} — ${edition}` : engine;
 
   const set = (id, text, isHtml = false) => {
     const el = document.getElementById(id);
@@ -150,7 +150,7 @@ function _applyBranding() {
   };
 
   set('brand-engine',       engine);
-  set('brand-theme',        `${icon} ${theme}`, true);
+  set('brand-edition',        edition ? `${icon} ${edition}` : '', true);
   set('brand-subtitle',     subtitle);
   set('end-screen-message', g.endScreenMessage || 'All players have reached the finish!');
 }
@@ -485,7 +485,7 @@ function _buildCatTree() {
 
 // Returns a Set of selected topic strings. If nothing saved, all topics are selected.
 function getSelectedTopics() {
-  const edId  = _activeThemeId || 'default';
+  const edId  = _activeEditionId || 'default';
   const tree  = _buildCatTree();
   const allTopics = Object.values(tree).flatMap(sc => Object.values(sc).flat());
   const saved = _getSavedTopics(edId);
@@ -494,7 +494,7 @@ function getSelectedTopics() {
 }
 
 function _populateCategoryFilter() {
-  const edId = _activeThemeId || 'default';
+  const edId = _activeEditionId || 'default';
   const tree = _buildCatTree();
   const row  = document.getElementById('category-filter-row');
   const box  = document.getElementById('category-checkboxes');
@@ -636,7 +636,7 @@ function _populateCategoryFilter() {
 // ── Setup Screen ──────────────────────────────────────────────────────────────
 
 function initSetupScreen() {
-  renderThemePicker(_activeThemeId);
+  renderEditionPicker(_activeEditionId);
   renderPlayerRows();
   _restoreGameSettings();
 
@@ -684,7 +684,7 @@ function setMPMode(mode) {
   // Hide/show other setup sections in join mode
   document.querySelectorAll('.setup-section').forEach(el => {
     if (el.contains(document.getElementById('join-info-panel'))) return;
-    if (el.id === 'theme-section') return;
+    if (el.id === 'edition-section') return;
     if (el.id === 'local-players-section' || el.id === 'host-player-section') return; // handled above
     el.style.display = isJoin ? 'none' : '';
   });
@@ -886,7 +886,7 @@ function _hostNetworkGame() {
   _lobbyPlayers = hostPlayer ? [hostPlayer] : [];
 
   TX_NET.hostGame({
-    themeId: _activeThemeId,
+    editionId: _activeEditionId,
     gameLength,
     pathIndex,
     hostPlayer,
@@ -1880,16 +1880,16 @@ function resetToSetup() {
   showScreen('setup-screen');
 }
 
-// ── Theme loading ─────────────────────────────────────────────────────────────
+// ── Edition loading ─────────────────────────────────────────────────────────────
 
-let _activeThemeId = null;
+let _activeEditionId = null;
 
 /** Active edition id for other scripts (a top-level `let` is not on `window`). */
-function getActiveEditionId() { return _activeThemeId; }
+function getActiveEditionId() { return _activeEditionId; }
 
 function _resetToEngineDefaults() {
   Object.assign(CONFIG.GAME,             _ENGINE_DEFAULTS.GAME);
-  Object.assign(CONFIG.THEME,            _ENGINE_DEFAULTS.THEME);
+  Object.assign(CONFIG.COLORS,           _ENGINE_DEFAULTS.COLORS);
   Object.assign(CONFIG.BOARD_BACKGROUND, _ENGINE_DEFAULTS.BOARD_BACKGROUND);
   Object.assign(CONFIG.SCORE_VALUES,     _ENGINE_DEFAULTS.SCORE_VALUES);
   CONFIG.FINISH_BONUS = [..._ENGINE_DEFAULTS.FINISH_BONUS];
@@ -1900,11 +1900,11 @@ function _resetToEngineDefaults() {
   }
 }
 
-function _mergeThemeConfig() {
+function _mergeEditionConfig() {
   const T = window.EDITION_CONFIG;
   if (!T) return;
   if (T.GAME)                Object.assign(CONFIG.GAME,             T.GAME);
-  if (T.THEME)               Object.assign(CONFIG.THEME,            T.THEME);
+  if (T.COLORS)              Object.assign(CONFIG.COLORS,           T.COLORS);
   if (T.LANDMARKS)           CONFIG.LANDMARKS = T.LANDMARKS;
   if (T.BOARD_BACKGROUND)    Object.assign(CONFIG.BOARD_BACKGROUND, T.BOARD_BACKGROUND);
   if (T.SPACE_DISTRIBUTION)  CONFIG.EDITION_SPACE_DISTRIBUTION = T.SPACE_DISTRIBUTION;
@@ -1918,9 +1918,9 @@ function _mergeThemeConfig() {
   }
 }
 
-async function loadTheme(themeId) {
-  if (!themeId) return;
-  if (_activeThemeId === themeId) return;
+async function loadEdition(editionId) {
+  if (!editionId) return;
+  if (_activeEditionId === editionId) return;
   _resetToEngineDefaults();
   window.EDITION_CONFIG   = null;
   window.QUESTIONS_DATA = [];
@@ -1930,14 +1930,14 @@ async function loadTheme(themeId) {
   // used when the HTTP server isn't running and CSV fetch would fail)
   const files = ['config.js', 'questions.js', 'deeds.js'];
   for (const file of files) {
-    const src = `game_editions/${themeId}/${file}`;
+    const src = `game_editions/${editionId}/${file}`;
     await new Promise((resolve) => {
       document.querySelectorAll(`script[data-tx="${src}"]`).forEach(s => s.remove());
       const el = document.createElement('script');
       el.setAttribute('data-tx', src);
       el.src = src + '?_=' + Date.now();
       el.onload  = resolve;
-      el.onerror = () => { console.warn(`Theme file not found: ${src}`); resolve(); };
+      el.onerror = () => { console.warn(`Edition file not found: ${src}`); resolve(); };
       document.head.appendChild(el);
     });
   }
@@ -1945,34 +1945,34 @@ async function loadTheme(themeId) {
   // Try to load CSV files via fetch (requires HTTP server — python3 -m http.server 8080).
   // If successful they REPLACE the JS-loaded data, so CSV is the primary content source.
   // If fetch fails (file:// protocol) the JS fallback data is used silently.
-  await _loadThemeCSV(themeId);
+  await _loadEditionCSV(editionId);
 
-  _activeThemeId = themeId;
-  _mergeThemeConfig();
+  _activeEditionId = editionId;
+  _mergeEditionConfig();
   _populateCategoryFilter();
-  try { localStorage.setItem('triventurex_edition', themeId); } catch {}
+  try { localStorage.setItem('triventurex_edition', editionId); } catch {}
 }
 
 // ── CSV content loading ───────────────────────────────────────────────────────
 
 /**
- * Try to fetch and parse questions.csv and deeds.csv for the given theme.
+ * Try to fetch and parse questions.csv and deeds.csv for the given edition.
  * Overrides JS-loaded QUESTIONS_DATA / DEEDS_DATA if CSV has content.
  * Fails silently when running from file:// (fetch not allowed).
  */
-async function _loadThemeCSV(themeId) {
+async function _loadEditionCSV(editionId) {
   const get = async (url) => {
     try { const r = await fetch(url); return r.ok ? r.text() : null; }
     catch { return null; }
   };
 
-  const qText = await get(`game_editions/${themeId}/questions.csv`);
+  const qText = await get(`game_editions/${editionId}/questions.csv`);
   if (qText) {
     const parsed = _parseQuestionsCSV(qText);
     if (parsed.length) { window.QUESTIONS_DATA = parsed; }
   }
 
-  const dText = await get(`game_editions/${themeId}/deeds.csv`);
+  const dText = await get(`game_editions/${editionId}/deeds.csv`);
   if (dText) {
     const parsed = _parseDeedsCSV(dText);
     if (parsed.length) { window.DEEDS_DATA = parsed; }
@@ -2091,30 +2091,30 @@ function _parseDeedsCSV(text) {
     });
 }
 
-function renderThemePicker(currentId) {
-  const section = document.getElementById('theme-section');
-  const picker  = document.getElementById('theme-picker');
+function renderEditionPicker(currentId) {
+  const section = document.getElementById('edition-section');
+  const picker  = document.getElementById('edition-picker');
   if (!picker) return;
-  const themes = window.TRIVENTUREX_EDITIONS || [];
-  if (themes.length <= 1) { if (section) section.style.display = 'none'; return; }
+  const editions = window.TRIVENTUREX_EDITIONS || [];
+  if (editions.length <= 1) { if (section) section.style.display = 'none'; return; }
   if (section) section.style.display = '';
-  picker.innerHTML = themes.map(t => `
-    <div class="theme-card ${t.id === currentId ? 'selected' : ''}"
+  picker.innerHTML = editions.map(t => `
+    <div class="edition-card ${t.id === currentId ? 'selected' : ''}"
          style="${t.id === currentId ? `border-color:${t.accentColor};background:${t.accentColor}18` : ''}"
-         onclick="onThemePicked('${t.id}')">
-      <div class="theme-card-icon">${t.icon}</div>
-      <div class="theme-card-name">${t.name}</div>
-      <div class="theme-card-desc">${t.description}</div>
+         onclick="onEditionPicked('${t.id}')">
+      <div class="edition-card-icon">${t.icon}</div>
+      <div class="edition-card-name">${t.name}</div>
+      <div class="edition-card-desc">${t.description}</div>
     </div>`).join('');
 }
 
-async function onThemePicked(themeId) {
-  if (themeId === _activeThemeId) return;
-  const picker = document.getElementById('theme-picker');
+async function onEditionPicked(editionId) {
+  if (editionId === _activeEditionId) return;
+  const picker = document.getElementById('edition-picker');
   if (picker) picker.style.opacity = '0.5';
-  await loadTheme(themeId);
-  _applyTheme(); _applyBranding();
-  renderThemePicker(themeId);
+  await loadEdition(editionId);
+  _applyColors(); _applyBranding();
+  renderEditionPicker(editionId);
   const len = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
   populatePathSelector(len);
   if (picker) picker.style.opacity = '1';
@@ -2123,15 +2123,15 @@ async function onThemePicked(themeId) {
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Validate saved theme against the registry — if the ID no longer exists
-  // (e.g. folder was renamed), fall back to the first registered theme.
+  // Validate saved edition against the registry — if the ID no longer exists
+  // (e.g. folder was renamed), fall back to the first registered edition.
   const savedRaw     = (() => { try { return localStorage.getItem('triventurex_edition'); } catch { return null; } })();
   const knownIds     = (window.TRIVENTUREX_EDITIONS || []).map(t => t.id);
-  const savedTheme   = knownIds.includes(savedRaw) ? savedRaw : null;
-  const defaultTheme = knownIds[0] || 'swab-quest';
-  await loadTheme(savedTheme || defaultTheme);
+  const savedEdition   = knownIds.includes(savedRaw) ? savedRaw : null;
+  const defaultEdition = knownIds[0] || 'swab-quest';
+  await loadEdition(savedEdition || defaultEdition);
 
-  _applyTheme();
+  _applyColors();
   _applyBranding();
   initSetupScreen();
   initPanZoom();
@@ -2155,15 +2155,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Apply CONFIG.THEME and CONFIG.SPACE_INFO colours as CSS custom properties.
+ * Apply CONFIG.COLORS and CONFIG.SPACE_INFO colours as CSS custom properties.
  * This is the single handoff point: config.js controls all colours,
  * CSS rules read them via var(--name) — no hardcoded hex in CSS needed.
  */
-function _applyTheme() {
+function _applyColors() {
   const root = document.documentElement;
 
-  // 1. Explicit THEME overrides (UI colours, gradients, etc.)
-  for (const [prop, value] of Object.entries(CONFIG.THEME || {})) {
+  // 1. Explicit COLORS overrides (UI colours, gradients, etc.)
+  for (const [prop, value] of Object.entries(CONFIG.COLORS || {})) {
     root.style.setProperty(prop, value);
   }
 

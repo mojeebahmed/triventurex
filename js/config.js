@@ -4,22 +4,22 @@
  *
  * Edition-specific values (name, colours, landmarks, background, space overrides)
  * live in game_editions/<edition>/config.js and are merged into CONFIG at
- * startup via _mergeThemeConfig() in game.js.
+ * startup via _mergeEditionConfig() in game.js.
  *
  * ENGINE defaults below are used as fallbacks if no edition is loaded.
  */
 
 const CONFIG = {
 
-  // Engine-level brand defaults (overridden by active theme's GAME block)
+  // Engine-level brand defaults (overridden by active edition's GAME block)
   GAME: {
     engineName:   'Triventurex',
-    themeName:    '',          // set by theme
-    themeIcon:    '🎯',
+    editionName:  '',          // set by edition
+    editionIcon:  '🎯',
     subtitle:     '',
     gameIdPrefix: 'TX',
-    pointsName:   'pts',      // overridden by theme (e.g. 'Sawab', 'Goals')
-    // Finish space and end-screen text — overridden by theme
+    pointsName:   'pts',      // overridden by edition (e.g. 'Sawab', 'Goals')
+    // Finish space and end-screen text — overridden by edition
     finishLabel:      'Finish',                       // name of the finish space on the board
     finishCelebration: 'Well done! 🎉',               // body text in the finish modal
     finishButtonLabel: '🎉 Celebrate!',               // button in the finish modal
@@ -64,9 +64,9 @@ const CONFIG = {
     skip:      { icon: '⏭', label: 'Skip',      color: '#9E9E9E' },
   },
 
-  // Engine-level colour fallbacks (overridden by active edition's THEME block).
+  // Engine-level colour fallbacks (overridden by active edition's COLORS block).
   // These match the fallbacks in styles.css :root.
-  THEME: {
+  COLORS: {
     '--green':       '#2E7D32', '--green-dark':  '#1B5E20', '--green-light': '#E8F5E9',
     '--blue':        '#1565C0', '--gold':        '#F9A825', '--danger':      '#C62828',
     '--bg':          '#F0EBE0', '--card':        '#FFFFFF', '--text':        '#1A1A1A',
@@ -124,7 +124,7 @@ const CONFIG = {
     questionTracking: 'session',
   },
 
-  // Board background — engine default (no image). Overridden by theme.
+  // Board background — engine default (no image). Overridden by edition.
   BOARD_BACKGROUND: {
     image:          null,
     overlayOpacity: 0.65,
@@ -133,9 +133,9 @@ const CONFIG = {
     blur:           0,
   },
 
-  // Landmarks — empty by default; must be provided by the active theme.
+  // Landmarks — empty by default; must be provided by the active edition.
   // Each entry: { name: string, image: string|null }
-  // `name` must match the `landmark` field in the theme's deeds.js exactly.
+  // `name` must match the `landmark` field in the edition's deeds.js exactly.
   LANDMARKS: [],
 
   /**
@@ -275,11 +275,11 @@ const CONFIG = {
 };
 
 // ── Engine defaults snapshot ───────────────────────────────────────────────
-// Used by loadTheme() in game.js to reset CONFIG before applying a new theme.
+// Used by loadEdition() in game.js to reset CONFIG before applying a new edition.
 // Must be defined AFTER CONFIG is fully built.
 const _ENGINE_DEFAULTS = {
   GAME:             JSON.parse(JSON.stringify(CONFIG.GAME)),
-  THEME:            JSON.parse(JSON.stringify(CONFIG.THEME)),
+  COLORS:           JSON.parse(JSON.stringify(CONFIG.COLORS)),
   LANDMARKS:        [],
   BOARD_BACKGROUND: JSON.parse(JSON.stringify(CONFIG.BOARD_BACKGROUND)),
   SPACE_INFO:       JSON.parse(JSON.stringify(CONFIG.SPACE_INFO)),

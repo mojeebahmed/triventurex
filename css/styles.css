@@ -4,12 +4,12 @@
 
 /* ── CSS custom properties ────────────────────────────────────
    FALLBACK values only — real values are set at runtime by
-   _applyTheme() in game.js, reading from config.js.
-   To change colours: edit CONFIG.THEME or CONFIG.SPACE_INFO
+   _applyColors() in game.js, reading from config.js.
+   To change colours: edit CONFIG.COLORS or CONFIG.SPACE_INFO
    in js/config.js. Do NOT change values here directly.
    ─────────────────────────────────────────────────────────── */
 :root {
-  /* Brand / UI — driven by CONFIG.THEME */
+  /* Brand / UI — driven by CONFIG.COLORS */
   --green:          #2E7D32;
   --green-dark:     #1B5E20;
   --green-light:    #E8F5E9;
@@ -32,7 +32,7 @@
   --c-start:        #00695C;
   --c-finish:       #FFD700;
 
-  /* Gradients — driven by CONFIG.THEME */
+  /* Gradients — driven by CONFIG.COLORS */
   --gradient-a:     #1B5E20;
   --gradient-b:     #2E7D32;
   --gradient-c:     #1565C0;
@@ -40,7 +40,7 @@
   --vp-b:           #B2DFDB;
   --vp-c:           #C5CAE9;
 
-  /* Deed card results — driven by CONFIG.THEME */
+  /* Deed card results — driven by CONFIG.COLORS */
   --deed-good-bg:   #E8F5E9;
   --deed-good-text: #1B5E20;
   --deed-bad-bg:    #FFEBEE;
@@ -96,8 +96,8 @@ body {
   margin-bottom: 4px;
   letter-spacing: -0.5px;
 }
-/* Theme name shown below the engine name */
-.game-theme-label {
+/* Edition name shown below the engine name */
+.game-edition-label {
   text-align: center;
   font-size: 1.05rem;
   font-weight: 700;
@@ -188,13 +188,13 @@ body {
 /* .legend-dot kept as fallback in case of old cached HTML */
 .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; display: none; }
 
-/* ── Theme picker ────────────────────────────────────────────── */
-.theme-options {
+/* ── Edition picker ────────────────────────────────────────────── */
+.edition-options {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
-.theme-card {
+.edition-card {
   flex: 1;
   min-width: 150px;
   padding: 12px 10px;
@@ -205,11 +205,11 @@ body {
   transition: border-color .15s, background .15s, transform .1s;
   user-select: none;
 }
-.theme-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-.theme-card.selected { border-color: var(--green); }
-.theme-card-icon { font-size: 2rem; line-height: 1; margin-bottom: 5px; }
-.theme-card-name { font-weight: 700; font-size: .9rem; margin-bottom: 3px; }
-.theme-card-desc { font-size: .72rem; color: var(--text-muted); line-height: 1.3; }
+.edition-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.edition-card.selected { border-color: var(--green); }
+.edition-card-icon { font-size: 2rem; line-height: 1; margin-bottom: 5px; }
+.edition-card-name { font-weight: 700; font-size: .9rem; margin-bottom: 3px; }
+.edition-card-desc { font-size: .72rem; color: var(--text-muted); line-height: 1.3; }
 
 /* Resume prompt */
 .resume-card {

@@ -1,6 +1,6 @@
 /**
- * themes/template/deeds.js
- * Good and Bad deed cards for this theme.
+ * game_editions/template/deeds.js
+ * Good and Bad deed cards for this edition.
  *
  * HOW TO ADD DEED CARDS:
  *   Copy an entry, give it a unique `id`, and fill in the fields.
@@ -12,7 +12,7 @@
  *   effect    – what the card does (primary; see effects table below)
  *   value     – number of points or spaces (0 for landmark-targeting effects)
  *   landmark  – landmark name for move_to_landmark effect, otherwise null
- *               (must match exactly a `name` in theme.js LANDMARKS array)
+ *               (must match exactly a `name` in config.js LANDMARKS array)
  *   effects   – (optional) array of { effect, value, landmark } for variable rewards;
  *               if present and length > 1, one is chosen randomly each game.
  *               In deeds.csv, use columns effect_2/value_2/landmark_2 and
@@ -82,7 +82,7 @@ window.DEEDS_DATA = [
   //   text: "Go back to a landmark.",
   //   effect: "move_to_landmark",
   //   value: 0,
-  //   landmark: "My Place",   // must match a name in theme.js LANDMARKS
+  //   landmark: "My Place",   // must match a name in config.js LANDMARKS
   // },
 
 ];

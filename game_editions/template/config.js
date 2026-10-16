@@ -6,7 +6,7 @@
  * Then add an entry to game_editions/editions.js to make it appear on the setup screen.
  *
  * REQUIRED: Fill in GAME, LANDMARKS (even if empty), and SPACE_INFO.finish.
- * OPTIONAL: BOARD_BACKGROUND, THEME (colours), SPACE_DISTRIBUTION. Omit any block to use engine defaults.
+ * OPTIONAL: BOARD_BACKGROUND, COLORS, SPACE_DISTRIBUTION. Omit any block to use engine defaults.
  */
 
 window.EDITION_CONFIG = {
@@ -14,8 +14,8 @@ window.EDITION_CONFIG = {
   // ── Brand identity ──────────────────────────────────────────────────────────
   GAME: {
     engineName:   'Triventurex',      // do not change
-    themeName:    'My Edition',       // shown on setup screen and title
-    themeIcon:    '🎯',               // emoji shown next to edition name
+    editionName:  'My Edition',       // shown on setup screen and title
+    editionIcon:  '🎯',               // emoji shown next to edition name
     subtitle:     'One-line description of your edition',
     gameIdPrefix: 'TX',               // prefix for generated game IDs
     pointsName:   'Points',           // name for score currency (e.g. 'Goals', 'Stars')
@@ -62,7 +62,7 @@ window.EDITION_CONFIG = {
   // ── Colour scheme ───────────────────────────────────────────────────────────
   // Override any CSS custom property. Omit this block to use engine defaults.
   // See css/styles.css :root for the full list of variables.
-  THEME: {
+  COLORS: {
     '--green':       '#2E7D32',   // primary brand colour (buttons, headings)
     '--green-dark':  '#1B5E20',
     '--green-light': '#E8F5E9',

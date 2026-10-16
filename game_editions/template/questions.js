@@ -1,6 +1,6 @@
 /**
- * themes/template/questions.js
- * Question bank for this theme.
+ * game_editions/template/questions.js
+ * Question bank for this edition.
  *
  * HOW TO ADD QUESTIONS:
  *   Copy an entry, give it a unique `id`, and fill in the fields.

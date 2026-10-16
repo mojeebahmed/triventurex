@@ -93,9 +93,9 @@ io.on('connection', (socket) => {
   console.log(`[connect]    socket=${socket.id}`);
 
   // ── host_game ──────────────────────────────────────────────────────────────
-  socket.on('host_game', ({ themeId, gameLength, pathIndex, hostPlayer, isGMOnly }) => {
+  socket.on('host_game', ({ editionId, gameLength, pathIndex, hostPlayer, isGMOnly }) => {
     const gameId = generateGameId();
-    console.log(`[host_game]  socket=${socket.id} gameId=${gameId} theme=${themeId} length=${gameLength} gmOnly=${isGMOnly}`);
+    console.log(`[host_game]  socket=${socket.id} gameId=${gameId} edition=${editionId} length=${gameLength} gmOnly=${isGMOnly}`);
 
     const players = [];
     if (!isGMOnly && hostPlayer) {
@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
       gameId,
       hostSocketId: socket.id,
       isGMOnly,
-      themeId,
+      editionId,
       gameLength,
       pathIndex,
       phase:               'lobby',
