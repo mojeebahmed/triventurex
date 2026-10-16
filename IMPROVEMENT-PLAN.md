@@ -72,17 +72,17 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ### 1b. Question tracking
 
-- [ ] **B9 — Asked-question keys shared across editions**
+- [x] **B9 — Asked-question keys shared across editions**
   - **Where:** `js/ui.js` `_askedKey()` (~L206)
   - **Problem:** `window._activeThemeId` is always undefined (`let` doesn't attach to `window`) → all editions write `triventurex_asked_default_*`.
   - **Fix:** Expose the active edition id properly (e.g. `window.getActiveEditionId()` or pass it in). Optionally clear the old `triventurex_asked_default_*` keys once.
 
-- [ ] **B10 — Question IDs are row positions**
+- [x] **B10 — Question IDs are row positions**
   - **Where:** `js/game.js` `_parseQuestionsCSV()` (~L1832)
   - **Problem:** Inserting/deleting a CSV row reshuffles IDs and corrupts asked-tracking.
   - **Fix:** Add an `id` column to `questions.csv` (both editions + template); parser uses it, falls back to row index only if missing. Pairs well with C2 (validator checks uniqueness).
 
-- [ ] **B18 — 10 Football Quest questions broken by unquoted commas** _(found while fixing B10)_
+- [x] **B18 — 10 Football Quest questions broken by unquoted commas** _(found while fixing B10)_
   - **Problem:** ids 35, 40, 54, 57, 62, 66, 70, 73, 82, 86 had commas in question/answer text without CSV quotes → columns shifted, no valid difficulty, so they were never asked (and showed garbage if they had been).
   - **Fix:** Re-quoted the fields (wording unchanged), filled the lost category/difficulty, regenerated `questions.js`. Swab Quest and both deed files checked clean.
   - **Follow-up for content owner:** truncated notes and suspected factual errors listed in the batch-3 hand-off; C2 validator should catch this class of error automatically.
