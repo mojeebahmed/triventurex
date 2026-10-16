@@ -1,9 +1,0 @@
-id,text,effect_type,effect_value,landmark_name
-1,You completed reciting the Holy Quran. MashaAllah! Earn 3 Sawab points.,sawab_add,3,
-2,You helped a neighbour in need. Move forward 2 spaces.,move_forward,2,
-3,You gave Sadaqah (charity) today. Earn 2 Sawab points.,sawab_add,2,
-4,You paid your Chanda on time. Move forward 3 spaces.,move_forward,3,
-5,You lied to a friend. Go back and pray 2 Nawafil at Aqsa Mosque.,move_to_landmark,0,Aqsa Mosque
-6,You missed your Fajr prayer. Lose 2 Sawab points.,sawab_remove,2,
-7,You were disrespectful to your parents. Go back to Mubarak Mosque and reflect.,move_to_landmark,0,Mubarak Mosque
-8,You backbited about someone. Lose 3 Sawab points.,sawab_remove,3,

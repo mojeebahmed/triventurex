@@ -1,6 +1,6 @@
 /**
  * game_editions/swab-quest/questions.js
- * AUTO-GENERATED — do not edit directly.
+ * AUTO-GENERATED from questions.csv by `npm run build:content` — do not edit directly.
  *
  * 432 questions  (203 easy / 229 hard)
  */

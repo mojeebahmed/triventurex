@@ -1,6 +1,6 @@
 /**
  * game_editions/football-quest/questions.js
- * AUTO-GENERATED — do not edit directly.
+ * AUTO-GENERATED from questions.csv by `npm run build:content` — do not edit directly.
  *
  * 92 questions  (44 easy / 48 hard)
  */

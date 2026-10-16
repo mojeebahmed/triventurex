@@ -123,8 +123,8 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ## Phase 3 — Content pipeline
 
-- [ ] **C1 — Replace "ask Claude to regenerate JS"** with `npm run build:content` (Node script), or drop generated `questions.js`/`deeds.js` entirely if file:// support is no longer needed.
-- [ ] **C2 — Content validator** `npm run validate`: multi-choice answer 1–4 and option non-empty; known effect names; numeric values; unique question IDs; topics non-empty; landmark count vs. `move_to_*_landmark N` values.
+- [ ] **C1 — Replace "ask Claude to regenerate JS"** _Done as: `npm run build:content [edition]` (scripts/build-content.js) using the game's own parser; generated JS kept (needed for file://)._ with `npm run build:content` (Node script), or drop generated `questions.js`/`deeds.js` entirely if file:// support is no longer needed.
+- [ ] **C2 — Content validator** _Done as: `npm run check:content` + in `npm test` (scripts/content.js) with file:line messages; template CSVs fixed (old deeds format with `sawab_add`) and documented in template/README.md._ `npm run validate`: multi-choice answer 1–4 and option non-empty; known effect names; numeric values; unique question IDs; topics non-empty; landmark count vs. `move_to_*_landmark N` values.
 - [ ] **C3 — Digital action cards** using `game_editions/template/action-cards-template.csv`; show privately on performer's phone.
 
 ## Phase 4 — Tests

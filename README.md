@@ -75,9 +75,10 @@ Triventurex/
     ├── editions.js               ← Edition registry (add new editions here)
     │
     ├── template/                 ← Blank starter — copy this for a new edition
+    │   ├── README.md             How to make an edition + CSV column guide
     │   ├── config.js             Annotated template with all options
-    │   ├── questions.js          Empty question bank with format guide
-    │   └── deeds.js              Empty deed cards with format guide
+    │   ├── questions.csv         Example questions (edit these)
+    │   └── deeds.csv             Example deed cards (edit these)
     │
     ├── swab-quest/               Islamic / Ahmadiyya edition
     │   ├── config.js             Name, colours, 20 landmarks (with descriptions), space distribution
@@ -114,7 +115,8 @@ Editions are loaded **dynamically** at startup. The engine never changes when yo
 ## Adding a new edition
 
 1. Copy `game_editions/template/` to `game_editions/<your-id>/`
-2. Edit `config.js`, `questions.js`, `deeds.js` and add your images
+2. Edit `config.js`, `questions.csv`, `deeds.csv` and add your images (column guide: `game_editions/template/README.md`)
+   then run `npm run build:content <your-id>` to check the content and generate `questions.js` / `deeds.js`
 3. Add one entry to `game_editions/editions.js`:
    ```javascript
    { id: 'your-id', name: 'Your Edition', icon: '⚽', description: 'Short description.', accentColor: '#1565C0' }
@@ -172,15 +174,17 @@ Accessible via the collapsible **⚙️ Game Settings** section on the setup scr
 
 Edit in Excel, Numbers, or Google Sheets. Format:
 ```
-question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
-How many daily prayers are obligatory?,multi,2,3,4,5,6,easy,Islam,Worship,Prayer,
-What does Sawab mean?,open,Reward / Blessing,,,,,easy,Islam,Knowledge,Terms,
+id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
+433,How many daily prayers are obligatory?,multi,2,3,4,5,6,easy,Islam,Worship,Prayer,
+434,What does Sawab mean?,open,"Reward, blessing",,,,,easy,Islam,Knowledge,Terms,
 ```
+- `id`: unique number — never reuse or renumber; a new question gets the next unused number
+- Wrap any field that contains a comma in "double quotes"
 - `type`: `multi` (multiple choice, options shown in-game) or `open` (open-ended, answer revealed)
 - `answer`: for `multi` — option number of correct answer (1–4); for `open` — the answer text
 - `difficulty`: `easy` or `hard`
 - `category`, `subcategory`, `topic`: three-level hierarchy that drives the **Question Topics** filter in Game Settings. All three should be filled in. Example: `Islam > Worship > Prayer`.
-- After editing, ask Claude to "regenerate the JS files"
+- After editing, run `npm run build:content` — it checks the content (with line numbers for any problem) and regenerates the JS files
 
 ### Deed cards (`game_editions/<id>/deeds.csv`)
 

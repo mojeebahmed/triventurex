@@ -223,8 +223,8 @@ Deed card score effects are defined per edition in `deeds.csv`.
 
 1. Copy `game_editions/template/` to `game_editions/<your-id>/`
 2. Edit `config.js` — fill in `GAME`, `LANDMARKS`, `COLORS`, `SPACE_INFO`
-3. Edit `questions.csv` and `deeds.csv` — add your content
-4. Ask Claude to "regenerate the JS files" to produce `questions.js` and `deeds.js`
+3. Edit `questions.csv` and `deeds.csv` — add your content (columns: `game_editions/template/README.md`)
+4. Run `npm run build:content <your-id>` — checks the content and produces `questions.js` and `deeds.js`
 5. Add your edition to `game_editions/editions.js`
 6. Done — the edition picker appears automatically on the setup screen
 

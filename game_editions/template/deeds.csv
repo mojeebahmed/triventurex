@@ -1,0 +1,5 @@
+type,text,effect,value,landmark,effect_2,value_2,landmark_2,effect_3,value_3,landmark_3,mood
+good,Example good deed — you helped a friend.,score_add,2,,move_forward,2,,,,,social
+good,"Example good deed with a choice of rewards — one is picked each game.",move_forward,3,,score_add,2,,protection,1,,blessing
+bad,Example bad deed — you forgot your homework.,score_remove,1,,move_back,2,,,,,reflection
+bad,"Example bad deed — you were late, so you sit out a turn.",skip_turn,0,,score_remove,2,,,,,risk

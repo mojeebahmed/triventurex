@@ -82,10 +82,14 @@ Content:
 - `game_editions/<id>/questions.js` + `deeds.js` — auto-generated from CSV
 
 ## Content workflow
-Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
-- `questions.csv` first column is `id` — unique per edition, never reuse or renumber (asked-question tracking is stored by id). New question → next unused number.
-- Any field containing a comma MUST be wrapped in double quotes (`"Madrid, Spain"`). Unquoted commas silently shift columns — this broke 10 Football Quest questions before 2026-10-16.
-- Regenerate JS with the game's own parser (`_parseQuestionsCSV` in game.js) so CSV and JS can't drift.
+Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js) → refresh browser.
+- `npm run check:content` — check only; fails if a CSV has errors or a generated JS file is out of date. `npm test` includes the same checks
+- The checker (`scripts/content.js`) reports `file:line message`: wrong column count (unquoted comma), bad/duplicate ids, type/difficulty, multi answer not pointing at a filled option, unknown deed effects, landmark effects vs config.js `LANDMARKS`; warnings for missing topics and `{landmark}` text without a landmark effect
+- `questions.csv` first column is `id` — unique per edition, never reuse or renumber (asked-question tracking is stored by id). New question → next unused number
+- Any field containing a comma MUST be wrapped in double quotes (`"Madrid, Spain"`)
+- Never edit questions.js / deeds.js by hand — they're generated (the fallback for index.html opened from disk)
+- Column + effect reference for authors: `game_editions/template/README.md`
+- `scripts/` = Node-only dev tooling (not served); `tools/` = browser dev tools (served)
 
 ## Terminology
 - **Edition** = interchangeable game content pack (was "theme" before 2026-06-01)

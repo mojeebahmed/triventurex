@@ -1,25 +1,18 @@
 /**
  * test/csv.test.js
- * Unit tests for js/shared/csv.js, plus content checks on every edition's CSV files:
- * the CSV must parse to exactly what the generated questions.js holds, and
- * every row must be valid (catches unquoted commas shifting columns — see B18).
+ * Unit tests for js/shared/csv.js and the content checker (scripts/content.js),
+ * plus every edition in the repo: no content errors, and the generated
+ * questions.js / deeds.js must match the CSVs.
  */
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
 const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV } = require('../js/shared/csv.js');
 
-const EDITIONS_DIR = path.join(__dirname, '../game_editions');
-const EDITIONS = fs.readdirSync(EDITIONS_DIR)
-  .filter(d => fs.existsSync(path.join(EDITIONS_DIR, d, 'questions.csv')));
-const EFFECTS = new Set(['score_add', 'score_remove', 'move_forward', 'move_back',
-  'move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark', 'skip_turn',
-  'extra_turn', 'all_players_gain', 'all_players_lose', 'protection']);
+const { listEditions, loadEdition, makeEdition, checkEdition, generateEditionJs } = require('../scripts/content.js');
 
-const read = (ed, file) => fs.readFileSync(path.join(EDITIONS_DIR, ed, file), 'utf8');
 const quiet = fn => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
 
 describe('_csvSplit', () => {
@@ -70,43 +63,90 @@ describe('_parseDeedsCSV', () => {
   });
 });
 
-for (const ed of EDITIONS) {
-  describe(`edition content: ${ed}`, () => {
-    const questions = _parseQuestionsCSV(read(ed, 'questions.csv'));
+// ── Content checker (scripts/content.js) ─────────────────────────────────────
 
-    it('questions.csv parses to exactly what questions.js holds', () => {
-      const jsFile = path.join(EDITIONS_DIR, ed, 'questions.js');
-      if (!fs.existsSync(jsFile)) return;
-      const ctx = { window: {} };
-      vm.createContext(ctx);
-      vm.runInContext(fs.readFileSync(jsFile, 'utf8'), ctx);
-      const plain = x => JSON.parse(JSON.stringify(x));
-      assert.deepEqual(plain(questions), plain(ctx.window.QUESTIONS_DATA),
-        'CSV and generated JS differ — regenerate questions.js');
+const QH = 'id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note\n';
+const DH = 'type,text,effect,value,landmark,effect_2,value_2,landmark_2,effect_3,value_3,landmark_3,mood\n';
+const check = parts => checkEdition(makeEdition(parts));
+const messages = list => list.map(p => `${p.file}:${p.line} ${p.message}`).join('\n');
+
+describe('content checker', () => {
+  it('accepts valid content', () => {
+    const r = check({ questionsCsv: QH + '1,Q?,multi,2,A,B,,,easy,c,s,t,\n2,Q2?,open,"Madrid, Spain",,,,,hard,c,s,t,\n',
+                      deedsCsv: DH + 'good,Nice.,score_add,2,,,,,,,,kind\n' });
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.warnings, []);
+  });
+
+  it('catches the B18 broken row (unquoted commas that still give 13 columns)', () => {
+    // Real row from football-quest before the fix
+    const row = '35,If a match is 0–0 after 90 minutes in a knockout tie,what happens next?,open,Extra time (30 minutes),then a penalty shootout if still level,,,,,,,easy\n';
+    const r = check({ questionsCsv: QH + row });
+    assert.match(messages(r.errors), /questions\.csv:2 type "open" must be multi or open|difficulty "" must be easy or hard/);
+  });
+
+  it('reports a wrong column count with the line number', () => {
+    const r = check({ questionsCsv: QH + '1,Q?,open,Madrid, Spain,,,,,easy,c,s,t,\n' });
+    assert.match(messages(r.errors), /questions\.csv:2 14 columns, expected 13/);
+  });
+
+  it('reports duplicate and non-numeric ids', () => {
+    const r = check({ questionsCsv: QH + '4,A?,open,a,,,,,easy,c,s,t,\n4,B?,open,b,,,,,easy,c,s,t,\nx,C?,open,c,,,,,easy,c,s,t,\n' });
+    assert.match(messages(r.errors), /:3 duplicate id 4 \(also on line 2\)/);
+    assert.match(messages(r.errors), /:4 id "x" must be a whole number/);
+  });
+
+  it('reports a multi answer that points at an empty option', () => {
+    const r = check({ questionsCsv: QH + '1,Q?,multi,3,A,B,,,easy,c,s,t,\n' });
+    assert.match(messages(r.errors), /answer 3 points at an empty option/);
+  });
+
+  it('warns about a question without a topic when others have one', () => {
+    const r = check({ questionsCsv: QH + '1,A?,open,a,,,,,easy,c,s,t,\n2,B?,open,b,,,,,easy,c,s,,\n' });
+    assert.equal(r.errors.length, 0);
+    assert.match(messages(r.warnings), /questions\.csv:3 no topic/);
+  });
+
+  it('reports unknown deed effects and types', () => {
+    const r = check({ deedsCsv: DH + 'great,Text.,sawab_add,2,,,,,,,,\n' });
+    assert.match(messages(r.errors), /type "great" must be good or bad/);
+    assert.match(messages(r.errors), /unknown effect "sawab_add"/);
+  });
+
+  it('checks landmark effects against config.js LANDMARKS', () => {
+    const config = { LANDMARKS: [{ name: 'Old Mill' }, { name: 'Bridge' }] };
+    const r = check({ config, deedsCsv: DH
+      + 'bad,Go to the mill.,move_to_landmark,0,Old Mill,,,,,,,\n'
+      + 'bad,Go to the tower.,move_to_landmark,0,Tower,,,,,,,\n'
+      + 'good,Run to {landmark}!,move_to_next_landmark,5,,,,,,,,\n'
+      + 'good,Visit {landmark}.,score_add,1,,,,,,,,\n' });
+    assert.match(messages(r.errors), /deeds\.csv:3 landmark "Tower" is not in config\.js LANDMARKS/);
+    assert.match(messages(r.warnings), /deeds\.csv:4 move_to_next_landmark 5, but the edition only has 2 landmarks/);
+    assert.match(messages(r.warnings), /deeds\.csv:5 text uses \{landmark\}/);
+    assert.doesNotMatch(messages(r.errors), /:2 /, 'the valid landmark row is fine');
+  });
+
+  it('reports relative landmark effects in an edition without landmarks', () => {
+    const r = check({ deedsCsv: DH + 'good,Go.,move_to_next_landmark,1,,,,,,,,\n' });
+    assert.match(messages(r.errors), /needs LANDMARKS in config\.js/);
+  });
+});
+
+// ── Every edition in the repo ─────────────────────────────────────────────────
+
+for (const id of listEditions()) {
+  describe(`edition content: ${id}`, () => {
+    const ed = loadEdition(id);
+
+    it('passes the content checker (no errors)', () => {
+      const { errors } = checkEdition(ed);
+      assert.equal(errors.length, 0, '\n' + messages(errors));
     });
 
-    it('every question has a unique id, valid difficulty, and a valid answer', () => {
-      const ids = new Set();
-      for (const q of questions) {
-        const where = `question id ${q.id}`;
-        assert.ok(!ids.has(q.id), `${where}: duplicate id`); ids.add(q.id);
-        assert.ok(['easy', 'hard'].includes(q.diff), `${where}: difficulty "${q.diff}" (unquoted comma?)`);
-        if (q.opts.length) {
-          assert.ok('ABCD'.slice(0, q.opts.length).includes(q.answer), `${where}: answer ${q.answer} not an option`);
-        } else {
-          assert.ok(q.answer && q.answer !== 'open' && q.answer !== 'multi', `${where}: open answer "${q.answer}"`);
-        }
-      }
-    });
-
-    it('every deed has a valid type, known effects and numeric values', () => {
-      if (!fs.existsSync(path.join(EDITIONS_DIR, ed, 'deeds.csv'))) return;
-      for (const d of _parseDeedsCSV(read(ed, 'deeds.csv'))) {
-        assert.ok(['good', 'bad'].includes(d.type), `deed ${d.id}: type "${d.type}"`);
-        for (const e of d.effects) {
-          assert.ok(EFFECTS.has(e.effect), `deed ${d.id}: unknown effect "${e.effect}"`);
-          assert.ok(Number.isFinite(e.value), `deed ${d.id}: value not a number`);
-        }
+    it('generated questions.js / deeds.js are up to date (run: npm run build:content)', () => {
+      for (const [file, text] of Object.entries(generateEditionJs(ed))) {
+        const current = fs.readFileSync(path.join(ed.dir, file), 'utf8');
+        assert.equal(current, text, `${id}/${file} is out of date — run: npm run build:content ${id}`);
       }
     });
   });
