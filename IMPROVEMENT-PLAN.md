@@ -96,6 +96,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 - [ ] **B12 — Finishing via deed/GM move gives no bonus or finish order**
   - **Where:** bonus only awarded in `_processRoll()` (~L1389)
   - **Fix:** Move finish-order/bonus into a single `_checkFinish(player)` called after any movement (roll, deed, GM).
+  - **Done as:** `_recordFinish(player)`; deed/GM finishes show a toast; a GM move that finishes the last player ends the game. B11 also: landmark/action modal icons from `SPACE_INFO`, editions can override `SCORE_VALUES` / `FINISH_BONUS`, removed "ptss" pluralisation.
 
 ### 1d. Security (LAN-scale)
 

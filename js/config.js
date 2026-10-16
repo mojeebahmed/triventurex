@@ -219,12 +219,13 @@ const CONFIG = {
     ],
   },
 
-  // Bonus score for finishing order (index 0 = 1st to finish)
+  // Bonus score for finishing order (index 0 = 1st to finish).
+  // Editions can override with FINISH_BONUS in their config.js.
   FINISH_BONUS: [10, 7, 5, 4, 3, 2, 1, 1],
 
+  // Points awarded per event — all UI labels and scoring read from here.
+  // Editions can override individual values with SCORE_VALUES in their config.js.
   SCORE_VALUES: {
-    // question difficulty values are inline in ui.js (_showQuestion)
-    // kept here for reference only — edit ui.js to change them
     question_easy:    1,
     question_hard:    2,
     action_performer: 1,
@@ -282,4 +283,6 @@ const _ENGINE_DEFAULTS = {
   LANDMARKS:        [],
   BOARD_BACKGROUND: JSON.parse(JSON.stringify(CONFIG.BOARD_BACKGROUND)),
   SPACE_INFO:       JSON.parse(JSON.stringify(CONFIG.SPACE_INFO)),
+  SCORE_VALUES:     JSON.parse(JSON.stringify(CONFIG.SCORE_VALUES)),
+  FINISH_BONUS:     [...CONFIG.FINISH_BONUS],
 };

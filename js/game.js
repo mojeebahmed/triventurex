@@ -1459,12 +1459,9 @@ async function _processRoll(roll) {
     return;
   }
 
-  // Award finishing bonus (after animation reaches the end)
-  if (player.finished && player.finishOrder === null) {
-    state.finishCount++;
-    player.finishOrder = state.finishCount;
-    addScore(player, CONFIG.FINISH_BONUS[state.finishCount - 1] ?? 1);
-  }
+  // Award finishing bonus (after animation reaches the end).
+  // No toast here — landing on the finish space shows the finish modal.
+  _recordFinish(player, { announce: false });
 
   updateBoardTokens(state.players); // final stable render (no hop animation)
   updateScoreboard(state.players);
@@ -1493,9 +1490,30 @@ async function _processRoll(roll) {
   }
 }
 
+/**
+ * Give a player who has just reached the finish their finish order + bonus.
+ * Called after EVERY kind of movement (roll, deed effect, GM move) so the
+ * bonus doesn't depend on how they got there. No-op if not finished or
+ * already recorded. `announce` shows a toast for finishes without a finish modal.
+ */
+function _recordFinish(player, { announce = true } = {}) {
+  if (!player?.finished || player.finishOrder !== null) return;
+  state.finishCount++;
+  player.finishOrder = state.finishCount;
+  const bonus = CONFIG.FINISH_BONUS[state.finishCount - 1] ?? 1;
+  addScore(player, bonus);
+  if (announce) {
+    const ordinal = ['1st','2nd','3rd'][state.finishCount - 1] || `${state.finishCount}th`;
+    showToast(`🏁 ${player.name} finished ${ordinal}! +${bonus} ${CONFIG.GAME?.pointsName ?? 'pts'}`, 3500);
+  }
+}
+
 function afterSpaceResolved() {
   // If undo was pressed while modal was open, bail out — state is already restored.
   if (!state._pendingHistory) return;
+
+  // A deed effect (e.g. move_forward) may have carried the player to the finish
+  _recordFinish(state._pendingHistory.player);
 
   // Broadcast turn outcome to players before clearing pendingHistory
   if (_isNetworkGame && state._pendingHistory) {
@@ -1606,6 +1624,7 @@ function _gmAction(player, label, apply) {
   const scoreBefore = player.score;
 
   apply(player);
+  _recordFinish(player); // a GM move can carry a player onto the finish
 
   if (recordOwnEntry) {
     state.history.push({
@@ -1628,6 +1647,13 @@ function _gmAction(player, label, apply) {
   updateBoardTokens(state.players);
   updateScoreboard(state.players);
   highlightSpace(player.position);
+
+  // Between turns: if that GM move finished the last player, the game is over.
+  // (During a turn, afterSpaceResolved handles this.)
+  if (recordOwnEntry && state.players.every(p => p.finished)) { _endGame(); return; }
+  // Between turns: a GM move that finished the player whose turn it is passes the turn on
+  if (recordOwnEntry && player === currentPlayer() && player.finished) endTurn();
+
   saveGame();
   _syncStateToServer();
 }
@@ -1865,6 +1891,8 @@ function _resetToEngineDefaults() {
   Object.assign(CONFIG.GAME,             _ENGINE_DEFAULTS.GAME);
   Object.assign(CONFIG.THEME,            _ENGINE_DEFAULTS.THEME);
   Object.assign(CONFIG.BOARD_BACKGROUND, _ENGINE_DEFAULTS.BOARD_BACKGROUND);
+  Object.assign(CONFIG.SCORE_VALUES,     _ENGINE_DEFAULTS.SCORE_VALUES);
+  CONFIG.FINISH_BONUS = [..._ENGINE_DEFAULTS.FINISH_BONUS];
   CONFIG.LANDMARKS = [];
   CONFIG.EDITION_SPACE_DISTRIBUTION = null;
   for (const [type, defaults] of Object.entries(_ENGINE_DEFAULTS.SPACE_INFO)) {
@@ -1880,6 +1908,8 @@ function _mergeThemeConfig() {
   if (T.LANDMARKS)           CONFIG.LANDMARKS = T.LANDMARKS;
   if (T.BOARD_BACKGROUND)    Object.assign(CONFIG.BOARD_BACKGROUND, T.BOARD_BACKGROUND);
   if (T.SPACE_DISTRIBUTION)  CONFIG.EDITION_SPACE_DISTRIBUTION = T.SPACE_DISTRIBUTION;
+  if (T.SCORE_VALUES)        Object.assign(CONFIG.SCORE_VALUES,     T.SCORE_VALUES);
+  if (T.FINISH_BONUS)        CONFIG.FINISH_BONUS = [...T.FINISH_BONUS];
   if (T.SPACE_INFO) {
     for (const [type, overrides] of Object.entries(T.SPACE_INFO)) {
       if (CONFIG.SPACE_INFO[type]) Object.assign(CONFIG.SPACE_INFO[type], overrides);

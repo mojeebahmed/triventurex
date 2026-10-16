@@ -97,23 +97,27 @@ function showSpaceModal(space, player, onDone) {
       _showQuestionChoice(player, space, onDone);
       break;
 
-    case 'action':
+    case 'action': {
       timerSet(CONFIG.TIMER.action);
+      const perf  = CONFIG.SCORE_VALUES.action_performer;
+      const guess = CONFIG.SCORE_VALUES.action_guesser;
       showModal({
-        icon: '🎬',
+        icon: CONFIG.SPACE_INFO.action?.icon ?? '🎬',
         title: 'Action Card!',
         content: _playerBadgeHtml(player) +
                  `<p>Draw an <em>Action Card</em> and perform it!</p>
-                  <p>If guessed: performer <strong>+1</strong>, guesser <strong>+1</strong>.<br>
+                  <p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
                   <small>Use the timer in the sidebar to manage time.</small></p>`,
         actions: [
-          { label: '✅ Guessed! (+1 each)', class: 'btn btn-primary',
+          { label: perf === guess ? `✅ Guessed! (+${perf} each)` : `✅ Guessed! (+${perf})`,
+            class: 'btn btn-primary',
             callback: () => { addScore(player, CONFIG.SCORE_VALUES.action_performer); onDone(true); } },
           { label: '⏱ No guess / Time up', class: 'btn btn-secondary',
             callback: () => onDone(false) },
         ],
       });
       break;
+    }
 
     case 'good_deed':
       _showDeedCard(space, player, onDone);
@@ -131,17 +135,22 @@ function showSpaceModal(space, player, onDone) {
       const descHtml = space.description
         ? `<p class="landmark-description">${space.description}</p>`
         : '';
+      // Edition-neutral: icon/label come from SPACE_INFO.landmark (e.g. 🏟️ Stadium)
+      const lmInfo = CONFIG.SPACE_INFO.landmark ?? {};
+      const lmName = space.name || lmInfo.label || 'Landmark';
+      const lmPts  = CONFIG.SCORE_VALUES.landmark;
+      const pts    = CONFIG.GAME?.pointsName ?? 'pts';
       showModal({
-        icon: '🌍',
-        title: space.name || 'Holy Site',
+        icon: lmInfo.icon ?? '🌍',
+        title: lmName,
         content: `${imgHtml}${descHtml}
                   <p style="margin-top:8px"><strong>${player.name}</strong> has arrived at
-                  <strong>${space.name || 'a holy site'}</strong>!</p>
+                  <strong>${lmName}</strong>!</p>
                   <p style="margin-top:8px;font-size:.85rem;color:#666">
-                  GM: award <strong>5 ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> or treat as a visual stop.<br>
+                  GM: award <strong>${lmPts} ${pts}</strong> or treat as a visual stop.<br>
                   <em>Note: players sent here by a bad deed card do not receive points.</em></p>`,
         actions: [
-          { label: `⭐ Award 5 ${CONFIG.GAME?.pointsName ?? 'pts'}`, class: 'btn btn-primary',
+          { label: `⭐ Award ${lmPts} ${pts}`, class: 'btn btn-primary',
             callback: () => { addScore(player, CONFIG.SCORE_VALUES.landmark); onDone(); } },
           { label: 'Visual stop (no points)', class: 'btn btn-secondary', callback: onDone },
         ],
@@ -276,22 +285,16 @@ function _showQuestionChoice(player, space, onDone) {
   if (easyExhausted) note = `<p class="question-exhausted-note">🟢 Easy questions exhausted — only Hard available!</p>`;
   if (hardExhausted) note = `<p class="question-exhausted-note">🔵 Hard questions exhausted — only Easy available!</p>`;
 
+  const easyBtn = { label: `🟢 Easy  (+${CONFIG.SCORE_VALUES.question_easy} ${pts})`, class: 'btn btn-primary',
+    callback: () => _showQuestion('easy', player, onDone) };
+  const hardBtn = { label: `🔵 Hard  (+${CONFIG.SCORE_VALUES.question_hard} ${pts})`, class: 'btn btn-primary btn-blue',
+    callback: () => _showQuestion('hard', player, onDone) };
+
   const actions = [];
-  if (!easyExhausted) {
-    actions.push({ label: `🟢 Easy  (+1 ${pts})`, class: 'btn btn-primary',
-      callback: () => _showQuestion('easy', player, onDone) });
-  }
-  if (!hardExhausted) {
-    actions.push({ label: `🔵 Hard  (+2 ${pts})`, class: 'btn btn-primary btn-blue',
-      callback: () => _showQuestion('hard', player, onDone) });
-  }
+  if (!easyExhausted) actions.push(easyBtn);
+  if (!hardExhausted) actions.push(hardBtn);
   // Both exhausted at init time shouldn't happen (pool recycles), but fallback just in case
-  if (!actions.length) {
-    actions.push({ label: `🟢 Easy  (+1 ${pts})`, class: 'btn btn-primary',
-      callback: () => _showQuestion('easy', player, onDone) });
-    actions.push({ label: `🔵 Hard  (+2 ${pts})`, class: 'btn btn-primary btn-blue',
-      callback: () => _showQuestion('hard', player, onDone) });
-  }
+  if (!actions.length) actions.push(easyBtn, hardBtn);
 
   showModal({
     icon: '❓',
@@ -320,7 +323,7 @@ function _showQuestion(diff, player, onDone) {
       title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question`,
       content: `<strong>${player.name}</strong>, draw a <em>${diff === 'easy' ? 'Easy' : 'Hard'}</em>
                 question card from the physical deck and read it aloud.
-                <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}${pts > 1 ? 's' : ''}</strong> if correct.`,
+                <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
       actions: [
         { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
           callback: () => { addScore(player, pts); onDone(); } },
@@ -599,15 +602,16 @@ function _applyDeedEffect(card, player) {
 
 function showGuesserModal(players, performer, onDone) {
   const others = players.filter(p => p.id !== performer.id);
+  const guessPts = CONFIG.SCORE_VALUES.action_guesser;
   const options = others.map(p => ({
-    label: `${p.name} guessed it! (+1)`,
+    label: `${p.name} guessed it! (+${guessPts})`,
     class: 'btn btn-secondary',
-    callback: () => { addScore(p, CONFIG.SCORE_VALUES.action_guesser); onDone(); },
+    callback: () => { addScore(p, guessPts); onDone(); },
   }));
   options.push({ label: 'No one guessed', class: 'btn btn-secondary', callback: onDone });
   showModal({
     icon: '🎯', title: 'Who guessed it?',
-    content: `Award 1 ${CONFIG.GAME?.pointsName ?? 'pts'} to the first player who guessed correctly.`,
+    content: `Award ${guessPts} ${CONFIG.GAME?.pointsName ?? 'pts'} to the first player who guessed correctly.`,
     actions: options,
   });
 }
