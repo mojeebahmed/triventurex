@@ -53,20 +53,20 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
   - **Where:** `state.phase` never became `'ended'`.
   - **Fix:** `_endGame()` sets `phase='ended'` and syncs; used by `afterSpaceResolved()` and `endTurn()`.
 
-- [ ] **B5 — Removing a player can skip a turn**
+- [x] **B5 — Removing a player can skip a turn**
   - **Where:** `server.js` `remove_player` / `leave_game`; `js/game.js` `player_removed` handler (~L1046)
   - **Problem:** If the removed player's index < `currentPlayerIndex`, the index isn't decremented.
   - **Fix:** `if (idx < currentPlayerIndex) currentPlayerIndex--; else if (currentPlayerIndex >= length) currentPlayerIndex = 0;` in both places (or only on host once A3 makes the server a relay).
 
-- [ ] **B6 — `host_left` never fires when host is also a player**
+- [x] **B6 — `host_left` never fires when host is also a player**
   - **Where:** `server.js` `disconnect` (~L374)
   - **Fix:** Check `room.hostSocketId === socket.id` before the player match / `break`.
 
-- [ ] **B7 — GM score/move changes not synced or undoable**
+- [x] **B7 — GM score/move changes not synced or undoable**
   - **Where:** `js/game.js` `gmAdjustScore`, `gmMovePlayer`, `gmSkipTurn` (~L1497)
   - **Fix:** Call `_syncStateToServer()` after each. Decide whether GM actions go into history (recommended: yes, as a `gm` entry with snapshot, so they're undoable and visible in the log).
 
-- [ ] **B8 — Active/inactive player feature not wired**
+- [x] **B8 — Active/inactive player feature not wired**
   - **Where:** `TX_NET.setPlayerActive` exists, no UI calls it; `endTurn()` ignores `inactive`
   - **Fix:** Add toggle button in `_renderGMNetworkPlayers`; make `endTurn()` skip `inactive` (and maybe `disconnected`) players. Or remove the feature and the CLAUDE.md claim — decide first.
 
