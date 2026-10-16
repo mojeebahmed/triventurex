@@ -32,6 +32,12 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - Host: `http://localhost:3000`
 - Players: `http://<host-ip>:3000/player`
 
+## Tests
+`npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`.
+- `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
+- `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
+- Run `npm test` before merging any change to `server.js`
+
 ## Key files
 - `js/config.js` — engine settings (board, space types, zoom, animation, score, rules)
 - `js/board.js` — board generation (`generateBoard`) and rendering (`buildBoard`, `updateBoardTokens`)

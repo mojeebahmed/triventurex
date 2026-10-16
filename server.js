@@ -395,7 +395,11 @@ io.on('connection', (socket) => {
 });
 
 // ── Start server ──────────────────────────────────────────────────────────────
-server.listen(PORT, () => {
+// Only listen when run directly (`node server.js`). Tests require() this file
+// and start it themselves on a random port.
+module.exports = { server, io, rooms };
+
+if (require.main === module) server.listen(PORT, () => {
   const localIP = getLocalIP();
   console.log('');
   console.log('  ╔══════════════════════════════════════════════╗');

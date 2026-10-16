@@ -123,10 +123,11 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 
 ## Phase 4 — Tests
 
-- [ ] **T1 — `node:test` setup** (no new deps). Needs pure functions loadable in Node (easier after A4 / modules).
+- [x] **T1 — `node:test` setup.** `npm test` runs `test/**/*.test.js`. `server.js` exports `{ server, io, rooms }` and only listens when run directly. Client-side unit tests still need pure functions loadable in Node (after A2 / A4).
 - [ ] **T2 — Unit tests:** CSV parsers, `movePlayer`, `getSortedPlayers`, `_resolveRelativeLandmark`.
 - [ ] **T3 — Property test for `generateBoard`:** 1000 random boards per length/path → constraints hold (no `move_back N` before N, no `move_forward` past finish, landmark deeds resolvable, no consecutive same deed type).
-- [ ] **T4 — Server tests** for roll validation, remove/rejoin index handling (socket.io-client in test).
+- [x] **T4 — Server tests** `test/server.test.js` (24 tests): hosting/joining, roll guard + manual roll (B2), sync_state field preservation, remove/leave turn index (B5), rejoin + host rejoin, disconnects + host_left (B6). Verified: 5 fail against the pre-fix server.
+- [ ] **T5 — Host turn-logic tests** for `_nextTurnIndex`, undo-by-id merge, removal handling — write these during A2/A4 once the logic is separated from the DOM.
 
 ## Phase 5 — Gameplay (to be expanded)
 
