@@ -16,13 +16,15 @@ let state = {
   turnPhase:          'roll',     // 'roll' | 'resolving'
   finishCount:        0,
   history:            [],         // array of turn snapshots for undo + game log
+  // The turn in progress, or null between turns. Plain data (saved with the game):
+  // { token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }
+  turn:               null,
 };
 
 // ── Multiplayer state ──────────────────────────────────────────────────────────
 let _mpMode           = 'local';  // 'local' | 'host' | 'join'
 let _isNetworkGame    = false;    // true once a network game is active
 let _networkGameId    = null;
-let _awaitingRoll     = false;    // true when host is waiting for server to roll
 let _pendingNetworkSetup = null;  // { gameLength, pathIndex, isGMOnly, hostPlayer }
 let _lobbyPlayers     = [];       // players accumulated via player_joined events
 let _pendingHostRejoin = null;    // saved gameId to rejoin as host after refresh
@@ -30,86 +32,75 @@ let _pendingHostRejoin = null;    // saved gameId to rejoin as host after refres
 // ── Score change hook ─────────────────────────────────────────────────────────
 window._onScoreChange = (player, amount) => {
   showScoreFlyout(player, amount);
-  // Scoreboard is refreshed in afterSpaceResolved / refreshUI — not here to avoid
+  // Scoreboard is refreshed in _finishTurn / refreshUI — not here to avoid
   // triggering during animation mid-steps.
 };
 
-// ── History helpers ───────────────────────────────────────────────────────────
+// ── Turn state helpers ────────────────────────────────────────────────────────
+// Pure turn logic (next player, snapshots, undo restore, history rows) lives in
+// js/turn.js. These helpers tie it to `state` and the page.
 
-let _preRollSnapshot = null; // snapshot saved at the start of each roll
-let _currentRoll     = 0;
-let _turnToken       = 0;   // incremented each turn; stale async continuations check this
+let _turnCounter = 0; // source of state.turn.token values
 
-function _createSnapshot() {
-  return {
-    players:            state.players.map(p => ({ ...p })),
-    currentPlayerIndex: state.currentPlayerIndex,
-    finishCount:        state.finishCount,
-  };
-}
-
-function _addHistoryEntry(roll, player, space, scoreBefore, posBefore) {
-  state.history.push({
-    roll,
-    playerId:    player.id,
-    playerName:  player.name,
-    playerColor: player.color,
-    playerToken: player.token,
-    spaceType:   space?.type || 'unknown',
-    spaceName:   space?.name || null,
-    posBefore,
-    posAfter:    player.position,
-    scoreBefore,
-    scoreAfter:  player.score,
-    snapshot:    _preRollSnapshot, // state BEFORE this turn — restores on undo
-  });
-  renderHistoryPanel(state.history);
+/** The player whose turn is in progress (state.turn), or undefined. */
+function _turnPlayer() {
+  return state.turn && state.players.find(p => p.id === state.turn.playerId);
 }
 
 /**
- * Restores the last turn from the pre-roll snapshot.
- * _turnToken is incremented so any in-flight _processRoll continuation sees a
- * stale token and bails out — prevents a resolved space firing after undo.
- * state.players is replaced (not mutated) so no lingering object references
- * from the old turn can write back into the restored state.
+ * True when the turn that issued `token` is no longer the turn in progress —
+ * it was finished, undone, or cancelled. Every async continuation and modal
+ * callback of a turn checks this before touching state.
+ */
+function _isStale(token) { return state.turn?.token !== token; }
+
+function _snapshotNow() {
+  return takeSnapshot(state.players, state.currentPlayerIndex, state.finishCount);
+}
+
+/** Undo is possible mid-turn (cancels it) or when there's history to pop. */
+function _updateUndoButton() {
+  const btn = document.getElementById('undo-btn');
+  if (btn) btn.disabled = !state.turn && !state.history.length;
+}
+
+/**
+ * Undo.
+ *  - During a turn: cancels ONLY that turn — back to just before the roll.
+ *  - Between turns: pops the last history entry (a turn or a GM action).
  */
 function undoLastMove() {
+  if (state.turn) {
+    _restoreSnapshot(state.turn.snapshot);
+    showToast('Turn cancelled');
+    return;
+  }
   if (!state.history.length) return;
-  const entry    = state.history.pop();
-  const snapshot = entry.snapshot;
-  if (!snapshot) { renderHistoryPanel(state.history); return; }
+  const entry = state.history.pop();
+  if (!entry.snapshot) { renderHistoryPanel(state.history); _updateUndoButton(); return; }
+  _restoreSnapshot(entry.snapshot);
+}
 
-  // Close any open modal and invalidate any ongoing async turn so stale
-  // afterSpaceResolved / endTurn callbacks cannot fire after the undo.
+/**
+ * Put the game back to `snapshot`. Clearing state.turn makes every in-flight
+ * continuation of the current turn stale, so nothing fires after the restore.
+ */
+function _restoreSnapshot(snapshot) {
   hideModal();
-  ++_turnToken;
-  state._pendingHistory = null;
-
-  // Replace the players array with fresh copies from the snapshot so no
-  // stale in-flight references can leak back in via Object.assign.
-  // Restore BY ID: players who joined since the snapshot are kept, removed
-  // players stay removed, and sit-out / connection flags keep their live value.
-  const snapById      = new Map(snapshot.players.map(sp => [sp.id, sp]));
-  const snapCurrentId = snapshot.players[snapshot.currentPlayerIndex]?.id;
-  state.players = state.players.map(p => {
-    const sp = snapById.get(p.id);
-    return sp ? { ...sp, inactive: p.inactive, disconnected: p.disconnected } : { ...p };
-  });
-  const restoredIdx = state.players.findIndex(p => p.id === snapCurrentId);
-  state.currentPlayerIndex = restoredIdx !== -1
-    ? restoredIdx
-    : Math.min(state.currentPlayerIndex, state.players.length - 1);
-  state.finishCount        = snapshot.finishCount;
+  state.turn = null;
+  const restored = restoreFromSnapshot(state.players, state.currentPlayerIndex, snapshot);
+  state.players            = restored.players;
+  state.currentPlayerIndex = restored.currentPlayerIndex;
+  state.finishCount        = restored.finishCount;
   state.turnPhase          = 'roll';
-
-  console.log('[undo] restored currentPlayerIndex =', state.currentPlayerIndex,
-              '→', state.players[state.currentPlayerIndex]?.name);
+  document.getElementById('roll-btn').textContent = 'Roll Dice';
 
   updateBoardTokens(state.players);
   updateScoreboard(state.players);
   highlightSpace(currentPlayer().position);
   refreshUI();
   renderHistoryPanel(state.history);
+  _updateUndoButton();
   saveGame();
   _syncStateToServer();
 }
@@ -160,21 +151,14 @@ function _applyBranding() {
 function saveGame() {
   if (state.phase !== 'playing') return;
   try {
-    const { _pendingHistory, ...rest } = state;
+    // state.turn is plain data, so a mid-turn save (space modal open) carries
+    // everything needed to finish — or undo — that turn after a refresh.
     const save = {
-      ...rest,
+      ...state,
       savedAt: new Date().toISOString(),
       // board._gridRows/Cols are non-enumerable — save them explicitly
       gridRows: state.board._gridRows,
       gridCols: state.board._gridCols,
-      // Mid-turn info (space modal open) so a refresh can still finish the turn
-      // and undo it. The player is re-linked by currentPlayerIndex on restore.
-      pendingTurn: _pendingHistory ? {
-        roll:        _pendingHistory.roll,
-        posBefore:   _pendingHistory.posBefore,
-        scoreBefore: _pendingHistory.scoreBefore,
-        snapshot:    _preRollSnapshot,
-      } : null,
     };
     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(save));
   } catch (e) {
@@ -227,17 +211,16 @@ function _restoreGame(save) {
   board._gridRows = save.gridRows;
   board._gridCols = save.gridCols;
 
-  const { pendingTurn, ...savedState } = save;
+  // Saves from before the turn pipeline (A2) kept the mid-turn data as `pendingTurn`
+  if (!save.turn && save.pendingTurn) {
+    save.turn = { ...save.pendingTurn, playerId: save.players[save.currentPlayerIndex]?.id };
+  }
+  const { pendingTurn, turn: savedTurn, ...savedState } = save;
   Object.assign(state, savedState);
-  state.board = board;
-
-  // If the game was saved mid-action (modal was open, roll button disabled),
-  // reset to 'roll' so the player isn't stuck — the modal will re-open below.
-  const wasResolving = state.turnPhase === 'resolving' && !!pendingTurn;
+  state.board     = board;
+  state.history   = state.history || [];
+  state.turn      = null;
   state.turnPhase = 'roll';
-
-  state.history         = state.history || [];
-  state._pendingHistory = null;
 
   showScreen('game-screen');
   renderBoard(state.board, state.players);
@@ -247,6 +230,7 @@ function _restoreGame(save) {
   refreshUI();
   highlightSpace(currentPlayer().position);
   renderHistoryPanel(state.history);
+  _updateUndoButton();
   fitBoardInView();
 
   // Restore host network game connection if applicable
@@ -264,33 +248,15 @@ function _restoreGame(save) {
     _updateNetworkStatusBar();
   }
 
-  // Re-open the space modal so the player can complete the interrupted action.
-  // Restoring _pendingHistory + _preRollSnapshot lets afterSpaceResolved finish
-  // the turn normally (history, endTurn, sync) and keeps it undoable.
-  if (wasResolving) {
-    const player = currentPlayer();
-    const space  = state.board[player.position];
-    const myToken = _beginTurn();
-    if (pendingTurn.snapshot) _preRollSnapshot = pendingTurn.snapshot;
-    state._pendingHistory = {
-      roll:        pendingTurn.roll,
-      player,
-      posBefore:   pendingTurn.posBefore,
-      scoreBefore: pendingTurn.scoreBefore,
-    };
-    if (space && space.type !== 'start') {
-      if (space.type === 'action') {
-        showSpaceModal(space, player, (guessed) => {
-          if (_turnToken !== myToken) return;
-          if (guessed) showGuesserModal(state.players, player, afterSpaceResolved);
-          else afterSpaceResolved();
-        });
-      } else {
-        showSpaceModal(space, player, afterSpaceResolved);
-      }
-    } else {
-      afterSpaceResolved(); // nothing to show — just complete the turn
-    }
+  // Saved mid-turn (space modal was open): resume that same turn — the space
+  // modal re-opens and _finishTurn completes it normally (and it stays undoable).
+  if (savedTurn && state.players.some(p => p.id === savedTurn.playerId)) {
+    state.turn = { ...savedTurn, token: ++_turnCounter, awaitingRoll: false };
+    state.turnPhase = 'resolving';
+    _setRollControlsEnabled(false);
+    _updateUndoButton();
+    const player = _turnPlayer();
+    _resolveSpace(state.board[player.position], player, state.turn.token);
   }
 }
 
@@ -847,7 +813,7 @@ function startGame() {
   state.phase              = 'playing';
   state.turnPhase          = 'roll';
   state.history            = [];
-  state._pendingHistory    = null;
+  state.turn               = null;
 
   showScreen('game-screen');
   renderBoard(state.board, state.players);
@@ -1043,7 +1009,7 @@ function _initSocketHandlers() {
     state.phase              = 'playing';
     state.turnPhase          = 'roll';
     state.history            = [];
-    state._pendingHistory    = null;
+    state.turn               = null;
 
     showScreen('game-screen');
     renderBoard(state.board, state.players);
@@ -1066,18 +1032,17 @@ function _initSocketHandlers() {
 
   TX_NET.on('roll_result', ({ roll }) => {
     if (!_isNetworkGame) return;
-    if (_awaitingRoll) {
-      // Host pressed Roll — _beginTurn() already ran in handleRoll()
-      _awaitingRoll = false;
+    if (state.turn?.awaitingRoll) {
+      // Host pressed Roll — the turn already began in handleRoll()
+      state.turn.awaitingRoll = false;
     } else {
       // Roll came from the current player's phone — start the turn here.
       // Ignore duplicates / late rolls while a turn is already in progress.
-      if (state.turnPhase !== 'roll') return;
-      const player = currentPlayer();
-      if (player.skipNextTurn) { _handleSkippedTurn(player); return; }
+      if (state.turn) return;
+      if (currentPlayer().skipNextTurn) { _skipTurn(); return; }
       _beginTurn();
     }
-    _processRoll(roll);
+    _playRoll(roll);
   });
 
   TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
@@ -1095,26 +1060,25 @@ function _initSocketHandlers() {
 
     state.players = state.players.filter(p => p.id !== playerId);
     // Keep pointing at the same player when someone earlier in the order leaves
-    if (idx < state.currentPlayerIndex) state.currentPlayerIndex--;
-    if (state.currentPlayerIndex >= state.players.length) state.currentPlayerIndex = 0;
+    state.currentPlayerIndex = indexAfterRemoval(state.currentPlayerIndex, idx, state.players.length);
 
     if (wasCurrent) {
-      // Cancel the removed player's in-progress turn (same mechanism as undo)
-      if (state.turnPhase === 'resolving') {
+      // Cancel the removed player's in-progress turn — clearing state.turn makes
+      // its pending modal callbacks / animations stale
+      if (state.turn) {
         hideModal();
-        ++_turnToken;
-        _awaitingRoll         = false;
-        state._pendingHistory = null;
+        state.turn = null;
         document.getElementById('roll-btn').textContent = 'Roll Dice';
       }
       state.turnPhase = 'roll';
       // The index now points at the next player — make sure they can play
-      const next = _nextTurnIndex(state.currentPlayerIndex);
+      const next = nextTurnIndex(state.players, state.currentPlayerIndex);
       if (next === -1) { _endGame(); return; }
       state.currentPlayerIndex = next;
     }
 
     refreshUI();
+    _updateUndoButton();
     if (state.players.length) highlightSpace(currentPlayer().position);
     _renderGMNetworkPlayers(state.players);
     saveGame();
@@ -1288,33 +1252,29 @@ function refreshUI() {
   updateScoreboard(state.players);
   updateGMPlayerSelect(state.players);
   updateBoardTokens(state.players);
-  const canRoll = state.turnPhase === 'roll';
-  document.getElementById('roll-btn').disabled = !canRoll;
-  _setManualDiceDisabled(!canRoll);
+  _setRollControlsEnabled(state.turnPhase === 'roll');
 }
 
 // ── Turn Logic ────────────────────────────────────────────────────────────────
+//
+// Every turn follows ONE path:
+//
+//   handleRoll / handleManualRoll / phone roll_result
+//        │                                  └─ skipNextTurn ─▶ _skipTurn ──┐
+//        ▼                                                                 │
+//   _beginTurn ─▶ _playRoll ─▶ move ─▶ _resolveSpace (modal) ──────────────┤
+//                               └─ exact-finish blocked ───────────────────┤
+//                                                                          ▼
+//                                                                    _finishTurn
+//
+// _finishTurn is the ONLY place a turn ends. Every async step checks
+// _isStale(token) first, so undo / player removal (which clear state.turn)
+// cancel whatever is still in flight.
 
-/**
- * Called when host clicks a manual die face (physical dice play).
- * Network: sends manual_roll to server (players get roll_result) then processes locally.
- * Offline: calls _processRoll directly. No _awaitingRoll involved — cannot get stuck.
- */
-async function handleManualRoll(n) {
-  if (state.turnPhase !== 'roll') return;
-  const player = currentPlayer();
-  if (player.skipNextTurn) { await handleRoll(); return; }
-
-  _beginTurn();
-
-  if (_isNetworkGame) {
-    // Notify player screens of the roll (server broadcasts roll_result to them only).
-    // Host processes the roll locally — no waiting for roll_result, can't get stuck.
-    TX_NET.manualRoll(_networkGameId, n);
-    await _processRoll(n);
-  } else {
-    await _processRoll(n);
-  }
+/** Enable/disable the Roll button and the manual dice together. */
+function _setRollControlsEnabled(enabled) {
+  document.getElementById('roll-btn').disabled = !enabled;
+  _setManualDiceDisabled(!enabled);
 }
 
 // Disables/enables all manual die buttons in sync with the Roll Dice button.
@@ -1331,162 +1291,115 @@ function _initManualDiceFaces() {
   });
 }
 
-/**
- * Start-of-turn bookkeeping shared by every way a turn can begin (Roll button,
- * manual die, phone roll, skipped turn). Locks the roll controls, takes the
- * undo snapshot and bumps _turnToken so stale async continuations bail out.
- * Returns the new turn token.
- */
-function _beginTurn() {
-  state.turnPhase = 'resolving';
-  document.getElementById('roll-btn').disabled = true;
-  _setManualDiceDisabled(true);
+/** Host clicked the Roll button. */
+async function handleRoll() {
+  if (state.turn) return;
+  if (currentPlayer().skipNextTurn) { _skipTurn(); return; }
 
-  // Save snapshot before any changes (used for undo and history recording)
-  _preRollSnapshot = _createSnapshot();
-  const myTurnToken = ++_turnToken; // used to detect if undo invalidated this turn
-  _preRollSnapshot._turnToken = myTurnToken;
-  return myTurnToken;
+  _beginTurn();
+  if (_isNetworkGame) {
+    // Server rolls; the turn continues in TX_NET.on('roll_result') → _playRoll
+    state.turn.awaitingRoll = true;
+    document.getElementById('roll-btn').textContent = 'Waiting for roll...';
+    TX_NET.requestRoll(_networkGameId);
+  } else {
+    await _playRoll(rollDice());
+  }
 }
 
 /**
- * The current player has skipNextTurn set — consume the skip instead of moving.
- * The snapshot is taken BEFORE the flag is cleared so undo re-arms the skip.
+ * Host clicked a manual die face (physical dice play).
+ * Network: phones get the value via manual_roll; the host plays it locally
+ * straight away — no waiting on the server, so it can't get stuck.
  */
-function _handleSkippedTurn(player) {
-  const myToken = _beginTurn();
-  player.skipNextTurn = false;
+async function handleManualRoll(n) {
+  if (state.turn) return;
+  if (currentPlayer().skipNextTurn) { _skipTurn(); return; }
+
+  _beginTurn();
+  if (_isNetworkGame) TX_NET.manualRoll(_networkGameId, n);
+  await _playRoll(n);
+}
+
+/**
+ * Start a turn for the current player: lock the roll controls and record
+ * everything undo needs. Returns the turn's token.
+ */
+function _beginTurn() {
+  const player = currentPlayer();
+  state.turn = {
+    token:        ++_turnCounter,
+    playerId:     player.id,
+    roll:         null,
+    posBefore:    player.position,
+    scoreBefore:  player.score,
+    snapshot:     _snapshotNow(),   // taken BEFORE any change (incl. clearing a skip)
+    awaitingRoll: false,
+  };
+  state.turnPhase = 'resolving';
+  _setRollControlsEnabled(false);
+  _updateUndoButton();
+  return state.turn.token;
+}
+
+/** The current player must skip this turn: consume the skip instead of rolling. */
+function _skipTurn() {
+  const token  = _beginTurn();
+  const player = _turnPlayer();
+  player.skipNextTurn = false; // undo re-arms it — the snapshot was taken first
   showModal({
     icon: '⏭', title: 'Turn Skipped',
     content: `<strong>${esc(player.name)}</strong> must skip this turn.`,
     actions: [{ label: 'OK', class: 'btn btn-primary', callback: () => {
-      if (_turnToken !== myToken) return; // undo was pressed while modal was open
-      state.history.push({
-        roll:        0,
-        playerId:    player.id,
-        playerName:  player.name,
-        playerColor: player.color,
-        playerToken: player.token,
-        spaceType:   'skip',
-        spaceName:   'Turn Skipped',
-        posBefore:   player.position,
-        posAfter:    player.position,
-        scoreBefore: player.score,
-        scoreAfter:  player.score,
-        snapshot:    _preRollSnapshot,
-      });
-      renderHistoryPanel(state.history);
-      endTurn();
-      saveGame();
-      if (_isNetworkGame) {
-        // Sync state + emit turn_result so player screens advance to next player
-        // and the activity feed shows the skip instead of staying stuck.
-        TX_NET.emitTurnResult(_networkGameId, {
-          playerId:    player.id,
-          playerName:  player.name,
-          scoreDelta:  0,
-          newPosition: player.position,
-          posBefore:   player.position,
-          spaceType:   'skip_turn',
-          spaceName:   null,
-        });
-        _syncStateToServer();
-      }
+      if (!_isStale(token)) _finishTurn({ outcome: 'skip' });
     }}],
   });
 }
 
-async function handleRoll() {
-  if (state.turnPhase !== 'roll') return;
-  const player = currentPlayer();
-
-  if (player.skipNextTurn) { _handleSkippedTurn(player); return; }
-
-  _beginTurn();
-
-  if (_isNetworkGame) {
-    const rollBtn = document.getElementById('roll-btn');
-    rollBtn.textContent = 'Waiting for roll...';
-    _awaitingRoll = true;
-    TX_NET.requestRoll(_networkGameId);
-    // Execution continues in TX_NET.on('roll_result') → _processRoll(roll)
-  } else {
-    const roll = rollDice();
-    await _processRoll(roll);
-  }
-}
-
-async function _processRoll(roll) {
-  const player = currentPlayer();
-  _currentRoll = roll;
-  const myToken = _turnToken; // snapshot; undo increments _turnToken to cancel this turn
-
-  // Restore roll button text (may have been changed for network wait)
-  const rollBtn = document.getElementById('roll-btn');
-  if (rollBtn) rollBtn.textContent = 'Roll Dice';
+/** Animate the roll, move the token, then resolve the space landed on. */
+async function _playRoll(roll) {
+  const token  = state.turn.token;
+  const player = _turnPlayer();
+  state.turn.roll = roll;
+  document.getElementById('roll-btn').textContent = 'Roll Dice';
 
   await animateDice(roll);
+  await _showDiceOverlay(roll, player); // large result on the board while players watch
+  if (_isStale(token)) return;
 
-  // Show large dice result on the board (visible while players watch the token move)
-  await _showDiceOverlay(roll, player);
+  const blocked = await animatePlayerMovement(player, state.board, roll, state.players);
+  if (_isStale(token)) return;
 
-  // Record position and score before the move
-  const posBefore   = player.position;
-  const scoreBefore = player.score;
-
-  // Animate token hopping through each intermediate space
-  const moveBlocked = await animatePlayerMovement(player, state.board, roll, state.players);
-
-  // Exact-finish: move was blocked — show message and end turn without resolving a space
-  if (moveBlocked) {
-    if (_turnToken !== myToken) return;
-    const spacesLeft = state.board.length - 1 - player.position;
-    showToast(`Need exactly ${spacesLeft} to finish!`);
-    updateScoreboard(state.players);
-    _addHistoryEntry(roll, player, state.board[player.position], scoreBefore, posBefore);
-    state._pendingHistory = null;
-    if (_isNetworkGame) {
-      TX_NET.emitTurnResult(_networkGameId, {
-        playerId: player.id, playerName: player.name,
-        scoreDelta: 0, newPosition: player.position, posBefore,
-        spaceType: 'blocked', spaceName: null,
-      });
-      TX_NET.emitSpaceCardDone(_networkGameId);
-    }
-    endTurn();             // turnPhase = 'roll' — must happen BEFORE saveGame
-    saveGame();
-    _syncStateToServer();  // player screens must learn whose turn is next
+  if (blocked) {
+    // Exact finish: overshoot means no move and no space to resolve
+    showToast(`Need exactly ${state.board.length - 1 - player.position} to finish!`);
+    _finishTurn({ outcome: 'blocked' });
     return;
   }
 
-  // Award finishing bonus (after animation reaches the end).
-  // No toast here — landing on the finish space shows the finish modal.
+  // Landed on the finish by roll: record it now so the finish modal can show
+  // the place + bonus. (No toast — the finish modal announces it.)
   _recordFinish(player, { announce: false });
-
   updateBoardTokens(state.players); // final stable render (no hop animation)
   updateScoreboard(state.players);
-
-  // Store these for afterSpaceResolved to record the history entry.
-  // Set BEFORE saveGame so a mid-turn refresh can still complete the turn.
-  state._pendingHistory = { roll, player, posBefore, scoreBefore };
-  saveGame();
+  saveGame(); // mid-turn save — a refresh re-opens this space (see _restoreGame)
 
   const space = state.board[player.position];
-
-  // Broadcast space info to player screens in network mode
   if (_isNetworkGame) _emitSpaceCard(space, player);
+  _resolveSpace(space, player, token);
+}
 
-  // Guard: if undo was pressed during animation, this turn is cancelled.
-  if (_turnToken !== myToken) return;
-
+/** Show the space modal; when the player is done, finish the turn. */
+function _resolveSpace(space, player, token) {
+  const done = () => { if (!_isStale(token)) _finishTurn(); };
   if (space.type === 'action') {
     showSpaceModal(space, player, (guessed) => {
-      if (_turnToken !== myToken) return;
-      if (guessed) showGuesserModal(state.players, player, afterSpaceResolved);
-      else afterSpaceResolved();
+      if (_isStale(token)) return;
+      if (guessed) showGuesserModal(state.players, player, done);
+      else done();
     });
   } else {
-    showSpaceModal(space, player, afterSpaceResolved);
+    showSpaceModal(space, player, done);
   }
 }
 
@@ -1508,85 +1421,75 @@ function _recordFinish(player, { announce = true } = {}) {
   }
 }
 
-function afterSpaceResolved() {
-  // If undo was pressed while modal was open, bail out — state is already restored.
-  if (!state._pendingHistory) return;
+/**
+ * The ONLY way a turn ends. Always, in this order:
+ *   finish bonus → history → tell phones → game over? → extra turn or next
+ *   player → save → sync.
+ * outcome: 'space' (normal) | 'blocked' (exact-finish overshoot) | 'skip'
+ */
+function _finishTurn({ outcome = 'space' } = {}) {
+  const turn = state.turn;
+  if (!turn) return;
+  const player = _turnPlayer();
+  const space  = state.board[player.position];
 
-  // A deed effect (e.g. move_forward) may have carried the player to the finish
-  _recordFinish(state._pendingHistory.player);
+  // 1. A deed effect may have carried the player onto the finish
+  _recordFinish(player);
 
-  // Broadcast turn outcome to players before clearing pendingHistory
-  if (_isNetworkGame && state._pendingHistory) {
-    const { player, posBefore, scoreBefore } = state._pendingHistory;
+  // 2. History (undo pops this entry → restores turn.snapshot)
+  state.history.push(makeHistoryEntry({
+    roll:        turn.roll ?? 0,
+    player,
+    spaceType:   outcome === 'skip' ? 'skip' : space?.type,
+    spaceName:   outcome === 'skip' ? 'Turn Skipped' : (space?.name || null),
+    posBefore:   turn.posBefore,
+    scoreBefore: turn.scoreBefore,
+    snapshot:    turn.snapshot,
+  }));
+  renderHistoryPanel(state.history);
+
+  // 3. Phones: activity feed entry, then clear the space card
+  if (_isNetworkGame) {
     TX_NET.emitTurnResult(_networkGameId, {
-      playerId:   player.id,
-      playerName: player.name,
-      scoreDelta: player.score - scoreBefore,
+      playerId:    player.id,
+      playerName:  player.name,
+      scoreDelta:  player.score - turn.scoreBefore,
       newPosition: player.position,
-      posBefore,
-      spaceType: state.board[player.position]?.type,
-      spaceName: state.board[player.position]?.name || null,
+      posBefore:   turn.posBefore,
+      spaceType:   { skip: 'skip_turn', blocked: 'blocked' }[outcome] ?? space?.type,
+      spaceName:   outcome === 'space' ? (space?.name || null) : null,
     });
+    if (outcome !== 'skip') TX_NET.emitSpaceCardDone(_networkGameId);
   }
-  if (_isNetworkGame) TX_NET.emitSpaceCardDone(_networkGameId);
+
+  state.turn = null;
+  _updateUndoButton();
   updateScoreboard(state.players);
   updateBoardTokens(state.players);
-  highlightSpace(currentPlayer().position);
 
-  // Record history entry for this turn
-  if (state._pendingHistory) {
-    const { roll, player, posBefore, scoreBefore } = state._pendingHistory;
-    const space = state.board[player.position];
-    _addHistoryEntry(roll, player, space, scoreBefore, posBefore);
-    state._pendingHistory = null;
-  }
+  // 4. Game over?
+  if (state.players.every(p => p.finished)) { _endGame(); return; }
 
-  if (currentPlayer().finished) {
-    if (state.players.every(p => p.finished)) {
-      _endGame();
-      return;
-    }
-  }
-
-  // Check for extra turn earned by a deed card
-  if (currentPlayer().hasExtraTurn) {
-    currentPlayer().hasExtraTurn = false;
+  // 5. Extra turn (deed card) — same player rolls again, unless they can't play
+  if (player.hasExtraTurn && isTurnEligible(player)) {
+    player.hasExtraTurn = false;
     state.turnPhase = 'roll';
-    refreshUI(); // re-enables Roll button AND manual dice
-    updateCurrentPlayerDisplay(currentPlayer(), '🎲 Roll again — extra turn!');
-    saveGame();
-    _syncStateToServer(); // phone returns to dice mode for the extra roll
-    return; // skip endTurn — same player goes again
+    refreshUI();
+    highlightSpace(player.position);
+    updateCurrentPlayerDisplay(player, '🎲 Roll again — extra turn!');
+  } else {
+    player.hasExtraTurn = false;
+    endTurn();
   }
 
-  endTurn();     // sets turnPhase = 'roll' — must happen BEFORE saveGame
-  saveGame();    // saved state will have turnPhase='roll', not 'resolving',
-                 // so resuming after refresh won't re-open the space modal
+  // 6. Persist + tell the server (turnPhase is 'roll' again at this point)
+  saveGame();
   _syncStateToServer();
 }
 
-/** A player takes turns unless they have finished or are sitting out. */
-function _isTurnEligible(p) { return !p.finished && !p.inactive; }
-
-/**
- * Index of the next player who should take a turn, searching from `from`
- * (inclusive) and wrapping. If every unfinished player is sitting out, falls
- * back to the next unfinished player so the game never stalls.
- * Returns -1 when everyone has finished.
- */
-function _nextTurnIndex(from) {
-  const total = state.players.length;
-  for (const canPlay of [_isTurnEligible, p => !p.finished]) {
-    for (let i = 0; i < total; i++) {
-      const idx = (from + i) % total;
-      if (canPlay(state.players[idx])) return idx;
-    }
-  }
-  return -1;
-}
-
+/** Pass the turn to the next player who can play (no save/sync — callers do that). */
 function endTurn() {
-  const next = _nextTurnIndex(state.currentPlayerIndex + 1);
+  const next = nextTurnIndex(state.players, state.currentPlayerIndex + 1);
   if (next === -1) { _endGame(); return; }
 
   state.currentPlayerIndex = next;
@@ -1598,6 +1501,7 @@ function endTurn() {
 /** All players finished — tell player screens, clear the save, show results. */
 function _endGame() {
   state.phase     = 'ended';
+  state.turn      = null;
   state.turnPhase = 'roll';
   _syncStateToServer(); // player screens switch to activity mode on phase 'ended'
   clearSave();
@@ -1618,8 +1522,8 @@ function getGMSelectedPlayer() {
  * undoing the turn reverts it too, and the turn's entry shows the net change.
  */
 function _gmAction(player, label, apply) {
-  const recordOwnEntry = state.turnPhase === 'roll';
-  const snapshot    = recordOwnEntry ? _createSnapshot() : null;
+  const recordOwnEntry = !state.turn;
+  const snapshot    = recordOwnEntry ? _snapshotNow() : null;
   const posBefore   = player.position;
   const scoreBefore = player.score;
 
@@ -1627,21 +1531,11 @@ function _gmAction(player, label, apply) {
   _recordFinish(player); // a GM move can carry a player onto the finish
 
   if (recordOwnEntry) {
-    state.history.push({
-      roll:        0,
-      playerId:    player.id,
-      playerName:  player.name,
-      playerColor: player.color,
-      playerToken: player.token,
-      spaceType:   'gm',
-      spaceName:   label,
-      posBefore,
-      posAfter:    player.position,
-      scoreBefore,
-      scoreAfter:  player.score,
-      snapshot,
-    });
+    state.history.push(makeHistoryEntry({
+      player, spaceType: 'gm', spaceName: label, posBefore, scoreBefore, snapshot,
+    }));
     renderHistoryPanel(state.history);
+    _updateUndoButton();
   }
 
   updateBoardTokens(state.players);
@@ -1649,7 +1543,7 @@ function _gmAction(player, label, apply) {
   highlightSpace(player.position);
 
   // Between turns: if that GM move finished the last player, the game is over.
-  // (During a turn, afterSpaceResolved handles this.)
+  // (During a turn, _finishTurn handles this.)
   if (recordOwnEntry && state.players.every(p => p.finished)) { _endGame(); return; }
   // Between turns: a GM move that finished the player whose turn it is passes the turn on
   if (recordOwnEntry && player === currentPlayer() && player.finished) endTurn();
@@ -1690,7 +1584,7 @@ function gmToggleSitOut() {
   showToast(p.inactive ? `💤 ${p.name} is sitting out` : `${p.name} is back in the game`);
 
   // If it's their turn and they haven't rolled yet, pass the turn on now
-  if (p.inactive && p === currentPlayer() && state.turnPhase === 'roll') {
+  if (p.inactive && p === currentPlayer() && !state.turn) {
     endTurn();
   } else {
     refreshUI();
@@ -1873,6 +1767,7 @@ function resetToSetup() {
     gameId: null, players: [], board: [], gameLength: 'medium',
     pathIndex: 'random', currentPlayerIndex: 0,
     phase: 'setup', turnPhase: 'roll', finishCount: 0,
+    history: [], turn: null,
   };
   renderPlayerRows();
   populatePathSelector('medium');

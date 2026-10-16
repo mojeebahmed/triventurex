@@ -133,7 +133,7 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 - [ ] **T2 — Unit tests:** CSV parsers, `movePlayer`, `getSortedPlayers`, `_resolveRelativeLandmark`.
 - [ ] **T3 — Property test for `generateBoard`:** 1000 random boards per length/path → constraints hold (no `move_back N` before N, no `move_forward` past finish, landmark deeds resolvable, no consecutive same deed type).
 - [x] **T4 — Server tests** `test/server.test.js` (24 tests): hosting/joining, roll guard + manual roll (B2), sync_state field preservation, remove/leave turn index (B5), rejoin + host rejoin, disconnects + host_left (B6). Verified: 5 fail against the pre-fix server.
-- [ ] **T5 — Host turn-logic tests** for `_nextTurnIndex`, undo-by-id merge, removal handling — write these during A2/A4 once the logic is separated from the DOM.
+- [x] **T5 — Host turn-logic tests** for `_nextTurnIndex`, undo-by-id merge, removal handling — write these during A2/A4 once the logic is separated from the DOM.
 
 ## Phase 5 — Gameplay (to be expanded)
 

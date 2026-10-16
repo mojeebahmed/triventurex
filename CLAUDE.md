@@ -93,8 +93,10 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **#board-world** pinned to grid dimensions — no background-loading shift
 - **Modal** is `position:absolute` inside `#board-viewport` — sidebar always accessible
 - **Modal accent colour**: `--modal-accent` CSS var set per space type; coloured border + tinted icon area
-- **saveGame() AFTER endTurn()** — `turnPhase` always 'roll' in saved state
-- **On resume with turnPhase==='resolving'** → re-opens space modal
+- **Turn pipeline (A2)**: every turn = `_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`; skipped turns (`_skipTurn`) and exact-finish blocks also end in `_finishTurn`, the ONLY end-of-turn path (finish bonus → history → turn_result/space_card_done → game over? → extra turn or `endTurn` → save → sync). Never end a turn any other way
+- **`state.turn`**: the turn in progress (`{ token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }`) or `null`. Plain data, saved with the game; on resume a saved `state.turn` re-opens the space modal via `_resolveSpace`
+- **Stale continuations**: every async step / modal callback captures `token` and checks `_isStale(token)`; undo and player removal clear `state.turn`, which cancels everything in flight
+- **Pure turn logic** lives in `js/turn.js` (`nextTurnIndex`, `takeSnapshot`, `restoreFromSnapshot`, `indexAfterRemoval`, `makeHistoryEntry`) — no DOM; unit-tested in `test/turn.test.js`
 - **Badge picker modal**: clicking player badge on setup screen opens a fixed overlay modal; shows live preview with emoji + initials; width = 80% of setup container
 - **Setup screen**: resume prompt is a slim single-line bar; Game Settings is a collapsible `<details>` section with rows: Board Layout, Exact Finish, Question Tracking, Question Categories
 - **Host player**: separate from local player list; stored in `triventurex_host_player` localStorage; GM-only toggle disables (not hides) the player input
@@ -113,16 +115,13 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **Action box**: fixed-height area on player screen; modes = `dice` | `rolled` | `card` | `activity`
 - **Mode transitions**: `dice` → (tap roll) → `rolled` → (space_card) → `card` → (space_card_done) → `activity`
 - **state_update must NOT override rolled/card mode**: `renderGameView()` skips mode change when box is in `rolled-mode` or `card-mode` during a resolving turn
-- **turn_result before space_card_done**: `afterSpaceResolved()` emits `turn_result` first so activity feed updates before card clears
+- **turn_result before space_card_done**: `_finishTurn()` emits `turn_result` first so activity feed updates before card clears
 - **CSS dice**: `renderDie(n, sizeClass)` in dice.js — dot-based, no images; also duplicated inline in player.html for standalone use
 - **GM controls**: adjust score, move player, skip turn, remove player, sit out / rejoin (`player.inactive`, host-owned, synced via `sync_state`); network players section shows connected/disconnected state
 - **GM actions in history**: `_gmAction()` — between turns a GM change gets its own undoable `spaceType:'gm'` history entry; during a turn it folds into that turn
-- **Turn order**: `_nextTurnIndex()` skips finished and sitting-out players (falls back to any unfinished player so the game never stalls)
-- **Undo restores by player id**: players who joined/left since the snapshot are kept/stay removed; `inactive`/`disconnected` keep live values
-- **Manual dice**: `handleManualRoll(n)` on host; offline → `_processRoll(n)` direct; network → `TX_NET.manualRoll()` sends `manual_roll` to server which broadcasts `roll_result` to players only, host processes locally — no `_awaitingRoll`, cannot get stuck
-- **Turn cancellation token**: `_turnToken` (int) incremented on each roll and on undo; `_processRoll` captures `myToken = _turnToken` at start; all async continuations check `_turnToken !== myToken` before proceeding — prevents stale turns running after undo
-- **Skip turn network sync**: skip takes a snapshot, adds a history entry (`roll:0`, `spaceType:'skip'`), calls `_syncStateToServer()` + `emitTurnResult` so player screens update; skips are undoable
-- **afterSpaceResolved guard**: bails out early if `!state._pendingHistory` — prevents double-fire if undo cleared the pending turn while a modal was open
+- **Turn order**: `nextTurnIndex()` (turn.js) skips finished and sitting-out players (falls back to any unfinished player so the game never stalls)
+- **Undo**: mid-turn → cancels only the turn in progress (restores `state.turn.snapshot`); between turns → pops the last history entry. Restores by player id (`restoreFromSnapshot`): joined players kept, removed stay removed, `inactive`/`disconnected` keep live values
+- **Manual dice**: `handleManualRoll(n)` on host → `_beginTurn` + `_playRoll(n)` locally; network also sends `manual_roll` so phones see the value (server broadcasts to players only) — no waiting on the server
 
 ## Current state
 - V1 complete + V2 complete
