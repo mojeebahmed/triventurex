@@ -99,7 +99,10 @@ Edit CSV → ask Claude "regenerate the JS files" → refresh browser.
 - **state_update must NOT override rolled/card mode**: `renderGameView()` skips mode change when box is in `rolled-mode` or `card-mode` during a resolving turn
 - **turn_result before space_card_done**: `afterSpaceResolved()` emits `turn_result` first so activity feed updates before card clears
 - **CSS dice**: `renderDie(n, sizeClass)` in dice.js — dot-based, no images; also duplicated inline in player.html for standalone use
-- **GM controls**: adjust score, move player, skip turn, remove player, set player active/inactive; network players section shows connected/disconnected state
+- **GM controls**: adjust score, move player, skip turn, remove player, sit out / rejoin (`player.inactive`, host-owned, synced via `sync_state`); network players section shows connected/disconnected state
+- **GM actions in history**: `_gmAction()` — between turns a GM change gets its own undoable `spaceType:'gm'` history entry; during a turn it folds into that turn
+- **Turn order**: `_nextTurnIndex()` skips finished and sitting-out players (falls back to any unfinished player so the game never stalls)
+- **Undo restores by player id**: players who joined/left since the snapshot are kept/stay removed; `inactive`/`disconnected` keep live values
 - **Manual dice**: `handleManualRoll(n)` on host; offline → `_processRoll(n)` direct; network → `TX_NET.manualRoll()` sends `manual_roll` to server which broadcasts `roll_result` to players only, host processes locally — no `_awaitingRoll`, cannot get stuck
 - **Turn cancellation token**: `_turnToken` (int) incremented on each roll and on undo; `_processRoll` captures `myToken = _turnToken` at start; all async continuations check `_turnToken !== myToken` before proceeding — prevents stale turns running after undo
 - **Skip turn network sync**: skip takes a snapshot, adds a history entry (`roll:0`, `spaceType:'skip'`), calls `_syncStateToServer()` + `emitTurnResult` so player screens update; skips are undoable

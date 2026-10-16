@@ -35,7 +35,7 @@ function updateScoreboard(players) {
       <div class="score-name">${p.name}</div>
       <div>
         <div class="score-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
-        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}</div>
+        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}</div>
       </div>
     </div>
   `).join('');
@@ -45,7 +45,10 @@ function updateScoreboard(players) {
 
 function updateGMPlayerSelect(players) {
   const sel = document.getElementById('gm-player-select');
-  sel.innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  const selected = sel.value; // keep the GM's choice across refreshes
+  sel.innerHTML = players.map(p =>
+    `<option value="${p.id}">${p.name}${p.inactive ? ' 💤' : ''}</option>`).join('');
+  if (players.some(p => String(p.id) === selected)) sel.value = selected;
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -640,7 +643,7 @@ function showScoreFlyout(player, amount) {
 // ── Game History ──────────────────────────────────────────────────────────────
 
 function _spaceIcon(type) {
-  return CONFIG.SPACE_INFO[type]?.icon ?? { question: '❓', action: '🎬', landmark: '🌍', skip: '⏭', finish: '🏁', start: '🚩' }[type] ?? '•';
+  return CONFIG.SPACE_INFO[type]?.icon ?? { question: '❓', action: '🎬', landmark: '🌍', skip: '⏭', finish: '🏁', start: '🚩', gm: '⚙️' }[type] ?? '•';
 }
 
 function renderHistoryPanel(history) {
@@ -659,7 +662,7 @@ function renderHistoryPanel(history) {
     const scoreStr  = scoreDiff !== 0
       ? `<span class="history-score ${scoreDiff > 0 ? 'hs-pos' : 'hs-neg'}">${scoreDiff > 0 ? '+' : ''}${scoreDiff}</span>`
       : '';
-    const rollStr   = e.roll ? `🎲 ${e.roll}` : '⏭ skipped';
+    const rollStr   = e.roll ? `🎲 ${e.roll}` : (e.spaceType === 'gm' ? '⚙️ GM' : '⏭ skipped');
     return `<div class="history-entry${i === 0 ? ' history-latest' : ''}">
       <div class="history-badge" style="background:${e.playerColor}">${e.playerToken}</div>
       <div class="history-info">

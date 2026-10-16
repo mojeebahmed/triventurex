@@ -36,7 +36,6 @@ const TX_NET = (() => {
   // Bypasses the server's random roll — sends a specific value chosen by the host (physical dice play).
   function manualRoll(gameId, roll) { _socket?.emit('manual_roll', { gameId: gameId || _gameId, roll }); }
   function syncState(gameId, stateSlice) { _socket?.emit('sync_state', { gameId, ...stateSlice }); }
-  function setPlayerActive(gameId, playerId, active) { _socket?.emit('set_player_active', { gameId, playerId, active }); }
   function removePlayer(gameId, playerId) { _socket?.emit('remove_player', { gameId, playerId }); }
   function emitSpaceCard(gameId, cardData) { _socket?.emit('space_card', { gameId, ...cardData }); }
   function emitSpaceCardDone(gameId) { _socket?.emit('space_card_done', { gameId }); }
@@ -55,7 +54,7 @@ const TX_NET = (() => {
   return {
     on, connect,
     hostGame, joinGame, startGame, requestRoll, manualRoll, syncState,
-    setPlayerActive, removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
+    removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
     rejoinGame, hostRejoin,
     setGameId, setPlayerId, getGameId, getPlayerId,
     isHostMode, isConnected,

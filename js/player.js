@@ -339,7 +339,7 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
           <span class="badge-emoji">${p.token}</span>
           <span class="badge-initials">${_initials(p.name)}</span>
         </div>
-        <span class="other-name">${p.name}${p.finished ? ' ✅' : ''}${p.disconnected ? ' ⚠️' : ''}</span>
+        <span class="other-name">${p.name}${p.finished ? ' ✅' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
         <span class="other-pos">pos ${p.position ?? 0}</span>
         <span class="other-score">${p.score ?? 0} pts</span>
         <div class="other-active-indicator ${isActive ? '' : 'inactive'}"></div>

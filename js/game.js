@@ -87,8 +87,18 @@ function undoLastMove() {
 
   // Replace the players array with fresh copies from the snapshot so no
   // stale in-flight references can leak back in via Object.assign.
-  state.players = snapshot.players.map(sp => ({ ...sp }));
-  state.currentPlayerIndex = snapshot.currentPlayerIndex;
+  // Restore BY ID: players who joined since the snapshot are kept, removed
+  // players stay removed, and sit-out / connection flags keep their live value.
+  const snapById      = new Map(snapshot.players.map(sp => [sp.id, sp]));
+  const snapCurrentId = snapshot.players[snapshot.currentPlayerIndex]?.id;
+  state.players = state.players.map(p => {
+    const sp = snapById.get(p.id);
+    return sp ? { ...sp, inactive: p.inactive, disconnected: p.disconnected } : { ...p };
+  });
+  const restoredIdx = state.players.findIndex(p => p.id === snapCurrentId);
+  state.currentPlayerIndex = restoredIdx !== -1
+    ? restoredIdx
+    : Math.min(state.currentPlayerIndex, state.players.length - 1);
   state.finishCount        = snapshot.finishCount;
   state.turnPhase          = 'roll';
 
@@ -1079,13 +1089,36 @@ function _initSocketHandlers() {
 
   TX_NET.on('player_removed', ({ playerId }) => {
     if (!_isNetworkGame) return;
+    const idx = state.players.findIndex(p => p.id === playerId);
+    if (idx === -1) return;
+    const wasCurrent = idx === state.currentPlayerIndex;
+
     state.players = state.players.filter(p => p.id !== playerId);
-    if (state.currentPlayerIndex >= state.players.length) {
-      state.currentPlayerIndex = 0;
+    // Keep pointing at the same player when someone earlier in the order leaves
+    if (idx < state.currentPlayerIndex) state.currentPlayerIndex--;
+    if (state.currentPlayerIndex >= state.players.length) state.currentPlayerIndex = 0;
+
+    if (wasCurrent) {
+      // Cancel the removed player's in-progress turn (same mechanism as undo)
+      if (state.turnPhase === 'resolving') {
+        hideModal();
+        ++_turnToken;
+        _awaitingRoll         = false;
+        state._pendingHistory = null;
+        document.getElementById('roll-btn').textContent = 'Roll Dice';
+      }
+      state.turnPhase = 'roll';
+      // The index now points at the next player — make sure they can play
+      const next = _nextTurnIndex(state.currentPlayerIndex);
+      if (next === -1) { _endGame(); return; }
+      state.currentPlayerIndex = next;
     }
-    updateScoreboard(state.players);
-    updateGMPlayerSelect(state.players);
+
+    refreshUI();
+    if (state.players.length) highlightSpace(currentPlayer().position);
     _renderGMNetworkPlayers(state.players);
+    saveGame();
+    _syncStateToServer();
   });
 
   TX_NET.on('error', ({ message }) => {
@@ -1514,15 +1547,29 @@ function afterSpaceResolved() {
   _syncStateToServer();
 }
 
-function endTurn() {
+/** A player takes turns unless they have finished or are sitting out. */
+function _isTurnEligible(p) { return !p.finished && !p.inactive; }
+
+/**
+ * Index of the next player who should take a turn, searching from `from`
+ * (inclusive) and wrapping. If every unfinished player is sitting out, falls
+ * back to the next unfinished player so the game never stalls.
+ * Returns -1 when everyone has finished.
+ */
+function _nextTurnIndex(from) {
   const total = state.players.length;
-  let next = (state.currentPlayerIndex + 1) % total;
-  let attempts = 0;
-  while (state.players[next].finished && attempts < total) {
-    next = (next + 1) % total;
-    attempts++;
+  for (const canPlay of [_isTurnEligible, p => !p.finished]) {
+    for (let i = 0; i < total; i++) {
+      const idx = (from + i) % total;
+      if (canPlay(state.players[idx])) return idx;
+    }
   }
-  if (state.players[next].finished) { _endGame(); return; }
+  return -1;
+}
+
+function endTurn() {
+  const next = _nextTurnIndex(state.currentPlayerIndex + 1);
+  if (next === -1) { _endGame(); return; }
 
   state.currentPlayerIndex = next;
   state.turnPhase = 'roll';
@@ -1546,29 +1593,85 @@ function getGMSelectedPlayer() {
   return state.players.find(p => p.id === id);
 }
 
+/**
+ * Apply a GM correction to a player, then refresh, save and sync.
+ * Between turns it gets its own undoable history entry ('⚙️ GM').
+ * During a turn (space modal open) it becomes part of that turn instead —
+ * undoing the turn reverts it too, and the turn's entry shows the net change.
+ */
+function _gmAction(player, label, apply) {
+  const recordOwnEntry = state.turnPhase === 'roll';
+  const snapshot    = recordOwnEntry ? _createSnapshot() : null;
+  const posBefore   = player.position;
+  const scoreBefore = player.score;
+
+  apply(player);
+
+  if (recordOwnEntry) {
+    state.history.push({
+      roll:        0,
+      playerId:    player.id,
+      playerName:  player.name,
+      playerColor: player.color,
+      playerToken: player.token,
+      spaceType:   'gm',
+      spaceName:   label,
+      posBefore,
+      posAfter:    player.position,
+      scoreBefore,
+      scoreAfter:  player.score,
+      snapshot,
+    });
+    renderHistoryPanel(state.history);
+  }
+
+  updateBoardTokens(state.players);
+  updateScoreboard(state.players);
+  highlightSpace(player.position);
+  saveGame();
+  _syncStateToServer();
+}
+
 function gmAdjustScore(amount) {
   const p = getGMSelectedPlayer();
   if (!p) return;
-  addScore(p, amount);
-  updateScoreboard(state.players);
-  saveGame();
+  const pts = CONFIG.GAME?.pointsName ?? 'pts';
+  _gmAction(p, `GM: ${amount > 0 ? '+' : ''}${amount} ${pts}`, pl => addScore(pl, amount));
 }
 
 function gmMovePlayer(steps) {
   const p = getGMSelectedPlayer();
   if (!p) return;
-  movePlayer(p, state.board, steps);
-  updateBoardTokens(state.players);
-  updateScoreboard(state.players);
-  highlightSpace(p.position);
-  saveGame();
+  _gmAction(p, `GM: move ${steps > 0 ? '+' : ''}${steps}`, pl => movePlayer(pl, state.board, steps));
 }
 
 function gmSkipTurn() {
   const p = getGMSelectedPlayer();
   if (!p) return;
-  p.skipNextTurn = true;
-  alert(`${p.name}'s next turn will be skipped.`);
+  _gmAction(p, 'GM: skip next turn', pl => { pl.skipNextTurn = true; });
+  showToast(`${p.name}'s next turn will be skipped.`);
+}
+
+/**
+ * Toggle "sitting out" for the selected player. Sitting-out players keep their
+ * position and score but are skipped in turn order until they rejoin.
+ * Not part of undo history — it's a table-management action, not a game move.
+ */
+function gmToggleSitOut() {
+  const p = getGMSelectedPlayer();
+  if (!p) return;
+  p.inactive = !p.inactive;
+  showToast(p.inactive ? `💤 ${p.name} is sitting out` : `${p.name} is back in the game`);
+
+  // If it's their turn and they haven't rolled yet, pass the turn on now
+  if (p.inactive && p === currentPlayer() && state.turnPhase === 'roll') {
+    endTurn();
+  } else {
+    refreshUI();
+  }
+  _renderGMNetworkPlayers(state.players);
+  saveGame();
+  _syncStateToServer();
 }
 
 // ── Pan + Zoom ────────────────────────────────────────────────────────────────

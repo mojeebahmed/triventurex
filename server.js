@@ -42,6 +42,15 @@ function rollDie() {
 }
 
 /**
+ * Keep currentPlayerIndex pointing at the same player after the player at
+ * `removedIdx` has been spliced out of room.players.
+ */
+function _adjustIndexAfterRemoval(room, removedIdx) {
+  if (removedIdx < room.currentPlayerIndex) room.currentPlayerIndex--;
+  if (room.currentPlayerIndex >= room.players.length) room.currentPlayerIndex = 0;
+}
+
+/**
  * Get the local network IP so players can connect.
  */
 function getLocalIP() {
@@ -262,27 +271,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ── set_player_active ──────────────────────────────────────────────────────
-  socket.on('set_player_active', ({ gameId, playerId, active }) => {
-    console.log(`[set_active] socket=${socket.id} gameId=${gameId} playerId=${playerId} active=${active}`);
-
-    const room = rooms.get(gameId);
-    if (!room) return;
-    if (socket.id !== room.hostSocketId) return;
-
-    const player = room.players.find(p => p.id === playerId);
-    if (player) {
-      player.inactive = !active;
-      io.to(gameId).emit('state_update', {
-        playerStates:        room.players,
-        currentPlayerIndex:  room.currentPlayerIndex,
-        turnPhase:           room.turnPhase,
-        finishCount:         room.finishCount,
-        phase:               room.phase,
-      });
-    }
-  });
-
   // ── remove_player ──────────────────────────────────────────────────────────
   socket.on('remove_player', ({ gameId, playerId }) => {
     console.log(`[remove]     socket=${socket.id} gameId=${gameId} playerId=${playerId}`);
@@ -294,10 +282,7 @@ io.on('connection', (socket) => {
     const idx = room.players.findIndex(p => p.id === playerId);
     if (idx !== -1) {
       room.players.splice(idx, 1);
-      // Adjust currentPlayerIndex if needed
-      if (room.currentPlayerIndex >= room.players.length) {
-        room.currentPlayerIndex = 0;
-      }
+      _adjustIndexAfterRemoval(room, idx);
       io.to(gameId).emit('player_removed', { playerId });
       io.to(gameId).emit('state_update', {
         playerStates:        room.players,
@@ -356,9 +341,11 @@ io.on('connection', (socket) => {
   socket.on('leave_game', ({ gameId }) => {
     const room = rooms.get(gameId || socket.data.gameId);
     if (!room) return;
-    const player = room.players.find(p => p.socketId === socket.id);
+    const idx = room.players.findIndex(p => p.socketId === socket.id);
+    const player = room.players[idx];
     if (player) {
-      room.players = room.players.filter(p => p.socketId !== socket.id);
+      room.players.splice(idx, 1);
+      _adjustIndexAfterRemoval(room, idx);
       socket.leave(room.gameId);
       io.to(room.gameId).emit('player_removed', { playerId: player.id, players: room.players });
       console.log(`[leave_game] ${player.name} left ${room.gameId}`);
@@ -384,6 +371,14 @@ io.on('connection', (socket) => {
     console.log(`[disconnect] socket=${socket.id}`);
 
     for (const [gameId, room] of rooms.entries()) {
+      // Check host first — a playing host is ALSO in room.players, so the
+      // player branch alone would hide the host_left notification.
+      const isHost = room.hostSocketId === socket.id;
+      if (isHost) {
+        console.log(`[disconnect] HOST disconnected gameId=${gameId}`);
+        io.to(gameId).emit('host_left', { msg: 'The host has left the game.' });
+      }
+
       const player = room.players.find(p => p.socketId === socket.id);
       if (player) {
         player.disconnected = true;
@@ -392,14 +387,9 @@ io.on('connection', (socket) => {
           playerId:   player.id,
           playerName: player.name,
         });
-        break;
       }
 
-      // If host disconnects, notify the room with a dedicated event
-      if (room.hostSocketId === socket.id) {
-        console.log(`[disconnect] HOST disconnected gameId=${gameId}`);
-        io.to(gameId).emit('host_left', { msg: 'The host has left the game.' });
-      }
+      if (isHost || player) break;
     }
   });
 });
