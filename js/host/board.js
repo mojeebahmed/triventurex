@@ -116,15 +116,17 @@ function _pickNonLandmarkEffect(card) {
  *
  * Fallback priority when no valid slot exists for a constrained deed:
  *   1. Try another effect from the card's effects array that passes its own constraint
- *   2. Keep the effect but place it at the least-bad slot (closest to valid)
+ *   2. Swap in an unused card (from `spares`) with an effect that fits a free slot
+ *   3. Last resort (tiny decks only): keep the effect at the least-bad slot
  *
  * @param {Object[]} deeds       – pre-picked active-effect deed objects
  * @param {number[]} slots       – pool indices allocated for this deed type
  * @param {number[]} lmPositions – pool indices of landmark slots
  * @param {number}   poolLength  – total middle-space count (for move_forward bound)
+ * @param {Object[]} [spares]    – unused cards of the same type (consumed when swapped in)
  * @returns {Map<number, Object>} slotIndex → deed (with effect already set)
  */
-function _assignDeedsToSlots(deeds, slots, lmPositions, poolLength) {
+function _assignDeedsToSlots(deeds, slots, lmPositions, poolLength, spares = []) {
   const lmBefore = idx => lmPositions.filter(p => p < idx).length;
   const lmAfter  = idx => lmPositions.filter(p => p > idx).length;
 
@@ -174,7 +176,11 @@ function _assignDeedsToSlots(deeds, slots, lmPositions, poolLength) {
         [...freeSlots].some(s => isValidSlot({ ...deed, ...e }, s))
       );
 
-      const activeDeed = alt ? { ...deed, ...alt } : deed;
+      // Still nothing: swap in an unused card that fits (short boards draw only a
+      // few cards, so this almost always succeeds). Only if the whole deck can't
+      // fit does a rule break, at the least-bad slot.
+      const activeDeed = alt ? { ...deed, ...alt }
+                       : _replacementFromSpares(spares, freeSlots, isValidSlot) ?? deed;
       // Least-bad slot: the one closest to satisfying the constraint
       const ranked = [...freeSlots].sort((a, b) => {
         const scoreA = isValidSlot(activeDeed, a) ? 0 : 1;
@@ -198,6 +204,27 @@ function _assignDeedsToSlots(deeds, slots, lmPositions, poolLength) {
   }
 
   return assignment;
+}
+
+/**
+ * Find an unused card with an effect that fits at least one free slot.
+ * Removes that card from `spares` and returns it with the chosen effect set,
+ * or returns null if no spare card fits anywhere.
+ */
+function _replacementFromSpares(spares, freeSlots, isValidSlot) {
+  for (let i = 0; i < spares.length; i++) {
+    const card = spares[i];
+    const options = shuffleArray([...(card.effects?.length ? card.effects
+                                      : [{ effect: card.effect, value: card.value ?? 0 }])]);
+    for (const e of options) {
+      const candidate = { ...card, effect: e.effect, value: e.value };
+      if ([...freeSlots].some(slot => isValidSlot(candidate, slot))) {
+        spares.splice(i, 1);
+        return candidate;
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -369,8 +396,11 @@ function generateBoard(gameLength, explicitTemplate) {
 
   // Constraint-aware assignment: constrained deeds go to valid slots first,
   // falling back to a non-landmark effect (or a plain move) if no slot qualifies.
-  const goodAssign = _assignDeedsToSlots(selGoodDeeds, goodSlots, lmPositions, pool.length);
-  const badAssign  = _assignDeedsToSlots(selBadDeeds,  badSlots,  lmPositions, pool.length);
+  // Cards not drawn for this board are spares — swapped in if a drawn card can't be placed.
+  const goodAssign = _assignDeedsToSlots(selGoodDeeds, goodSlots, lmPositions, pool.length,
+                                         allGood.slice(selGoodDeeds.length));
+  const badAssign  = _assignDeedsToSlots(selBadDeeds,  badSlots,  lmPositions, pool.length,
+                                         allBad.slice(selBadDeeds.length));
 
   // Pre-assign landmark names to their pool slots so deed labels can reference them.
   const shuffledLandmarks = shuffleArray([...CONFIG.LANDMARKS]);

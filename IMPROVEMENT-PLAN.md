@@ -130,8 +130,8 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 ## Phase 4 — Tests
 
 - [x] **T1 — `node:test` setup.** `npm test` runs `test/**/*.test.js`. `server.js` exports `{ server, io, rooms }` and only listens when run directly. Client-side unit tests still need pure functions loadable in Node (after A2 / A4).
-- [ ] **T2 — Unit tests:** CSV parsers, `movePlayer`, `getSortedPlayers`, `_resolveRelativeLandmark`.
-- [ ] **T3 — Property test for `generateBoard`:** 1000 random boards per length/path → constraints hold (no `move_back N` before N, no `move_forward` past finish, landmark deeds resolvable, no consecutive same deed type).
+- [ ] **T2 — Unit tests:** _Done as: test/players.test.js (createPlayer, movePlayer, movePlayerToPosition, addScore, getSortedPlayers) + _resolveRelativeLandmark in test/board.test.js; CSV parsers already in csv.test.js._ CSV parsers, `movePlayer`, `getSortedPlayers`, `_resolveRelativeLandmark`.
+- [ ] **T3 — Property test for `generateBoard`:** _Done as: test/board.test.js. It found a real bug: on short Swab Quest boards (~1 in 600) a deed could break its placement rule (move_forward reaching the finish, "next landmark" with none ahead) via the least-bad fallback. Fixed by swapping in an unused card that fits; 0 violations in 32,000 boards._ 1000 random boards per length/path → constraints hold (no `move_back N` before N, no `move_forward` past finish, landmark deeds resolvable, no consecutive same deed type).
 - [x] **T4 — Server tests** `test/server.test.js` (24 tests): hosting/joining, roll guard + manual roll (B2), sync_state field preservation, remove/leave turn index (B5), rejoin + host rejoin, disconnects + host_left (B6). Verified: 5 fail against the pre-fix server.
 - [x] **T5 — Host turn-logic tests** for `_nextTurnIndex`, undo-by-id merge, removal handling — write these during A2/A4 once the logic is separated from the DOM.
 

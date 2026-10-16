@@ -36,7 +36,9 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 `npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`.
 - `test/turn-flow.test.js` drives the real host turn pipeline (scripts loaded in index.html order, UI stubbed) — add a scenario here when changing turn behaviour
 - `test/csv.test.js` — CSV parser + every edition's content (CSV must match the generated JS; valid answers/effects)
-- `test/turn.test.js`, `test/utils.test.js` — pure unit tests
+- `test/board.test.js` — property test: random boards for every template of every edition must keep all placement rules, and every landmark tile label must match where the player actually goes (raise `BOARDS_PER_TEMPLATE` locally to hunt rare cases)
+- `test/action-cards.test.js` — drawing/showing action cards
+- `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js` — pure unit tests
 - `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
 - `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
 - Run `npm test` before merging any change (it takes ~3 s)
@@ -108,7 +110,8 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
   - `move_forward N` → slot index ≤ poolLen-1-N (not near finish)
   - `move_to_prev_landmark N` → N landmarks exist before the slot
   - `move_to_next_landmark N` → N landmarks exist after the slot
-  - Fallback: try alternative effect from card's effects array; then use least-bad slot
+  - Fallback: try alternative effect from card's effects array; then swap in an unused card from the deck that fits (`_replacementFromSpares`); least-bad slot only if nothing in the deck fits
+  - All of this is checked by a randomized test (`test/board.test.js`, ~3,000 boards per run) — keep it green when touching board.js
 - **Landmark deeds**: `move_to_prev_landmark` / `move_to_next_landmark` with `value=N` (N = 1 → nearest). Names resolved at board-gen time and stored as `resolvedLandmark` on each deed. `{landmark}` in deed text is substituted at modal render time.
 - **Variable deed effects**: each card has up to 3 effects in CSV; one chosen at board-gen time via `_pickActiveEffect()`
 - **Exact finish**: `CONFIG.RULES.exactFinish` — player must roll exact number to land on finish; overshooting doesn't move. Toggle in Game Settings (select: on/off). Default: on.
