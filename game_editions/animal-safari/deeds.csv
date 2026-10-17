@@ -1,0 +1,57 @@
+type,text,effect,value,effect_2,value_2,effect_3,value_3,mood
+good,You helped a baby turtle find its way to the sea.,score_add,2,move_forward,2,protection,1,reflection
+good,You planted trees for the orangutans' forest.,all_players_gain,1,score_add,2,,,social
+good,You waited quietly for an hour — and saw a leopard!,score_add,3,extra_turn,1,,,challenge
+good,You picked up all the litter around the waterhole.,score_add,2,protection,1,,,reflection
+good,A ranger showed you a secret lookout point.,move_forward,3,score_add,1,,,blessing
+good,You spotted all of the Big Five in one day!,score_add,3,move_forward,2,extra_turn,1,blessing
+good,A herd of zebras galloped right beside your jeep.,move_forward,4,score_add,1,,,blessing
+good,You moved so quietly that a gorilla family let you watch them.,score_add,2,move_forward,2,,,challenge
+good,You took a perfect photo of a cheetah sprinting.,score_add,2,extra_turn,1,,,blessing
+good,You helped the rangers count the elephants.,all_players_gain,1,move_forward,2,,,social
+good,You learned to recognise ten birds just by their song.,score_add,3,move_forward,1,,,challenge
+good,A light plane flies you straight to {landmark}!,move_to_next_landmark,1,score_add,1,,,blessing
+good,A river boat carries you all the way to {landmark}.,move_to_next_landmark,1,score_add,2,,,blessing
+good,You shared your binoculars with a family who forgot theirs.,all_players_gain,1,score_add,1,,,social
+good,You followed the tracks and found lion cubs playing.,score_add,2,move_forward,2,,,challenge
+good,You stayed calm when an elephant walked right past the jeep.,protection,1,score_add,2,,,challenge
+good,You built a nest box for the birds at the lodge.,score_add,2,protection,1,,,reflection
+good,A guide taught you how to read animal footprints.,move_forward,3,extra_turn,1,,,social
+good,You spotted a chameleon that everyone else missed!,score_add,3,move_forward,1,,,funny
+good,You kept to the path so you didn't disturb any nests.,protection,1,score_add,1,move_forward,1,reflection
+good,You watched the sunrise over the savannah as giraffes walked past.,move_forward,2,score_add,2,,,blessing
+good,You told everyone an amazing animal fact at dinner.,score_add,1,all_players_gain,1,move_forward,1,social
+good,You found a hidden waterhole full of animals.,move_forward,3,score_add,2,,,blessing
+good,A family of monkeys let you watch them play all afternoon.,score_add,2,extra_turn,1,,,funny
+good,You helped pay for the care of a rescued baby elephant.,score_add,2,protection,1,all_players_gain,1,social
+good,You spotted a snow leopard — one of the rarest sights on Earth!,score_add,3,move_forward,2,,,blessing
+good,Your jeep found a shortcut along the river.,move_forward,4,extra_turn,1,,,funny
+good,You whispered so quietly that a deer walked right up to you.,protection,1,move_forward,2,,,funny
+bad,Your jeep got stuck in the mud.,skip_turn,1,score_remove,1,,,challenge
+bad,A cheeky monkey stole your hat!,score_remove,1,move_back,2,,,funny
+bad,You shouted and scared all the animals away.,score_remove,2,move_back,2,,,reflection
+bad,You forgot your binoculars at the lodge. Back to {landmark}!,move_to_prev_landmark,1,score_remove,1,,,funny
+bad,An elephant is standing in the middle of the road. Wait!,skip_turn,1,move_back,1,,,challenge
+bad,You fell asleep in the jeep and missed the lions.,score_remove,2,move_back,1,,,funny
+bad,Your camera's memory card was full at the best moment.,score_remove,2,move_back,1,,,funny
+bad,A flat tyre in the middle of the savannah!,move_back,2,skip_turn,1,,,challenge
+bad,You took the wrong track and drove in a big circle.,move_back,3,score_remove,1,,,funny
+bad,Mosquitoes! You forgot your insect spray.,score_remove,2,move_back,1,,,funny
+bad,"You fed the animals your snack, and the rangers told you off. Wild animals need their own food!",score_remove,2,move_back,2,,,reflection
+bad,A baboon climbed into the jeep and ate your lunch.,score_remove,1,move_back,2,skip_turn,1,funny
+bad,Heavy rain washed the road away. Back to {landmark}.,move_to_prev_landmark,1,score_remove,1,,,challenge
+bad,You dropped your map in the river.,move_back,3,score_remove,1,,,funny
+bad,You left the gate open and the goats got out!,all_players_lose,1,move_back,2,,,funny
+bad,You tripped over a sleeping warthog. Oops!,score_remove,1,move_back,2,,,funny
+bad,You tried to take a selfie with a hippo. Never do that — hippos are dangerous!,skip_turn,1,score_remove,2,move_back,1,reflection
+bad,Your boat drifted the wrong way down the river. Back to {landmark}.,move_to_prev_landmark,2,score_remove,1,,,funny
+bad,Your loud ringtone scared away a rare bird.,score_remove,2,all_players_lose,1,,,reflection
+bad,A sandstorm! Everyone has to stay inside the tent.,all_players_lose,1,skip_turn,1,,,challenge
+bad,You dropped litter on the ground. Not cool!,score_remove,3,move_back,1,,,reflection
+bad,Ants found your sandwich before you did.,score_remove,1,move_back,1,,,funny
+bad,Your jeep ran out of fuel far from the lodge.,move_back,3,skip_turn,1,,,challenge
+bad,You walked off the path without a guide. Back to {landmark}!,move_to_prev_landmark,1,score_remove,2,skip_turn,1,reflection
+bad,A real zebra crossing! A whole herd is walking across the road.,skip_turn,1,move_back,1,,,funny
+bad,You got sunburnt on the boat ride.,score_remove,2,move_back,2,,,funny
+bad,You forgot to zip up the tent and a frog moved in.,score_remove,1,move_back,2,skip_turn,1,funny
+bad,Fog in the cloud forest! Nobody can see a thing.,move_back,2,all_players_lose,1,,,challenge

@@ -42,4 +42,12 @@ window.TRIVENTUREX_EDITIONS = [
     accentColor: '#00897B',
   },
 
+  {
+    id:          'animal-safari',
+    name:        'Animal Safari',
+    icon:        '🦁',
+    description: 'Collect Paw Prints on an expedition through the world\'s wild places, from the Serengeti to Antarctica.',
+    accentColor: '#558B2F',
+  },
+
 ];
