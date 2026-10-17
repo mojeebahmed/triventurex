@@ -2,30 +2,62 @@
 
 All notable changes to Triventurex. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-IDs in brackets (B1, A2, C3, …) refer to items in [`IMPROVEMENT-PLAN.md`](IMPROVEMENT-PLAN.md), where each one is described in more detail.
+IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch names and commit messages, so `git log --grep=G16` finds the work for an item. B = bug, A = architecture, C = content pipeline, T = tests, G = gameplay.
 
-## [Unreleased]
+## [2.2.0] — 2026-10-17
+
+A gameplay and play-experience release. The setup screen is rebuilt around tabs, every rule can be changed per game, phones do more (scan to join, answer questions), people without a phone can play, and the game can be shown on a TV. About 310 automated tests. Saved games, phone sessions and settings from 2.1 keep working.
 
 ### Added
-- Guided setup screen with *New game* and *Rules* tabs (G6); 🔁 Rematch and "New game setup" keep your choices (G7); board picker with thumbnails (G8).
-- The board is fitted to the path, not the empty grid (G9); phones show the same rolling dice animation as the host (G10).
-- Join by QR code (G11); per-game rules with presets and "Copy as preset" (G12).
-- Phones show *"You're next"* and buzz on your turn (G18); leave the lobby from the phone (G21).
-- 📺 Presentation mode for playing on a TV: full screen, big board and scoreboard, GM tools behind ⚙️ (G15).
-- Answer questions on the phone: choose the difficulty and tap the answer; multiple choice is scored automatically, open questions are judged by the GM. The answer stays hidden on the host screen until then. Rule: *Players answer on their phone* (G3).
-- ✏️ Boards tab: draw your own board path, see it as a thumbnail, save it to *My boards* (it appears in the board picker), play it straight away, or copy it as a `PATH_TEMPLATES` line (G20).
-- 🚩 Report a question during play (with a note), and a **📚 Questions** tab on the setup screen to browse, search and mark questions, then copy the marked list to fix the CSV (G14, G19).
-- End-screen stats and awards: questions right, actions guessed, average roll and spaces per player, plus fun awards (Quiz master, Lucky roller, Trouble magnet, …) on the host and the TV. Editions can rename awards (G13).
-- 📺 TV display: a read-only second screen (`/display?game=ID`) with the lobby QR code, board, tokens, scoreboard, dice, timer and the open card. Unrevealed answers and action cards never reach it (G16).
-- Players without a phone in network games: add them by name in the lobby or the GM panel; they play on the host screen. A network game can run with no phones at all. The host can change any player's badge in the lobby, and the GM during a game (🎨); phones pick up the change (G17).
+
+**Setup screen**
+- New setup screen with tabs: **🎲 New game**, **⚙️ Rules**, **📚 Questions**, **✏️ Boards** (G6). *New game* is a step-by-step flow (① Edition → ② Game length → ③ Board → ④ Players): one step open at a time, collapsed steps show the current choice, and a footer always shows the whole setup next to **Start**. The card has a fixed height; only the tab content scrolls. *On this screen* / *On phones* moved into ④ Players, and players are shown as chips.
+- The setup remembers your last choices and opens fully collapsed, so a repeat game is usually just **Start** (G7).
+- **Board picker** with a thumbnail of every board path for the chosen length, plus 🎲 Random (G8).
+- **⚙️ Rules** per game (G12), remembered per edition and kept with a saved game. *Family*, *Kids* and *Quiz night* presets; "N changed" summary; **↺ Reset to preset**; **📋 Copy as preset** turns the current rules into a `RULE_PRESETS` entry. Settings:
+  - Scoring: question points, action points, finish bonus (Standard 10/7/5… · Small 5/3/2/1 · Off), landmark points for landing by a roll / arriving via a good deed / via a bad deed (each can be positive, negative or 0), negative scores on/off
+  - Questions: difficulty (player chooses · always easy · always hard), timer auto-start and seconds, avoid repeats, players answer on their phone, topics
+  - Action cards: digital or physical (a digital card can always be swapped for a physical one in play), allowed kinds, timer
+  - Board: tile mix in % per tile type (0 removes it; presets Balanced / More questions / More action / Questions only; live tile counts; special tiles capped at 70%), deed effects varied or first, no going backwards
+  - Turn & pace: exact finish, who starts, animation speed
+- **📚 Questions** tab (G19): browse every question by category › subcategory › topic with counts, search, filter by difficulty, show answers, and mark a question as wrong / unclear with a note. **📋 Copy marked list** gives a text list to fix `questions.csv`.
+- **✏️ Boards** tab (G20): draw your own board path on a grid (click a start, then cells in a straight line), see a thumbnail and the space count, save it to *My boards* (it appears in the board picker, marked ✏️), play it straight away, or **📋 Copy as template** for `CONFIG.PATH_TEMPLATES`.
+
+**Playing**
+- **🔁 Rematch** on the end screen: same players and rules, new board; in a network game the phones stay in the room (G7).
+- **End-screen stats and awards** (G13): questions right, actions guessed, average roll and spaces travelled per player, and fun awards (Quiz master, Star performer, Do-gooder, Trouble magnet, Explorer, Big moment, Lucky roller, Unluckiest roller, Patience award). Ties share an award. Editions can rename awards (`AWARDS`); Football Quest has its own names.
+- **🚩 Report this question** on the host's question card, with a note — goes into the same list as the 📚 Questions tab (G14).
+- **📺 Presentation mode** for a TV mirrored from the laptop (G15): 📺 button or **P**, full screen, the board fills the screen, bigger sidebar and cards, GM tools behind a small ⚙️, the pointer hides when idle. Works offline. Settings in `CONFIG.PRESENTATION`.
+- Arriving at a landmark via a deed shows a toast with the points the rules give for it (G12).
+
+**Phones and network games**
+- **Join by QR code** (G11): the lobby shows a QR code, the join address and the Game ID; scanning fills in the Game ID. *GM controls → 📱 Show join code* for latecomers.
+- **Answer questions on the phone** (G3): the player taps Easy / Hard and then A / B / C; the host scores multiple choice automatically and both screens show the right answer. Open questions are shown on the phone and judged by the GM. The answer never reaches the phone before it's answered, and the GM can still judge on the host. Rule: *Players answer on their phone* (on).
+- Phones roll with the same animation as the host; other phones see a small rolling die (G10).
+- *"You're next — get ready!"* on the next player's phone, and a buzz when your turn starts (G18).
+- **← Leave** in the phone lobby, to change name or badge and join again (G21).
+- **Players without a phone** (G17): add them by name in the lobby or in GM controls; they play on the host screen. A network game can run with no phones at all.
+- **Badges**: the host can change any player's badge (including their own) in the lobby, and the GM during a game (*GM controls → 🎨*); phones pick up the change and remember it (G17).
+- **📺 TV display** (G16): a read-only second screen at `/display?game=ID` (*📺 Open TV display* in the lobby or GM controls). It shows the lobby QR code and players, then the board with hopping tokens, the current player, dice, timer, scoreboard, the open card and the final scores with awards. A TV that opens late or refreshes catches up at once.
+
+### Changed
+- The board is drawn only as big as its path, so fit-to-screen centres it (G9); fit-to-screen also leaves room for the legend.
+- Landmark points are given automatically by the rules; the award button on the landmark card is gone (G12).
+- History entries record where the roll landed and how a question / action went, so end-screen stats stay right after a deed moves the player (G13).
+- `board.js` and `viewport.js` moved to `js/shared/`, and the edition config merge + colours to `js/shared/edition.js`, so the TV page can use them (G16).
+- New pure, tested modules: `js/shared/rules.js`, `stats.js`, `questions.js`, `path-design.js`.
+- Undo keeps badge changes and who has no phone (they aren't game moves).
+- The host scoreboard shows ⚠️ next to a player whose phone is disconnected (before, only the GM panel did).
+- The improvement plan used for 2.1 and 2.2 is finished and removed; open ideas are in the README roadmap.
 
 ### Fixed
-- Refreshing a phone that was first opened from an earlier game's QR code showed the join page and joined as a new player. It now rejoins the same seat.
-- The host scoreboard now shows ⚠️ next to a player whose phone is disconnected.
-- The board legend no longer shows on the end screen.
-- Fit-to-screen leaves room for the legend, so tokens on the start space are no longer hidden under it.
-- The board area can no longer be scrolled by the browser (e.g. by focusing a text box in a card).
-- A phone could take over the host's own player by rejoining without a token. Rejoining now needs the seat's real token.
+- The board legend showed on the end screen, and covered the start space (and its tokens) on most boards.
+- The board area could be scrolled by the browser, e.g. when a text box in a card got focus.
+
+### Security
+- A phone could take over the host's own player by rejoining without a token. Rejoining now needs the seat's real token, so seats without one (the host's player, players without a phone) can't be taken.
+- A phone's answer (`card_choice`) reaches only the host, with the player id taken from the connection, never from the message; the host accepts only the question it asked that player.
+- TV display messages are accepted only from the host and never sent to phones. Card content is stripped of anything secret (unrevealed answers, action cards, GM-only notes) before it leaves the host.
 
 ## [2.1.0] — 2026-10-17
 

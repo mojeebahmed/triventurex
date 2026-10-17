@@ -747,7 +747,7 @@ describe('static files', () => {
     });
   }
 
-  for (const p of ['/server.js', '/package.json', '/CLAUDE.md', '/IMPROVEMENT-PLAN.md',
+  for (const p of ['/server.js', '/package.json', '/CLAUDE.md', '/CHANGELOG.md',
                    '/test/server.test.js', '/node_modules/express/package.json',
                    '/scripts/content.js']) {
     it(`does not serve ${p}`, async () => {

@@ -5,10 +5,10 @@
 **Triventurex** = Trivia + Adventure + X
 
 A family/group board game engine where players roll dice, move along a path, and collect points through:
-- **Quiz questions**: Easy (+1 pt) or Hard (+2 pt), chosen by the player
+- **Quiz questions**: Easy (+1 pt) or Hard (+2 pt), chosen by the player. In a network game they're answered on the player's phone.
 - **Action cards**: act it out, explain it without the key words, or hum it. Performer and guesser both earn points. In a network game the card appears only on the performer's phone.
 - **Good/Bad deed cards**: randomly assigned effects (move forward/back, score, skip turn, etc.)
-- **Landmarks**: visual stops with photos and descriptions. The GM awards 5 pts.
+- **Landmarks**: visual stops with photos and descriptions. Landing on one by a roll gives +5 (all points can be changed in the ⚙️ Rules tab).
 
 The name in three parts:
 - **Tri**: three core mechanics, namely quiz questions (knowledge), action cards (performance) and deed cards (moral choices or events). Also a nod to "trivia".
@@ -52,13 +52,12 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~200, a few seconds): server, turn flow, board generation, content
+npm test                  # all tests (~310, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content, then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
-- **`IMPROVEMENT-PLAN.md`**: the improvement backlog (bugs, architecture, content pipeline, tests, gameplay) with status
 - **`TRIVENTUREX-DESIGN.md`**: design decisions and how the pieces fit together
 - **`CLAUDE.md`**: detailed architecture rules and invariants (also the brief for AI assistants)
 
@@ -83,6 +82,7 @@ Triventurex/
 │   │   ├── turn.js               Pure turn logic: next player, undo snapshots, history rows
 │   │   ├── csv.js                CSV parsing for questions / deeds / action cards
 │   │   ├── dice.js               CSS dot-die rendering + roll animation
+│   │   ├── rules.js              Per-game rules model: defaults → preset → changes
 │   │   ├── board.js              Board generation + rendering (host + TV display)
 │   │   ├── viewport.js           Pan / zoom / fit / board background (host + TV display)
 │   │   ├── edition.js            Edition config merge + colours (host + TV display)
@@ -96,21 +96,27 @@ Triventurex/
 │   │   ├── net-host.js           Host side of network play (lobby, sync, socket events)
 │   │   ├── ui.js                 Modals (question, deed, action, landmark), scoreboard, timer, history
 │   │   ├── setup.js              Setup screen, player rows
+│   │   ├── setup-flow.js         New game tab: steps ① Edition → ④ Players, summary + Start
+│   │   ├── board-picker.js       Board thumbnails for the chosen length
+│   │   ├── rules-panel.js        ⚙️ Rules tab; gameRules()
 │   │   ├── badge-picker.js       Badge (emoji + colour) picker
 │   │   ├── category-filter.js    3-level question topic filter
 │   │   ├── edition-loader.js     Edition loading, colours, branding
 │   │   ├── question-explorer.js  Setup tab 📚 Questions + 🚩 report during play
 │   │   ├── board-designer.js     Setup tab ✏️ Boards: draw, save, play a board
-│   │   └── storage.js            Saved game + remembered preferences
+│   │   ├── presentation.js       📺 Presentation mode
+│   │   └── storage.js            Saved game, preferences, custom boards, marked questions
 │   ├── player/
 │   │   └── player.js             Phone screen logic
-│   └── display/
-│       └── display.js            TV display logic (G16)
+│   ├── display/
+│   │   └── display.js            TV display logic
+│   └── vendor/
+│       └── qrcode.js             QR codes for joining (qrcode-generator, MIT — don't edit)
 │
 ├── css/styles.css                All styling (colours driven by edition config)
 ├── images/                       Setup screen game-length illustrations
 ├── scripts/                      Node-only dev tooling: content build + checker (not served)
-├── tools/path-designer.html      Browser tool for designing board paths
+├── tools/path-designer.html      Older standalone board path designer (the ✏️ Boards tab replaces it)
 ├── test/                         Automated tests (npm test)
 │
 └── game_editions/
@@ -166,8 +172,8 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | Section | What it controls |
 |---|---|
 | `GAME` | Engine brand + per-edition overrides (name, pointsName, etc.) |
-| `RULES` | Gameplay rules: `exactFinish`, `questionTracking` |
-| `BOARD_SIZES` | Spaces per game length (short/medium/long) |
+| `RULES` | Defaults for `exactFinish`, `questionTracking` (per game: the ⚙️ Rules tab) |
+| `BOARD_SIZES` | Typical spaces per game length (used by the rules panel's tile preview) |
 | `GRID_SIZE` | Board grid dimensions (default 12×12) |
 | `SPACE_DISTRIBUTION` | Ratio of each non-question space type (questions fill the remainder) |
 | `SPACE_INFO` | Icon, label, colour per space type |
@@ -179,11 +185,11 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `ZOOM` | Max zoom-in (200%), zoom-out factor |
 | `TIMER` | Default timer duration per space type |
 | `ANIMATION` | Token hop speed, flyout duration, dice overlay |
-| `AWARDS` | End-screen awards: icon, title, text (editions can rename) |
+| `AWARDS`, `AWARD_MIN_ROLLS` | End-screen awards: icon, title, text (editions can rename); rolls needed for the roller awards |
 | `PRESENTATION` | 📺 presentation mode: shortcut key, how much bigger, board fill limit, pointer hide delay |
 | `PATH_TEMPLATES` | Board path shapes per game length |
 
-Editions can override `SPACE_DISTRIBUTION` in their own `config.js`, either as a flat object (same for all game lengths) or keyed by `short`/`medium`/`long`. They can also override `SCORE_VALUES` and `FINISH_BONUS`.
+Editions can override `SPACE_DISTRIBUTION` in their own `config.js`, either as a flat object (same for all game lengths) or keyed by `short`/`medium`/`long`. They can also override `SCORE_VALUES`, `FINISH_BONUS` and `AWARDS`.
 
 Server settings are at the top of `server.js`: `PORT` (env), and `ROOM_TTL`, which controls how long a finished or host-less room is kept.
 
@@ -198,7 +204,7 @@ Rules have their own **⚙️ Rules** tab on the setup screen, with side tabs pe
 | Section | Rules (default) |
 |---|---|
 | Scoring | Easy/hard question points (1/2) · action performer/guesser (1/1) · finish bonus: Standard 10/7/5…, Small 5/3/2/1 or Off · landmark points when **landing by a roll** (+5), **sent there by a good deed** (0), **sent back there by a bad deed** (0); each can be negative, 0 = just information · allow negative scores (off) |
-| Questions | Difficulty: player chooses / always easy / always hard · auto-start timer (off) and its seconds (30) · avoid repeats: remember across games / reset every game · **question topics** (category > subcategory > topic) |
+| Questions | Difficulty: player chooses / always easy / always hard · auto-start timer (off) and its seconds (30) · avoid repeats: remember across games / reset every game · **players answer on their phone** (on; network games) · **question topics** (category > subcategory > topic) |
 | Action cards | Digital (when the edition has cards) or physical deck; a digital card can always be swapped for a physical one in play · kinds allowed (act / explain / sound) · action timer (90 s) |
 | Board | **Tile mix**: % per tile type, 0 removes it, questions fill the rest; presets Balanced / More questions / More action / Questions only, with a live preview of the tile counts (special tiles capped at 70% in total) · deed effects: varied or always the first · no going backwards (leaves out move-back, back-to-landmark and skip-turn effects) |
 | Turn & pace | Exact finish (on) · who starts: first player or random · animation speed: normal / fast |
@@ -290,7 +296,7 @@ id,text,kind,note
 
 ## Gameplay summary
 
-1. On the setup screen (*🎲 New game* tab): ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players. Each choice moves on to the next step; collapsed steps show what's chosen, and the footer shows the whole setup next to **Start**. Next time everything is pre-filled with your last choices, so it's usually just Start.
+1. The setup screen has four tabs: **🎲 New game**, **⚙️ Rules**, **📚 Questions** and **✏️ Boards**. On *New game*: ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players. Each choice moves on to the next step; collapsed steps show what's chosen, and the footer shows the whole setup next to **Start**. Next time everything is pre-filled with your last choices, so it's usually just Start.
 2. On your turn, roll the dice. Your token hops to a space and its event triggers:
    - **Question**: choose Easy (+1) or Hard (+2), answer, then the GM reveals the answer
    - **Action**: perform the card (act / explain / hum). Performer and first correct guesser each earn +1.
@@ -326,7 +332,7 @@ id,text,kind,note
 11. **📺 TV display**: in the lobby (or *GM controls*) click **📺 Open TV display** and drag the window to the TV (or open the shown address on a smart TV). The TV shows the lobby QR code, then the board, tokens, scoreboard, dice, timer and the open card — never an unrevealed answer or an action card. The laptop keeps all the controls.
 12. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
 13. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
-14. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
+14. **New game setup** on the end screen (or ← Back in the lobby) closes the game for everyone; **🔁 Rematch** keeps the room and the phones. Finished or abandoned games are cleaned up automatically on the server.
 
 ---
 
@@ -366,12 +372,20 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - Content build + checker (`npm run build:content`), digital action cards
 - ~200 automated tests (`npm test`)
 
-### Next: gameplay
-- See *Phase 5* in `IMPROVEMENT-PLAN.md` (endgame pacing, score balance, answering on the phone, …)
+### V2.2: Gameplay & play experience ✅ (2026-10)
+- Setup screen with tabs and a step-by-step New game flow; rules panel with presets; visual board picker; 🔁 Rematch
+- Join by QR code; *"You're next"*; leave the lobby; answering questions on the phone; players without a phone
+- 📺 Presentation mode and a 📺 TV display (second screen)
+- End-screen stats and awards; 🚩 question reporting + 📚 Questions tab; ✏️ board designer
+- ~310 automated tests — details in `CHANGELOG.md`
 
 ### Future ideas
 - Sound effects (dice roll, correct answer, finish fanfare)
+- *Steal*: others answer when the active player gets a phone question wrong
+- Content review: the draft action cards in both editions, and the Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
 - More editions: same engine, different content (start from `game_editions/template/`)
 - Football Quest subcategory/topic structure
 - Team mode
 - Online multiplayer (beyond local Wi-Fi)
+
+Decided against (2026-10): endgame pacing rules (the GM can move a player or set the dice) and streaks / wagers / a final round.

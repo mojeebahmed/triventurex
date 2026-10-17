@@ -5,7 +5,7 @@ Starter folder for a new Triventurex edition.
 ## Make a new edition
 
 1. Copy this folder to `game_editions/<your-id>/`.
-2. Edit `config.js`: the name, icon, points name, colours, landmarks and `SPACE_INFO`. Each option is explained in the file.
+2. Edit `config.js`: the name, icon, points name, colours, landmarks and `SPACE_INFO` (optionally your own names for the end-screen `AWARDS`). Each option is explained in the file.
 3. Edit `questions.csv`, `deeds.csv` and `actions.csv` (columns are described below). A spreadsheet app works fine. Save as CSV.
 4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js` / `actions.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
 5. Add your edition to `game_editions/editions.js`.
@@ -20,12 +20,14 @@ Starter folder for a new Triventurex edition.
 |---|---|
 | `id` | Unique whole number. **Never reuse or renumber**: "already asked" tracking is stored by id. A new question gets the next unused number. |
 | `question` | The question text |
-| `type` | `multi` (multiple choice) or `open` (spoken answer) |
+| `type` | `multi` (multiple choice — in a network game tapped and scored on the phone) or `open` (spoken answer, judged by the GM) |
 | `answer` | `multi`: the number of the correct option (1 = `opt_a` … 4 = `opt_d`). `open`: the answer text. |
 | `opt_a` … `opt_d` | Options for `multi` (at least 2). Leave empty for `open`. |
 | `difficulty` | `easy` or `hard` |
-| `category`, `subcategory`, `topic` | The 3-level filter in Game Settings. If you use topics, give every question one. |
+| `category`, `subcategory`, `topic` | The 3-level topic filter (⚙️ Rules → Topics) and the tree in the 📚 Questions tab. If you use topics, give every question one. |
 | `note` | Optional, shown to the GM after the answer is revealed |
+
+Found a wrong or unclear question while playing? Use 🚩 on the question card or the 📚 Questions tab to mark it, then **📋 Copy marked list** to fix the CSV.
 
 ## deeds.csv
 

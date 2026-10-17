@@ -38,7 +38,10 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `test/csv.test.js` — CSV parser + every edition's content (CSV must match the generated JS; valid answers/effects)
 - `test/board.test.js` — property test: random boards for every template of every edition must keep all placement rules, and every landmark tile label must match where the player actually goes (raise `BOARDS_PER_TEMPLATE` locally to hunt rare cases)
 - `test/action-cards.test.js` — drawing/showing action cards
-- `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js` — pure unit tests
+- `test/ui-rules.test.js` — the space modals follow the game's rules (points, timer, difficulty, answering on the phone)
+- `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
+- `test/html-structure.test.js` — every `<div>` in index.html / player.html is closed and the screens are top-level (a missing `</div>` once hid the board)
+- `test/socket-events.test.js` — every `TX_NET.on('…')` event is in socket-client.js's forward list
 - `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
 - `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
 - Run `npm test` before merging any change (it takes ~3 s)
@@ -54,11 +57,12 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 
 `js/shared/`:
 - `js/shared/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
-- `js/shared/config.js` — engine settings (board, space types, zoom, animation, score, rules)
+- `js/shared/config.js` — engine settings (board, space types, zoom, animation, score, rule presets, awards, presentation)
+- `js/shared/rules.js` — per-game rules model (defaults → preset → changes), tile counts; pure, unit-tested
 - `js/shared/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
 - `js/shared/turn.js` — pure turn logic (next player, snapshots, undo restore, history rows); unit-tested
 - `js/shared/csv.js` — pure CSV parsing for questions/deeds; unit-tested
-- `js/shared/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
+- `js/shared/dice.js` — `renderDie(n, sizeClass)` + `animateDieInto` — CSS dot-die and roll animation (host, phones, TV)
 - `js/shared/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
 - `js/shared/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`) — host + TV display
 - `js/shared/viewport.js` — pan / zoom / fit and the board background — host + TV display
@@ -71,22 +75,30 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/host/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
 - `js/host/turn-flow.js` — the turn pipeline (`_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`), undo, GM controls
 - `js/host/net-host.js` — host side of network play: lobby, `_syncStateToServer`, all socket handlers
-- `js/host/setup.js` — setup screen: local / host / join tabs, player rows, host player row
-- `js/host/badge-picker.js` — one badge modal for setup rows and the host (`openBadgeModal(index | 'host')`)
-- `js/host/category-filter.js` — 3-level question topic tree in Game Settings
+- `js/host/setup.js` — setup screen: player rows, host player row, on this screen / on phones
+- `js/host/setup-flow.js` — setup tabs (`showSetupTab`) and the New game steps ①–④, footer summary
+- `js/host/board-picker.js` — board thumbnails for the chosen length (+ 🎲 Random)
+- `js/host/rules-panel.js` — ⚙️ Rules tab; `gameRules()`
+- `js/host/question-explorer.js` — 📚 Questions tab + 🚩 report on question cards
+- `js/host/board-designer.js` — ✏️ Boards tab (draw / save / play / copy a board)
+- `js/host/presentation.js` — 📺 presentation mode
+- `js/host/badge-picker.js` — one badge modal for setup rows, the host and seats in the lobby / game (`openBadgeModal(index | 'host' | { playerId, where })`)
+- `js/host/category-filter.js` — 3-level question topic tree (Rules tab → Topics)
 - `js/host/edition-loader.js` — `loadEdition`, edition picker, branding (merge + colours via shared/edition.js)
-- `js/host/storage.js` — saved game + remembered preferences (localStorage)
+- `js/host/storage.js` — saved game, remembered preferences, custom boards, marked questions (localStorage)
 - `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 
-Player page + server:
-- `player.html` + `js/player/player.js` — phone screen (join, action box, session management)
-- `server.js` — rooms, dice rolling, host → phone relays (ownership rules at the top)
+Player page, TV page + server:
+- `player.html` + `js/player/player.js` — phone screen (join, action box, answering, session management)
+- `display.html` + `js/display/display.js` — TV display (read-only)
+- `server.js` — rooms, dice rolling, relays host → phones / phone → host / host → TV (ownership rules at the top)
+- `js/vendor/qrcode.js` — qrcode-generator (MIT, Kazuhiko Arase) — third-party, don't edit
 
 Content:
 - `game_editions/editions.js` — edition registry (loaded via `<script>` in index.html)
 - `game_editions/<id>/config.js` — edition config (name, colours, landmarks, finish text, SPACE_INFO, SPACE_DISTRIBUTION)
-- `game_editions/<id>/questions.csv` + `deeds.csv` — edit content here
-- `game_editions/<id>/questions.js` + `deeds.js` — auto-generated from CSV
+- `game_editions/<id>/questions.csv` + `deeds.csv` + `actions.csv` — edit content here
+- `game_editions/<id>/questions.js` + `deeds.js` + `actions.js` — generated from CSV (`npm run build:content`)
 
 ## Content workflow
 Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js / actions.js) → refresh browser.
@@ -119,10 +131,10 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
   - All of this is checked by a randomized test (`test/board.test.js`, ~3,000 boards per run) — keep it green when touching board.js
 - **Landmark deeds**: `move_to_prev_landmark` / `move_to_next_landmark` with `value=N` (N = 1 → nearest). Names resolved at board-gen time and stored as `resolvedLandmark` on each deed. `{landmark}` in deed text is substituted at modal render time.
 - **Variable deed effects**: each card has up to 3 effects in CSV; one chosen at board-gen time via `_pickActiveEffect()`
-- **Exact finish**: `CONFIG.RULES.exactFinish` — player must roll exact number to land on finish; overshooting doesn't move. Toggle in Game Settings (select: on/off). Default: on.
+- **Exact finish**: rule `turns.exactFinish` (default from `CONFIG.RULES.exactFinish`, on) — player must roll exact number to land on finish; overshooting doesn't move. Rules tab → Turn & pace
 - **Question tracking**: per-edition, per-difficulty localStorage keys (`triventurex_asked_<editionId>_<diff>`). Two modes: `session` (remember across games, default) or `game` (reset each game). When all questions in a difficulty are exhausted, auto-recycles. Questions filtered by selected categories.
 - **Topic tree rows**: the checkbox + name (`.tree-check` label) toggle the selection; the rest of a row (count, arrow, empty space) expands/collapses. Each row shows its question count
-- **Question topics (3-level filter)**: questions have `cat > subcat > topic` hierarchy. Game Settings shows a collapsible tree — checking a cat/subcat toggles all children; parent shows indeterminate state when partial. Saved per edition to localStorage as an array of selected topic strings (`triventurex_cats_<editionId>`). `getSelectedTopics()` in game.js returns a Set of topic strings; `_availablePool()` in ui.js filters by `q.topic`. Questions with empty topic always pass through (backwards compat with editions that only have `cat`).
+- **Question topics (3-level filter)**: questions have `cat > subcat > topic` hierarchy. The Rules tab (Topics) shows a collapsible tree — checking a cat/subcat toggles all children; parent shows indeterminate state when partial. Saved per edition to localStorage as an array of selected topic strings (`triventurex_cats_<editionId>`). `getSelectedTopics()` in game.js returns a Set of topic strings; `_availablePool()` in ui.js filters by `q.topic`. Questions with empty topic always pass through (backwards compat with editions that only have `cat`).
 - **Edition-neutral engine**: `player.score`, `addScore()`, `SCORE_VALUES`; editions provide `pointsName`, `finishLabel`, `finishCelebration`, `finishButtonLabel`, `endScreenMessage`
 - **Score values**: every point label and award reads `CONFIG.SCORE_VALUES` / `CONFIG.FINISH_BONUS` — never hardcode numbers in UI text. Editions may override either in their `config.js` (reset on edition switch via `_ENGINE_DEFAULTS`)
 - **Finish bonus**: `_recordFinish(player)` in game.js — called after every movement (roll, deed effect, GM move); idempotent
@@ -174,7 +186,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **#board-viewport never scrolls** (`overflow: clip`): pan/zoom are transforms; a focused input in a card must not shift the board. The legend lives inside it (absolute), so it only shows with the board
 - **TX_NET events**: socket-client.js forwards only the events in its `events` list — a new server → page event must be added there (`test/socket-events.test.js` checks it)
 - **Action cards (C3)**: optional `actions.csv` per edition (`id, text, kind, note`; kinds in `CONFIG.ACTION_KINDS`: act / explain / sound). Drawn without repeats (`_drawActionCard`, tracked like questions under the `actions` key); the drawn card is stored on `state.turn.actionCard` so a resumed turn shows the same card. No actions.csv → physical-deck prompt
-- **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's "Play again" / lobby Cancel — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)
+- **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's end-screen "New game setup" / lobby Back — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)
 - **Host → phone relays** (`turn_result`, `space_card`, `space_card_done`) are accepted from the host socket only
 - **remove_player** on the server only changes membership (+ removed socket leaves the room); it sends no `state_update` — the host's `player_removed` handler syncs the result
 - **Token-based rejoin**: each player gets a `rejoinToken` on join; saved to `triventurex_game_session`; used to re-register the socket on any reconnect (page refresh OR phone screen wake)
@@ -192,32 +204,27 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Manual dice**: `handleManualRoll(n)` on host → `_beginTurn` + `_playRoll(n)` locally; network also sends `manual_roll` so phones see the value (server broadcasts to players only) — no waiting on the server
 
 ## Current state
-- V1 complete + V2 complete
-- 2 editions: Swab Quest (432 questions, 52 deed cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 20 stadium landmarks)
+- Version 2.2.0 (2026-10-17) — see `CHANGELOG.md` for what changed in each release (2.1 = code review & hardening, 2.2 = gameplay & play experience). The work-item IDs in commits and the changelog (B1…, A2…, C3…, T1…, G6…) come from the 2026-10 plan: B = bug, A = architecture, C = content, T = tests, G = gameplay
+- 2 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks)
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
-- Recent improvements (2026-06-01):
-  - Exact finish rule (configurable, default on)
-  - No-repeat question tracking (per-edition, per-difficulty, session or per-game)
-  - Relative landmark deeds (`move_to_prev/next_landmark` with value=N)
-  - Landmark names shown on board tiles and in deed cards
-  - Constraint-aware board generation (no move_back near start, no move_forward near finish)
-  - SPACE_DISTRIBUTION configurable per edition and per game length
-  - 3-level question topic filter in Game Settings (cat > subcat > topic, collapsible tree)
-  - Renamed "theme" → "edition" throughout (files, variables, localStorage keys)
-  - `themes/` folder renamed to `game_editions/`; `theme.js` → `config.js` in each edition
-  - Host player setup separated from local player list
-- Recent improvements (2026-06-03):
-  - Landmark `description` field: shown in landing modal + clickable info popup (`showLandmarkInfo` in ui.js)
-  - Swab Quest expanded to 20 landmarks (mosques & Islamic sites worldwide)
-  - Football Quest expanded to 20 landmarks (iconic stadiums & venues)
-  - `path-designer.html` moved to `tools/` subfolder (dev tool)
-  - Design document rewritten as `TRIVENTUREX-DESIGN.md`
+- Three pages: host (`index.html`), phones (`player.html`), TV (`display.html`)
+- ~310 tests (`npm test`)
+
+## Workflow (how Mojeeb works on this project)
+- `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)
+- Each branch: change → `npm test` → check in a browser (offline AND network with ≥1 phone when it touches play) → Mojeeb tests → merge `--ff-only` to `main`
+- Push to GitHub only when Mojeeb asks
+- After pulling server changes: restart `node server.js` and reload host + phone pages
+- Update this file's Architecture sections when an invariant changes
 
 ## Effect types
 `score_add`, `score_remove`, `move_forward`, `move_back`, `move_to_prev_landmark`, `move_to_next_landmark`, `skip_turn`, `extra_turn`, `all_players_gain`, `all_players_lose`, `protection`
 
 Note: `move_to_landmark` (named, absolute) is still handled in ui.js for backwards compatibility but no longer used in any edition's deed CSV.
 
-## Next work
+## Next work / ideas
 - Sound effects
-- V3: more editions
+- *Steal*: others answer when the active player gets a phone question wrong
+- Content review: draft action cards (both editions); Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
+- Team mode; more editions; Football Quest subcategory/topic structure; online multiplayer
+- Decided against (2026-10): endgame pacing rules, streaks / wagers / final round
