@@ -2066,3 +2066,26 @@ body {
 .tree-check .cat-name, .tree-check .subcat-name { flex: none; }
 .tree-count { margin-left: auto; font-size: .74rem; color: var(--text-muted); padding-right: 6px; }
 .tree-toggle { width: 22px; text-align: center; color: var(--text-muted); font-size: .9rem; }
+
+/* ── Lobby: join by QR code (G11) ─────────────────────────────── */
+.lobby-container { max-width: 620px; }
+.lobby-join {
+  display: flex; align-items: center; gap: 22px; text-align: left;
+  background: var(--green); color: #fff; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px;
+}
+.lobby-qr {
+  flex: none; width: 190px; height: 190px; padding: 8px;
+  background: #fff; border-radius: 10px;              /* white quiet zone: phones need it to scan */
+}
+.lobby-qr svg, .join-modal svg { width: 100%; height: 100%; display: block; }
+.lobby-join-text { flex: 1; min-width: 0; }
+.lobby-join .lobby-label { color: rgba(255,255,255,.85); }
+.lobby-or { margin: 6px 0 12px; font-size: .9rem; }
+.lobby-or strong { word-break: break-all; }   /* only the address may wrap anywhere */
+.lobby-join .lobby-game-id-value { color: #fff; }
+.lobby-join .lobby-hint { color: rgba(255,255,255,.8); margin-top: 8px; word-break: break-all; }
+.join-modal { text-align: center; }
+.join-modal svg { width: 220px; height: 220px; margin: 0 auto 10px; padding: 8px; background: #fff; border-radius: 10px; }
+@media (max-width: 560px) {
+  .lobby-join { flex-direction: column; text-align: center; }
+}

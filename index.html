@@ -182,10 +182,16 @@
   <div id="lobby-screen" class="screen">
     <div class="lobby-container">
       <h1 id="lobby-title">🎮 Hosting Game</h1>
-      <div class="lobby-game-id-box">
-        <div class="lobby-label">Game ID</div>
-        <div id="lobby-game-id" class="lobby-game-id-value">—</div>
-        <div class="lobby-hint">Players: open player.html and enter this ID</div>
+      <!-- How phones join (G11): scan, or type the address + Game ID -->
+      <div class="lobby-join">
+        <div id="lobby-qr" class="lobby-qr" aria-label="QR code to join"></div>
+        <div class="lobby-join-text">
+          <div class="lobby-label">📱 Scan with a phone camera to join</div>
+          <p class="lobby-or">or open <strong id="lobby-join-url">—</strong> and enter</p>
+          <div class="lobby-label">Game ID</div>
+          <div id="lobby-game-id" class="lobby-game-id-value">—</div>
+          <div id="lobby-other-urls" class="lobby-hint"></div>
+        </div>
       </div>
       <div id="lobby-players" class="lobby-players-list"></div>
       <div id="lobby-status" class="lobby-status">Waiting for players to join...</div>
@@ -349,6 +355,8 @@
             <div id="gm-network-section" class="hidden">
               <h4>Network Players</h4>
               <div id="gm-network-list"></div>
+              <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
+                      onclick="showJoinCode()">📱 Show join code</button>
             </div>
 
           </div><!-- /gm-controls -->
@@ -393,6 +401,7 @@
   <!-- Engine scripts (editions are loaded dynamically by edition-loader.js).
        Plain scripts, not ES modules, so index.html also works opened from disk.
        Top-level declarations are shared between these files; game.js is last. -->
+  <script src="js/vendor/qrcode.js"></script>  <!-- QR codes for joining (MIT, Kazuhiko Arase) -->
   <script src="js/shared/utils.js"></script>
   <script src="js/shared/config.js"></script>
   <script src="js/host/board.js"></script>

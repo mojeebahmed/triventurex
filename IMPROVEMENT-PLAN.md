@@ -182,7 +182,7 @@ _Brainstormed 2026-10-17 with Mojeeb. Order: 5a → 5b → 5c. Every setting has
 
 ### 5c. Play experience
 - [ ] **G3 — Answer on the phone.** Multiple choice on the active player's phone, scored automatically, answer hidden on the host screen until answered; optional "steal" for others. Reuses the private-card channel from C3.
-- [ ] **G11 — QR code + join address in the host lobby**, so phones join without typing an IP address (vanilla JS → a small QR library copied into the project).
+- [ ] **G11 — QR code + join address in the host lobby** _Done as: server sends LAN join URLs; lobby QR (vendored qrcode-generator, MIT) + address + Game ID; GM 'Show join code' mid-game; phone `?game=` prefill (decoded + joined in headless Chrome)._, so phones join without typing an IP address (vanilla JS → a small QR library copied into the project).
 - [ ] **G15 — Presentation mode** (works offline): one button → full screen, GM panel hidden, large board/scoreboard; a small floating ⚙️ opens GM controls. For playing on a TV mirrored from the laptop.
 - [ ] **G16 — Second-screen display** (`/display`, needs the server): the TV shows board, tokens, scoreboard, dice and the public part of cards; the laptop keeps the host controls. Secrets stay hidden (action cards; question answers until revealed). Needs the host to send the board to the server at game start.
 - [ ] **G17 — Phone-less players in network games.** The host can add players without a phone (rolled for and resolved on the host, action cards via the host-screen toggle). "Play without phones" can then run through the server with zero phones, so G16 works for every game; the current offline mode stays as the simple fallback for opening index.html from disk.

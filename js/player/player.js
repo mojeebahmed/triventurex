@@ -609,8 +609,19 @@ function leaveAndReset() {
 
   _refreshJoinBadge();
 
-  // Check for saved game session (rejoin after refresh)
-  const session = _loadSession();
+  // Opened from the host's QR code / link: player?game=4823 fills in the Game ID (G11)
+  const linkedGame = new URLSearchParams(location.search).get('game')?.replace(/\D/g, '').slice(0, 4) || '';
+  if (linkedGame) {
+    document.getElementById('input-game-id').value = linkedGame;
+    // Name already known → just tap Join; otherwise type the name first
+    const nameEl = document.getElementById('input-name');
+    setTimeout(() => (nameEl.value ? document.querySelector('#join-view .btn-primary') : nameEl)?.focus(), 0);
+  }
+
+  // Check for saved game session (rejoin after refresh). A link to a
+  // DIFFERENT game wins over an old session for another game.
+  let session = _loadSession();
+  if (session && linkedGame && session.gameId !== linkedGame) { _clearSession(); session = null; }
   if (session) {
     _pendingRejoin = session;
     _myId   = session.playerId;

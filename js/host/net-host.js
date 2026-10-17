@@ -44,6 +44,57 @@ function _hostNetworkGame() {
   });
 }
 
+// ── Joining by QR code (G11) ────────────────────────────────────────────────
+
+let _joinUrls = [];   // addresses phones can open, best first
+
+/**
+ * Join addresses, best first. If the host page itself was opened on a
+ * network address, phones can use the same one; otherwise use the server's
+ * list (the host page on localhost can't see the computer's network address).
+ */
+function _pickJoinUrls(gameId, serverUrls) {
+  const local = ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
+  const own = local ? [] : [`${location.origin}/player?game=${gameId}`];
+  const all = [...own, ...serverUrls].filter((u, i, a) => a.indexOf(u) === i);
+  return all.length ? all : [`${location.origin}/player?game=${gameId}`];
+}
+
+/** "http://192.168.1.5:3000/player?game=4823" → "192.168.1.5:3000/player" */
+const _shortUrl = u => u.replace(/^https?:\/\//, '').replace(/\?.*$/, '');
+
+/** QR code (SVG) for a URL — js/vendor/qrcode.js. */
+function _qrSvg(url) {
+  const qr = qrcode(0, 'M');   // 0 = smallest version that fits
+  qr.addData(url);
+  qr.make();
+  return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+}
+
+/** Lobby: QR, address and Game ID. */
+function _renderJoinCode() {
+  const url = _joinUrls[0];
+  document.getElementById('lobby-qr').innerHTML = _qrSvg(url);
+  document.getElementById('lobby-join-url').textContent = _shortUrl(url);
+  document.getElementById('lobby-game-id').textContent = _networkGameId;
+  const others = _joinUrls.slice(1).map(_shortUrl);
+  document.getElementById('lobby-other-urls').textContent =
+    others.length ? `Not working? Try: ${others.join('  ·  ')}` : '';
+}
+
+/** During the game (GM panel): the same join code, for latecomers. */
+function showJoinCode() {
+  if (!_networkGameId) return;
+  if (!_joinUrls.length) _joinUrls = _pickJoinUrls(_networkGameId, []);
+  showModal({
+    icon: '📱', title: 'Join this game',
+    content: `<div class="join-modal">${_qrSvg(_joinUrls[0])}
+      <p>Scan with a phone camera, or open <strong>${esc(_shortUrl(_joinUrls[0]))}</strong>
+         and enter Game ID <strong>${esc(_networkGameId)}</strong></p></div>`,
+    actions: [{ label: 'Close', class: 'btn btn-primary', callback: () => {} }],
+  });
+}
+
 function startNetworkGame() {
   if (!_pendingNetworkSetup || !_networkGameId) return;
   TX_NET.startGame(_networkGameId);
@@ -175,11 +226,12 @@ function _initSocketHandlers() {
     console.log('[game] Disconnected from server');
   });
 
-  TX_NET.on('hosted', ({ gameId }) => {
+  TX_NET.on('hosted', ({ gameId, joinUrls = [] }) => {
     _networkGameId = gameId;
     TX_NET.setGameId(gameId);
     try { localStorage.setItem('tx_net_game', _networkGameId); } catch {}
-    document.getElementById('lobby-game-id').textContent      = gameId;
+    _joinUrls = _pickJoinUrls(gameId, joinUrls);
+    _renderJoinCode();
     document.getElementById('net-game-id-label').textContent  = gameId;
     _renderLobbyPlayers(_lobbyPlayers);
     showScreen('lobby-screen');

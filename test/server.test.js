@@ -102,6 +102,16 @@ describe('hosting and joining', () => {
     assert.match(gameId, /^\d{4}$/);
   });
 
+  it('tells the host the addresses phones can join on (QR code, G11)', async () => {
+    const host = await connect();
+    host.emit('host_game', { editionId: 't', isGMOnly: true });
+    const { gameId, joinUrls } = await once(host, 'hosted');
+    assert.ok(Array.isArray(joinUrls));
+    for (const u of joinUrls) {
+      assert.match(u, new RegExp(`^http://\\d+\\.\\d+\\.\\d+\\.\\d+:${server.address().port}/player\\?game=${gameId}$`));
+    }
+  });
+
   it('rejects joining an unknown game', async () => {
     const s = await connect();
     s.emit('join_game', { gameId: '0000', playerName: 'X' });

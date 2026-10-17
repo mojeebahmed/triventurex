@@ -134,6 +134,19 @@ function closeRoom(gameId, reason) {
   console.log(`[room]       closed gameId=${gameId} (${reason})`);
 }
 
+/** Every network (non-loopback IPv4) address of this computer — phones use one of these. */
+function getLanAddresses() {
+  return Object.values(os.networkInterfaces()).flat()
+    .filter(i => i && i.family === 'IPv4' && !i.internal)
+    .map(i => i.address);
+}
+
+/** Addresses phones can open to join a game (the host page can't work these out itself). */
+function joinUrls(gameId) {
+  const port = server.address()?.port ?? PORT;
+  return getLanAddresses().map(ip => `http://${ip}:${port}/player?game=${gameId}`);
+}
+
 /**
  * Get the local network IP so players can connect.
  */
@@ -195,7 +208,7 @@ io.on('connection', (socket) => {
 
     rooms.set(gameId, room);
     socket.join(gameId);
-    socket.emit('hosted', { gameId });
+    socket.emit('hosted', { gameId, joinUrls: joinUrls(gameId) });
     console.log(`[host_game]  room created gameId=${gameId} players=${players.length}`);
   });
 
