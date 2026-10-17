@@ -1,0 +1,57 @@
+type,text,effect,value,effect_2,value_2,effect_3,value_3,mood
+good,"You welcomed guests and shared your food, just like Hadhrat Ibrahim (as).",score_add,2,all_players_gain,1,,,social
+good,"You stayed patient when you were ill, like Hadhrat Ayyub (as).",protection,1,score_add,2,,,reflection
+good,"You forgave your brother, just as Hadhrat Yusuf (as) forgave his brothers.",score_add,3,move_forward,2,,,reflection
+good,"Someone was unkind to you, and you prayed for them, like the Holy Prophet (sa) did in Ta'if.",score_add,3,protection,1,,,reflection
+good,"You kept your promise, even though it was hard. People call you trustworthy — like Al-Amin!",score_add,2,move_forward,2,,,challenge
+good,You said Bismillah before eating and Alhamdulillah after.,score_add,1,move_forward,2,extra_turn,1,blessing
+good,"You helped your parents without being asked, like Hadhrat Yahya (as), who was kind to his parents.",score_add,2,move_forward,2,,,social
+good,You thanked Allah for a small blessing today.,score_add,2,protection,1,,,blessing
+good,"You never gave up calling people to good, like Hadhrat Nuh (as).",move_forward,3,score_add,1,,,challenge
+good,"You were fair in sharing the sweets, like Hadhrat Shu'ayb (as) taught about fair weighing.",all_players_gain,1,score_add,1,,,social
+good,"You said sorry quickly when you made a mistake, like Hadhrat Adam (as) did.",protection,1,move_forward,2,,,reflection
+good,You learned a new du'a by heart.,score_add,3,extra_turn,1,,,challenge
+good,"You helped carry the bricks to build the mosque, like the companions at Masjid Quba.",move_forward,3,all_players_gain,1,,,social
+good,Your caravan reaches {landmark} — what a blessed journey!,move_to_next_landmark,1,score_add,1,,,blessing
+good,You set off early on your journey and arrive at {landmark}.,move_to_next_landmark,1,score_add,2,,,blessing
+good,You told the truth even when it was difficult.,score_add,3,protection,1,,,challenge
+good,You gave water to a thirsty animal. Kindness to animals is rewarded!,score_add,2,move_forward,1,extra_turn,1,reflection
+good,You visited a friend who was sick.,score_add,2,all_players_gain,1,,,social
+good,"You trusted Allah when you were worried, like the mother of Hadhrat Musa (as).",protection,1,move_forward,2,,,blessing
+good,You read a story of the prophets to your little brother or sister.,score_add,2,move_forward,2,,,social
+good,You smiled at everyone you met. A smile is a charity!,all_players_gain,1,move_forward,1,,,social
+good,"You prayed on time, even though you were busy playing.",score_add,3,move_forward,1,,,challenge
+good,You gave away a toy you loved to someone who had none.,score_add,2,protection,1,all_players_gain,1,social
+good,"You were brave and stood up for what is right, like Hadhrat Ibrahim (as) in front of the idol-worshippers.",move_forward,3,extra_turn,1,,,challenge
+good,You kept your room tidy without being asked. Cleanliness is half of faith!,score_add,1,extra_turn,1,move_forward,2,funny
+good,You made peace between two friends who were arguing.,all_players_gain,2,score_add,1,,,social
+good,You shared your umbrella in the rain.,move_forward,2,score_add,1,,,funny
+good,"You remembered Allah all day, like Hadhrat Zakariyya (as) did in his prayers.",score_add,2,extra_turn,1,,,blessing
+bad,You told a fib. The Holy Prophet (sa) was called Al-Amin — the trustworthy.,score_remove,2,move_back,2,,,reflection
+bad,You gave up too quickly. Hadhrat Nuh (as) never gave up!,move_back,3,score_remove,1,,,reflection
+bad,"You got angry and walked away, like Hadhrat Yunus (as) left too soon. Come back and say sorry.",skip_turn,1,move_back,1,,,reflection
+bad,You wasted water when making wudu.,score_remove,2,move_back,1,,,reflection
+bad,You forgot to say Bismillah before eating.,score_remove,1,move_back,2,,,funny
+bad,You were rude to a guest. Hadhrat Ibrahim (as) always honoured his guests.,score_remove,2,move_back,2,,,reflection
+bad,You made fun of someone. Every person is precious to Allah.,score_remove,3,move_back,1,,,reflection
+bad,You took more than your fair share of the sweets. Hadhrat Shu'ayb (as) taught fair weighing!,score_remove,2,all_players_lose,1,,,reflection
+bad,You were late for prayer because of a video game. Back to {landmark}!,move_to_prev_landmark,1,score_remove,1,,,reflection
+bad,You complained instead of being patient. Remember Hadhrat Ayyub (as)!,score_remove,2,skip_turn,1,,,reflection
+bad,You forgot your promise to help. Go back and keep it!,move_back,3,score_remove,1,,,reflection
+bad,You left litter in the park.,score_remove,2,move_back,1,,,reflection
+bad,You argued with your brother over the last piece of cake.,all_players_lose,1,move_back,2,,,funny
+bad,"You were jealous of your friend's new bike, like the brothers of Hadhrat Yusuf (as) were jealous.",score_remove,2,move_back,2,skip_turn,1,reflection
+bad,Your caravan took the wrong road through the desert. Back to {landmark}.,move_to_prev_landmark,1,score_remove,1,,,funny
+bad,You talked during the Friday sermon.,score_remove,2,move_back,1,,,reflection
+bad,You didn't listen to your parents.,skip_turn,1,score_remove,1,,,reflection
+bad,You overslept and missed Fajr prayer.,move_back,2,score_remove,1,,,funny
+bad,You boasted about how good you are. Humble people are loved by Allah.,score_remove,3,move_back,1,,,reflection
+bad,You were unkind to an animal. The Holy Prophet (sa) taught kindness to every creature.,score_remove,2,move_back,2,,,reflection
+bad,You lost your way in the desert because you didn't follow the guide. Back to {landmark}!,move_to_prev_landmark,2,score_remove,1,,,challenge
+bad,You took something without asking.,score_remove,3,move_back,2,,,reflection
+bad,You ate too many dates at Iftar and got a tummy ache!,skip_turn,1,move_back,1,,,funny
+bad,A sandstorm! The whole caravan has to wait.,all_players_lose,1,skip_turn,1,,,challenge
+bad,You said something unkind behind a friend's back.,score_remove,2,move_back,2,,,reflection
+bad,You rushed your prayer to get back to playing.,move_back,3,score_remove,1,,,reflection
+bad,Your camel wandered off while you were napping. Back to {landmark}!,move_to_prev_landmark,1,score_remove,1,skip_turn,1,funny
+bad,You forgot to thank the person who helped you.,score_remove,1,move_back,2,,,reflection
