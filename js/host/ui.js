@@ -6,6 +6,7 @@
 // ── Screen Management ─────────────────────────────────────────────────────────
 
 function showScreen(screenId) {
+  if (screenId === 'setup-screen' && isPresenting()) exitPresentation();   // back to setup = back to the laptop
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 }

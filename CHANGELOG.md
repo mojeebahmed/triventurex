@@ -6,6 +6,17 @@ IDs in brackets (B1, A2, C3, …) refer to items in [`IMPROVEMENT-PLAN.md`](IMPR
 
 ## [Unreleased]
 
+### Added
+- Guided setup screen with *New game* and *Rules* tabs (G6); 🔁 Rematch and "New game setup" keep your choices (G7); board picker with thumbnails (G8).
+- The board is fitted to the path, not the empty grid (G9); phones show the same rolling dice animation as the host (G10).
+- Join by QR code (G11); per-game rules with presets and "Copy as preset" (G12).
+- Phones show *"You're next"* and buzz on your turn (G18); leave the lobby from the phone (G21).
+- 📺 Presentation mode for playing on a TV: full screen, big board and scoreboard, GM tools behind ⚙️ (G15).
+
+### Fixed
+- Refreshing a phone that was first opened from an earlier game's QR code showed the join page and joined as a new player. It now rejoins the same seat.
+- The host scoreboard now shows ⚠️ next to a player whose phone is disconnected.
+
 ## [2.1.0] — 2026-10-17
 
 A code review and hardening release. It fixes 18 bugs, restructures the host code, adds content tooling and digital action cards, and adds about 200 automated tests. Saved games and phone sessions from 2.0 keep working.

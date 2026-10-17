@@ -102,6 +102,23 @@ const CONFIG = {
     diceOverlayMs: 900,   // ms the large dice result is shown on the board before token moves
   },
 
+  /**
+   * PRESENTATION — 📺 presentation mode (G15): full screen for a TV mirrored
+   * from the laptop. The GM panel, game log and manual dice are tucked behind ⚙️.
+   *
+   * key          – keyboard shortcut that turns it on/off (Esc also leaves)
+   * scale        – how much bigger the sidebar and space cards are drawn
+   * maxFitScale  – how far the board may be enlarged to fill the screen
+   *                (normal mode never draws spaces bigger than 100%)
+   * cursorHideMs – the mouse pointer hides after this long without moving (0 = never)
+   */
+  PRESENTATION: {
+    key:          'p',
+    scale:        1.35,
+    maxFitScale:  1.8,
+    cursorHideMs: 3000,
+  },
+
   // Action card kinds (actions.csv `kind` column). Shown on the host modal and
   // sent to the performer's phone with the card.
   ACTION_KINDS: {

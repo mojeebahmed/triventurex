@@ -170,6 +170,7 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `ZOOM` | Max zoom-in (200%), zoom-out factor |
 | `TIMER` | Default timer duration per space type |
 | `ANIMATION` | Token hop speed, flyout duration, dice overlay |
+| `PRESENTATION` | 📺 presentation mode: shortcut key, how much bigger, board fill limit, pointer hide delay |
 | `PATH_TEMPLATES` | Board path shapes per game length |
 
 Editions can override `SPACE_DISTRIBUTION` in their own `config.js`, either as a flat object (same for all game lengths) or keyed by `short`/`medium`/`long`. They can also override `SCORE_VALUES` and `FINISH_BONUS`.
@@ -291,6 +292,8 @@ id,text,kind,note
 4. The game ends when all players reach the finish. **Winner = most points.** Then **🔁 Rematch** (same players and settings, new board) or **New game setup**.
 
 **GM controls** (⚙️ on the game screen): adjust score, move a player, skip their next turn, **sit out / rejoin** (skipped in turn order but keeps their place and score), and remove a network player. Score/move/skip changes appear in the move history and can be undone.
+
+**📺 Presentation mode** (for a TV mirrored from the laptop): click 📺 next to the zoom buttons, or press **P**. The game goes full screen, the board fills the screen, and the current player, dice, timer and scoreboard are drawn bigger. GM controls, the game log, manual dice and the timer buttons are behind the small ⚙️ in the top corner. **Esc** (or ✕) goes back. Works offline too.
 
 **Undo:** while a space card is open, Undo cancels just that turn (back to before the roll). Between turns, it undoes the last turn or GM change.
 

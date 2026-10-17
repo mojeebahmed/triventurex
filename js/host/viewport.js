@@ -144,7 +144,7 @@ function _updateZoomLabel() {
 }
 
 function _zoomAt(cx, cy, factor) {
-  const ns = Math.min(SCALE_MAX, Math.max(SCALE_MIN, view.scale * factor));
+  const ns = Math.min(Math.max(SCALE_MAX, SCALE_MIN), Math.max(SCALE_MIN, view.scale * factor));
   const r  = ns / view.scale;
   view.x = cx - r * (cx - view.x);
   view.y = cy - r * (cy - view.y);
@@ -169,7 +169,7 @@ function fitBoardInView() {
   const fitScale = Math.min(
     (vp.offsetWidth  - pad * 2) / bW,
     (vp.offsetHeight - pad * 2) / bH,
-    1.0
+    isPresenting() ? (CONFIG.PRESENTATION?.maxFitScale ?? 1.0) : 1.0   // TV: let the board fill the screen
   );
 
   view.scale = fitScale;

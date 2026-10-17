@@ -258,6 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   _applyBranding();
   initSetupScreen();
   initPanZoom();
+  initPresentation();
   _initManualDiceFaces();
   checkAndShowResume();
   showScreen('setup-screen');

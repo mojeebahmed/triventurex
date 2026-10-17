@@ -240,6 +240,15 @@
           <span   id="zoom-label">100%</span>
           <button onclick="zoomReset()" title="Fit to screen">⌂</button>
           <button onclick="zoomIn()"    title="Zoom in">+</button>
+          <button onclick="togglePresentation()" class="zoom-present-btn"
+                  title="Presentation mode — full screen for a TV (P)">📺</button>
+        </div>
+
+        <!-- Presentation mode (G15): the only controls left on the TV -->
+        <div id="present-controls">
+          <button type="button" id="present-gm-btn" onclick="togglePresentGM()"
+                  title="GM controls, game log, manual dice" aria-pressed="false">⚙️</button>
+          <button type="button" onclick="exitPresentation()" title="Leave presentation mode (Esc)">✕</button>
         </div>
 
         <!-- Modal — absolute inside board-viewport so sidebar stays accessible -->
@@ -421,6 +430,7 @@
   <script src="js/host/setup-flow.js"></script>
   <script src="js/host/rules-panel.js"></script>
   <script src="js/host/viewport.js"></script>
+  <script src="js/host/presentation.js"></script>
   <script src="js/host/net-host.js"></script>
   <script src="js/host/turn-flow.js"></script>
   <script src="js/host/game.js"></script>
