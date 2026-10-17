@@ -127,9 +127,10 @@ function _renderLobbyPlayers(players) {
     ? '<p class="lobby-empty">No players yet...</p>'
     : players.map(p => `
         <div class="lobby-player-row">
-          <div class="score-token" style="background:${esc(p.color)}">
-            <div class="token-emoji">${esc(p.token)}</div>
-          </div>
+          ${p.noPhone
+            ? `<button type="button" class="score-token badge-btn" style="background:${esc(p.color)}" title="Change badge"
+                       onclick="openBadgeModal({ playerId: ${p.id}, where: 'lobby' })"><div class="token-emoji">${esc(p.token)}</div></button>`
+            : `<div class="score-token" style="background:${esc(p.color)}"><div class="token-emoji">${esc(p.token)}</div></div>`}
           <span>${esc(p.name)}</span>
           ${p.noPhone ? `<small class="no-phone-tag">🖥 no phone</small>
             <button type="button" class="lobby-remove" title="Remove" onclick="removeLobbyPlayer(${p.id})">✕</button>` : ''}
@@ -176,9 +177,10 @@ function _renderGMNetworkPlayers(serverPlayers) {
   if (!el) return;
   el.innerHTML = serverPlayers.map(p => `
     <div class="gm-net-player">
-      <div class="score-token" style="background:${esc(p.color)}">
+      <button type="button" class="score-token badge-btn" style="background:${esc(p.color)}" title="Change badge"
+              onclick="openBadgeModal({ playerId: ${p.id}, where: 'game' })">
         <div class="token-emoji">${esc(p.token)}</div>
-      </div>
+      </button>
       <span class="gm-net-name">${esc(p.name)}${p.noPhone ? ' <small class="no-phone-tag">🖥 no phone</small>' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
       <button class="btn btn-small btn-danger" onclick="gmRemoveNetworkPlayer(${p.id})">✕</button>
     </div>`).join('');
@@ -344,6 +346,11 @@ function _initSocketHandlers() {
       saveGame();
       _syncStateToServer();
     }
+  });
+
+  // Lobby: a badge changed (G17) — the server sends the new list
+  TX_NET.on('player_updated', ({ players }) => {
+    if (!_isNetworkGame && players) _updateLobby(players);
   });
 
   TX_NET.on('game_started', ({ players }) => {

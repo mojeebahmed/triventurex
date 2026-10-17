@@ -4,7 +4,8 @@
  * One implementation for both — the "target" decides where the choice is stored.
  */
 
-// What the open modal is editing: a local setup-row index (number) or 'host'
+// What the open modal is editing: a local setup-row index (number), 'host',
+// or a seat in a network lobby / running game: { playerId, where: 'lobby' | 'game' }
 let _badgeModalTarget = null;
 
 /**
@@ -16,6 +17,17 @@ let _badgeModalTarget = null;
  *   setupEl() → the badge element on the setup screen
  */
 function _badgeTarget() {
+  if (typeof _badgeModalTarget === 'object') {
+    const { playerId, where } = _badgeModalTarget;
+    const find = () => (where === 'game' ? state.players : _lobbyPlayers).find(p => p.id === playerId) || {};
+    return {
+      badge:   find,
+      set:     patch => _setSeatBadge(playerId, where, patch),
+      typed:   () => find().name || '',
+      label:   () => find().name || 'Player',
+      setupEl: () => null,
+    };
+  }
   if (_badgeModalTarget === 'host') {
     const typed = () => document.getElementById('host-player-name')?.value?.trim() || '';
     return {
@@ -37,7 +49,7 @@ function _badgeTarget() {
   };
 }
 
-/** Open the picker for a local setup row (index) or the host player ('host'). */
+/** Open the picker for a local setup row (index), the host player ('host') or a seat ({ playerId, where }). */
 function openBadgeModal(target) {
   _badgeModalTarget = target;
   const t = _badgeTarget();
@@ -88,6 +100,36 @@ function _renderBadgePreview() {
   preview.innerHTML = `
     <div class="token-emoji">${esc(p.token)}</div>
     <div class="token-initial">${esc(t.typed().slice(0, 2).toUpperCase() || '?')}</div>`;
+}
+
+/** GM panel: change the badge of the player picked in the GM player list (any game). */
+function gmChangeBadge() {
+  const p = getGMSelectedPlayer();
+  if (p) openBadgeModal({ playerId: p.id, where: 'game' });
+}
+
+/**
+ * Store a badge change for a seat. In a game the host owns the players: change
+ * them, redraw, save and sync (sync_state carries token + colour to the phones).
+ * In the network lobby there's no game yet — the server keeps the list.
+ */
+function _setSeatBadge(playerId, where, patch) {
+  if (where === 'game') {
+    const p = state.players.find(pl => pl.id === playerId);
+    if (!p) return;
+    Object.assign(p, patch);
+    updateBoardTokens(state.players);
+    updateScoreboard(state.players);
+    refreshUI();
+    if (_isNetworkGame) _renderGMNetworkPlayers(state.players);
+    saveGame();
+    _syncStateToServer();
+    return;
+  }
+  const p = _lobbyPlayers.find(pl => pl.id === playerId);
+  if (p) Object.assign(p, patch);
+  _renderLobbyPlayers(_lobbyPlayers);
+  if (_networkGameId) TX_NET.updatePlayer(_networkGameId, playerId, patch);
 }
 
 function selectBadgeToken(token) {

@@ -49,7 +49,9 @@ function restoreFromSnapshot(livePlayers, liveIndex, snapshot) {
   const snapCurrentId = snapshot.players[snapshot.currentPlayerIndex]?.id;
   const players = livePlayers.map(p => {
     const sp = snapById.get(p.id);
-    return sp ? { ...sp, inactive: p.inactive, disconnected: p.disconnected } : { ...p };
+    // Who the player is (badge, phone) isn't game progress — undo keeps it live
+    return sp ? { ...sp, inactive: p.inactive, disconnected: p.disconnected,
+                  token: p.token, color: p.color, noPhone: p.noPhone } : { ...p };
   });
   const idx = players.findIndex(p => p.id === snapCurrentId);
   return {

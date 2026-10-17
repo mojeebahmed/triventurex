@@ -288,6 +288,17 @@ io.on('connection', (socket) => {
     console.log(`[add_local]  ${player.name} (no phone) added to gameId=${gameId}`);
   });
 
+  // ── update_player — host changes a seat's badge in the lobby (G17) ─────────
+  // (In a running game the host's sync_state carries token + colour instead.)
+  socket.on('update_player', ({ gameId, playerId, profile = {} }) => {
+    const room = rooms.get(gameId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    const p = room.players.find(pl => pl.id === playerId);
+    if (!p) return;
+    Object.assign(p, cleanProfile({ name: p.name, token: profile.token ?? p.token, color: profile.color ?? p.color }));
+    io.to(gameId).emit('player_updated', { players: publicPlayers(room.players) });
+  });
+
   // ── start_game ─────────────────────────────────────────────────────────────
   socket.on('start_game', ({ gameId }) => {
     console.log(`[start_game] socket=${socket.id} gameId=${gameId}`);

@@ -523,6 +523,26 @@ describe('players without a phone (G17)', () => {
     assert.deepEqual((await removed).players.map(p => p.name), ['P0']);
   });
 
+  it('the host changes a badge in the lobby; everyone gets the new list', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 1, start: false });
+    const atPhone = once(players[0].socket, 'player_updated');
+    host.emit('update_player', { gameId, playerId: players[0].id, profile: { token: '🦁', color: '#ABCDEF', name: 'Hacked' } });
+    const { players: list } = await atPhone;
+    assert.equal(list[0].token, '🦁');
+    assert.equal(list[0].color, '#ABCDEF');
+    assert.equal(room.players[0].name, 'P0', 'only the badge changes');
+  });
+
+  it('only the host can change a badge; colours must be hex', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 2, start: false });
+    players[0].socket.emit('update_player', { gameId, playerId: players[1].id, profile: { token: 'X' } });
+    await settle();
+    assert.notEqual(room.players[1].token, 'X');
+    host.emit('update_player', { gameId, playerId: players[1].id, profile: { color: 'red;background:url(x)' } });
+    await settle();
+    assert.match(room.players[1].color, /^#[0-9a-f]+$/i);
+  });
+
   it("a seat without a token can't be taken over by a phone", async () => {
     const { host, gameId, room } = await setupGame({ phones: 1, hostPlays: true });
     const added = joinedNamed(host, 'Grandma');

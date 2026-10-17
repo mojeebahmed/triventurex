@@ -344,7 +344,10 @@
           <button id="gm-toggle" class="btn btn-secondary btn-small">⚙️ GM Controls</button>
           <div id="gm-controls" class="hidden">
             <h4>Player</h4>
-            <select id="gm-player-select"></select>
+            <div class="gm-player-row">
+              <select id="gm-player-select"></select>
+              <button type="button" class="btn btn-secondary btn-small" onclick="gmChangeBadge()" title="Change this player's badge and colour">🎨</button>
+            </div>
             <h4>Adjust Score</h4>
             <div class="gm-score-controls">
               <button class="btn btn-small btn-danger"  onclick="gmAdjustScore(-2)">−2</button>
@@ -402,7 +405,7 @@
 
   <!-- Modal is now inside #board-viewport — see game screen section above -->
 
-  <!-- Badge picker modal — setup screen only -->
+  <!-- Badge picker modal — setup screen, network lobby and GM panel -->
   <div id="badge-modal-overlay" class="hidden" onclick="closeBadgeModal(event)">
     <div id="badge-modal">
       <div id="badge-modal-preview"></div>

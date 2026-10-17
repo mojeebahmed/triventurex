@@ -13,7 +13,7 @@ IDs in brackets (B1, A2, C3, …) refer to items in [`IMPROVEMENT-PLAN.md`](IMPR
 - Phones show *"You're next"* and buzz on your turn (G18); leave the lobby from the phone (G21).
 - 📺 Presentation mode for playing on a TV: full screen, big board and scoreboard, GM tools behind ⚙️ (G15).
 - Answer questions on the phone: choose the difficulty and tap the answer; multiple choice is scored automatically, open questions are judged by the GM. The answer stays hidden on the host screen until then. Rule: *Players answer on their phone* (G3).
-- Players without a phone in network games: add them by name in the lobby or the GM panel; they play on the host screen. A network game can run with no phones at all (G17).
+- Players without a phone in network games: add them by name in the lobby or the GM panel; they play on the host screen. A network game can run with no phones at all. Their badge can be chosen in the lobby, and the GM can change anyone's badge during a game (🎨) (G17).
 
 ### Fixed
 - Refreshing a phone that was first opened from an earlier game's QR code showed the join page and joined as a new player. It now rejoins the same seat.

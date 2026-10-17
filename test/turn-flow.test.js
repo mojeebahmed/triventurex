@@ -432,6 +432,18 @@ describe('players and GM', () => {
     assert.equal(w.run(`_sendPhoneCard(state.players[2], { text: 'x' })`), false);
   });
 
+  it('GM badge change: redrawn, saved, synced — and undo keeps it', () => {
+    const w = makeWorld(); w.network();
+    w.rollWith(2);
+    w.run('handleManualRoll(2)');
+    w.run(`_setSeatBadge(1, 'game', { token: '🦁', color: '#123456' })`);
+    const sync = w.log.emits.filter(e => e[0] === 'syncState').pop();
+    assert.equal(sync[2].playerStates.find(p => p.id === 1).token, '🦁');
+    w.run('undoLastMove()');
+    assert.equal(w.run('state.players[1].token'), '🦁');
+    assert.equal(w.run('state.players[1].color'), '#123456');
+  });
+
   it('free badge: a default token + colour nobody uses yet', () => {
     const w = makeWorld();
     const used = w.run('state.players.map(p => p.token)');

@@ -2173,3 +2173,7 @@ body.presenting.present-idle * { cursor: none !important; }
   font-size: .9rem; padding: 2px 6px; border-radius: 6px;
 }
 .lobby-remove:hover { background: #FFEBEE; color: var(--danger); }
+.badge-btn { border: none; padding: 0; cursor: pointer; font: inherit; }
+.badge-btn:hover { outline: 2px solid var(--green); outline-offset: 2px; }
+.gm-player-row { display: flex; gap: 6px; align-items: center; }
+.gm-player-row select { flex: 1; min-width: 0; }

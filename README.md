@@ -302,7 +302,7 @@ id,text,kind,note
 1. The host starts the server, opens `http://localhost:3000`, chooses edition, length and board, picks **📱 On phones** in ④ Players, and clicks **Open lobby**.
 2. The lobby shows a **QR code**, the join address and a 4-digit Game ID (e.g. `4823`).
 3. Players **scan the QR code** with their phone camera (the Game ID is filled in), or open the address and type the ID, then set their name/badge. Latecomers can join mid-game: *GM controls → 📱 Show join code*.
-4. Someone without a phone? Type their name under the player list in the lobby (*No phone? Add a player by name*) — they play on the host screen: the GM rolls for them and handles their cards. Also possible mid-game in *GM controls*. A game can even run with no phones at all.
+4. Someone without a phone? Type their name under the player list in the lobby (*No phone? Add a player by name*) — they play on the host screen: the GM rolls for them and handles their cards. Also possible mid-game in *GM controls*. A game can even run with no phones at all. Click their badge in the lobby to choose an icon and colour; during the game the GM can change anyone's badge (*GM controls → 🎨*).
 5. The host clicks Start and the game begins. (Joined with the wrong name or badge? Tap *← Leave* in the phone lobby and join again.)
 6. The turn before yours, your phone shows *"You're next — get ready!"*. On your turn it buzzes (where supported) and shows an active **Roll Dice** box (green glow). Tap to roll.
 7. After rolling, your phone shows the die result while the GM resolves the space on the host screen.

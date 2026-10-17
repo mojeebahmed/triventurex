@@ -586,6 +586,11 @@ TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
   _addActivity('⚠️', `<strong>${esc(playerName)}</strong> disconnected`);
 });
 
+// The host changed someone's badge in the lobby
+TX_NET.on('player_updated', ({ players } = {}) => {
+  if (players && document.getElementById('lobby-view').classList.contains('active')) renderLobbyPlayers(players);
+});
+
 TX_NET.on('player_removed', ({ playerId, players }) => {
   // Someone left the lobby — refresh the list we're showing
   if (players && document.getElementById('lobby-view').classList.contains('active')) renderLobbyPlayers(players);
