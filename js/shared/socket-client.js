@@ -24,6 +24,7 @@ const TX_NET = (() => {
       'player_disconnected', 'player_removed', 'error',
       'space_card', 'space_card_done',
       'rejoined', 'rejoin_failed', 'host_rejoined', 'player_reconnected', 'host_left', 'host_back', 'private_card', 'turn_result', 'card_choice', 'player_updated',
+      'display', 'display_joined', 'display_failed',
     ];
     events.forEach(ev => _socket.on(ev, data => _trigger(ev, data)));
     return true;
@@ -49,6 +50,9 @@ const TX_NET = (() => {
   function sendCardChoice(gameId, promptId, choice) { _socket?.emit('card_choice', { gameId, promptId, choice }); }
   function addLocalPlayer(gameId, profile) { _socket?.emit('add_local_player', { gameId, profile }); }
   function updatePlayer(gameId, playerId, profile) { _socket?.emit('update_player', { gameId, playerId, profile }); }
+  // TV display (G16): the host sends, a display page listens
+  function toDisplay(gameId, kind, data) { _socket?.emit('display', { gameId, kind, data }); }
+  function joinDisplay(gameId) { _socket?.emit('join_display', { gameId }); }
 
   function setGameId(id)   { _gameId = id; }
   function setPlayerId(id) { _playerId = id; }
@@ -61,7 +65,7 @@ const TX_NET = (() => {
     on, connect,
     hostGame, joinGame, startGame, requestRoll, manualRoll, syncState,
     removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
-    rejoinGame, hostRejoin, closeRoom, sendPrivateCard, sendCardChoice, addLocalPlayer, updatePlayer,
+    rejoinGame, hostRejoin, closeRoom, sendPrivateCard, sendCardChoice, addLocalPlayer, updatePlayer, toDisplay, joinDisplay,
     setGameId, setPlayerId, getGameId, getPlayerId,
     isHostMode, isConnected,
   };

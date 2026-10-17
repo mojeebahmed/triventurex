@@ -80,6 +80,7 @@ function _renderJoinCode() {
   const others = _joinUrls.slice(1).map(_shortUrl);
   document.getElementById('lobby-other-urls').textContent =
     others.length ? `Not working? Try: ${others.join('  ·  ')}` : '';
+  document.getElementById('lobby-display-url').textContent = `${_displayAddress()}?game=${_networkGameId}`;
 }
 
 /** During the game (GM panel): the same join code, for latecomers. */
@@ -187,6 +188,97 @@ function _renderGMNetworkPlayers(serverPlayers) {
 function gmRemoveNetworkPlayer(playerId) {
   if (!confirm('Remove this player?')) return;
   TX_NET.removePlayer(_networkGameId, playerId);
+}
+
+// ── TV display (G16) ─────────────────────────────────────────────────────────────
+// A second screen (/display?game=ID) mirrors the game read-only. The host
+// sends it: 'game' (edition + board, once per game), 'live' (players, turn —
+// on every token hop and score change), 'card' (the open modal, secrets
+// removed, or null), 'roll' and 'timer'. Identical repeats are skipped.
+
+let _displaySent = {};
+let _displayCardTimer = null;
+
+function _toDisplay(kind, data) {
+  if (!_isNetworkGame || !_networkGameId) return;
+  const json = JSON.stringify(data);
+  if (kind !== 'roll' && _displaySent[kind] === json) return;
+  _displaySent[kind] = json;
+  TX_NET.toDisplay(_networkGameId, kind, data);
+}
+
+/** The whole picture: edition, board, then everything live. Game start / resume / host rejoin. */
+function _displayGame() {
+  if (!_isNetworkGame || !state.board?.length) return;
+  _displaySent = {};
+  _toDisplay('game', {
+    editionId: getActiveEditionId(),
+    hopMs: (CONFIG.ANIMATION?.tokenHopMs ?? 400) * animationFactor(gameRules()),
+    board: state.board.map(({ id, type, row, col, name, image, text, nextDir }) =>
+      ({ id, type, row, col, name, image, text, nextDir })),
+  });
+  _displayLive();
+  _displayTimer();
+}
+
+/** Players + turn. Called from updateBoardTokens / updateScoreboard on the host. */
+function _displayLive() {
+  if (!_isNetworkGame || !state.players?.length) return;
+  _toDisplay('live', {
+    players: state.players.map(p => ({
+      id: p.id, name: p.name, token: p.token, color: p.color, position: p.position, score: p.score,
+      finished: p.finished, finishOrder: p.finishOrder, inactive: !!p.inactive,
+      disconnected: !!p.disconnected, noPhone: !!p.noPhone,
+    })),
+    currentPlayerIndex: state.currentPlayerIndex,
+    turnPhase: state.turnPhase,
+    phase: state.phase,
+  });
+}
+
+/**
+ * The open modal for the TV — or null when it closes. Anything the host
+ * screen keeps hidden stays off the TV: [data-secret] (e.g. the unrevealed
+ * answer, an action card), .hidden elements and every button / input.
+ * [data-host-only] marks text only meant for the GM (e.g. "use the sidebar").
+ * Closing waits a moment: a button click closes one card and opens the next.
+ */
+function _displayCard(modal) {
+  if (!_isNetworkGame) return;
+  clearTimeout(_displayCardTimer);
+  if (!modal) { _displayCardTimer = setTimeout(() => _toDisplay('card', null), 150); return; }
+  _toDisplay('card', {
+    icon:    modal.icon,
+    title:   modal.title,
+    content: _publicHtml(modal.content),
+    accent:  getComputedStyle(document.documentElement).getPropertyValue('--modal-accent').trim() || null,
+  });
+}
+
+function _publicHtml(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html || '';
+  t.content.querySelectorAll('[data-secret], [data-host-only], .hidden, button, input, select, textarea, script')
+    .forEach(el => el.remove());
+  return t.innerHTML;
+}
+
+function _displayRoll(roll, player) { _toDisplay('roll', { roll, playerId: player?.id ?? null }); }
+
+function _displayTimer() {
+  _toDisplay('timer', { remaining: timer.remaining, duration: timer.duration, running: timer.running });
+}
+
+/** Lobby / GM panel: open the TV page in a new window (drag it to the TV). */
+function openDisplay() {
+  if (!_networkGameId) return;
+  window.open(`${location.origin}/display?game=${_networkGameId}`, 'triventurex-display');
+}
+
+/** "192.168.1.5:3000/display" — for typing into a smart TV's browser. */
+function _displayAddress() {
+  const url = _joinUrls[0] || `${location.origin}/player`;
+  return _shortUrl(url).replace(/\/player$/, '/display');
 }
 
 // ── Host → server ───────────────────────────────────────────────────────────────
@@ -458,6 +550,7 @@ function _initSocketHandlers() {
     document.getElementById('gm-network-section')?.classList.remove('hidden');
     _updateNetworkStatusBar();
     _syncStateToServer(); // refresh server's turnPhase/index from the host's restored state
+    _displayGame();       // the TV may have missed things while the host was away
     console.log('[game] host rejoined network game');
   });
 }

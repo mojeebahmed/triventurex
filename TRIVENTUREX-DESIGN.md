@@ -56,11 +56,12 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 | `js/host/game.js` | Shared game `state`; start / resume / reset a game; bootstrap (loaded last) |
 | `js/host/turn-flow.js` | The turn pipeline, undo, GM controls |
 | `js/host/net-host.js` | Host side of network play: lobby, state sync, socket events, private cards |
-| `js/host/board.js` | Board generation algorithm + DOM rendering |
+| `js/shared/board.js` | Board generation algorithm + DOM rendering |
 | `js/host/ui.js` | Modals (question, deed, action, landmark), scoreboard, legend, timer, history |
 | `js/host/setup.js`, `badge-picker.js`, `category-filter.js` | Setup screen pieces |
 | `js/host/edition-loader.js` | Edition loading, config merge, edition picker, colours + branding |
-| `js/host/storage.js`, `viewport.js` | localStorage save/prefs; pan / zoom / board background |
+| `js/host/storage.js`, `js/shared/viewport.js` | localStorage save/prefs; pan / zoom / board background |
+| `display.html`, `js/display/display.js` | TV display: read-only second screen fed by the host (G16) |
 | `js/player/player.js` | Phone screen logic: join, action box, session management |
 | `game_editions/editions.js` | Edition registry — lists all available editions |
 | `game_editions/<id>/config.js` | Edition config: name, colours, landmarks, background, space + score overrides |

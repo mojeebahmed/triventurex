@@ -24,23 +24,7 @@ function _resetToEngineDefaults() {
   }
 }
 
-function _mergeEditionConfig() {
-  const T = window.EDITION_CONFIG;
-  if (!T) return;
-  if (T.GAME)                Object.assign(CONFIG.GAME,             T.GAME);
-  if (T.COLORS)              Object.assign(CONFIG.COLORS,           T.COLORS);
-  if (T.LANDMARKS)           CONFIG.LANDMARKS = T.LANDMARKS;
-  if (T.BOARD_BACKGROUND)    Object.assign(CONFIG.BOARD_BACKGROUND, T.BOARD_BACKGROUND);
-  if (T.SPACE_DISTRIBUTION)  CONFIG.EDITION_SPACE_DISTRIBUTION = T.SPACE_DISTRIBUTION;
-  if (T.SCORE_VALUES)        Object.assign(CONFIG.SCORE_VALUES,     T.SCORE_VALUES);
-  if (T.FINISH_BONUS)        CONFIG.FINISH_BONUS = [...T.FINISH_BONUS];
-  if (T.SPACE_INFO) {
-    for (const [type, overrides] of Object.entries(T.SPACE_INFO)) {
-      if (CONFIG.SPACE_INFO[type]) Object.assign(CONFIG.SPACE_INFO[type], overrides);
-      else CONFIG.SPACE_INFO[type] = overrides;
-    }
-  }
-}
+function _mergeEditionConfig() { mergeEditionConfig(CONFIG, window.EDITION_CONFIG); }
 
 async function loadEdition(editionId) {
   if (!editionId) return;
@@ -151,23 +135,7 @@ async function onEditionPicked(editionId) {
  */
 // ── Colours + branding ──────────────────────────────────────────────────────────
 
-function _applyColors() {
-  const root = document.documentElement;
-
-  // 1. Explicit COLORS overrides (UI colours, gradients, etc.)
-  for (const [prop, value] of Object.entries(CONFIG.COLORS || {})) {
-    root.style.setProperty(prop, value);
-  }
-
-  // 2. Space type colours from SPACE_INFO → --c-<type> CSS variables
-  //    e.g. SPACE_INFO.question.color → --c-question
-  //    These drive both the board space backgrounds and the legend dots.
-  for (const [type, info] of Object.entries(CONFIG.SPACE_INFO || {})) {
-    if (info.color) {
-      root.style.setProperty(`--c-${type.replace(/_/g, '-')}`, info.color);
-    }
-  }
-}
+function _applyColors() { applyEditionColors(CONFIG); }
 
 /**
  * Inject CONFIG.GAME branding into the setup screen and document title.

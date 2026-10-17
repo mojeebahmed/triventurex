@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
+  <title>Triventurex — TV</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* TV display (G16): read-only second screen. Board + cards reuse styles.css. */
+    body.display { background: var(--bg); }
+    .d-screen { display: none; width: 100vw; height: 100vh; }
+    .d-screen.active { display: flex; }
+    .d-center {
+      align-items: center; justify-content: center; flex-direction: column; gap: 18px; text-align: center;
+      background: linear-gradient(135deg, var(--gradient-a), var(--gradient-b) 55%, var(--gradient-c));
+    }
+    .d-card {
+      background: var(--card); border-radius: 22px; padding: 36px 44px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      max-width: min(1100px, 94vw);
+    }
+    .d-title { font-size: 2.4rem; font-weight: 900; margin-bottom: 6px; }
+    .d-sub   { font-size: 1.1rem; color: var(--text-muted); }
+
+    /* Join form */
+    #d-join form { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+    #d-join input { font-size: 2rem; width: 6ch; text-align: center; padding: 8px; border-radius: 12px; border: 2px solid var(--border); }
+    #d-join-error { color: var(--danger); min-height: 1.2em; margin-top: 10px; }
+
+    /* Lobby */
+    .d-lobby { display: flex; gap: 40px; align-items: center; text-align: left; }
+    .d-lobby svg { width: 300px; height: 300px; background: #fff; border-radius: 16px; padding: 8px; }
+    .d-gameid { font-size: 5rem; font-weight: 900; letter-spacing: 6px; color: var(--green); line-height: 1; }
+    .d-label  { font-size: .85rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-top: 16px; }
+    .d-url    { font-size: 1.4rem; font-weight: 700; }
+    .d-players { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+    .d-chip { display: flex; align-items: center; gap: 10px; background: #F5F5F5; border-radius: 40px; padding: 6px 18px 6px 6px; font-size: 1.3rem; font-weight: 700; }
+    .d-chip .score-token { width: 44px; height: 44px; }
+
+    /* Game */
+    #d-game { flex-direction: row; }
+    #d-game #board-viewport { cursor: default; }
+    #d-side {
+      width: clamp(300px, 24vw, 440px); background: var(--card); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; font-size: 1.25rem;
+    }
+    .d-panel { padding: 18px 22px; border-bottom: 1px solid #F0F0F0; }
+    .d-panel h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 10px; }
+    .d-current { display: flex; align-items: center; gap: 14px; }
+    .d-current .player-token-large { width: 72px; height: 72px; }
+    .d-current-name { font-size: 1.7rem; font-weight: 900; }
+    .d-current-phase { font-size: 1rem; color: var(--text-muted); }
+    .d-roll { display: flex; align-items: center; gap: 14px; min-height: 64px; }
+    .d-roll-text { font-size: 1.1rem; color: var(--text-muted); }
+    #d-timer.idle { display: none; }
+    #d-timer-time { font-size: 2.6rem; font-weight: 900; text-align: center; }
+    #d-score { flex: 1; overflow: hidden; }
+    #d-score .score-row { padding: 9px 0; }
+    #d-score .score-name, #d-score .score-points { font-size: 1.25rem; }
+    #d-score .score-position { font-size: .9rem; }
+    #d-score .score-token { width: 44px; height: 44px; }
+    #d-score .score-row.is-current { background: var(--green-light); border-radius: 10px; margin: 0 -10px; padding: 9px 10px; }
+    #d-game #modal { zoom: 1.35; max-height: calc(94vh / 1.35); overflow-y: auto; }
+
+    /* End */
+    .d-podium { display: flex; flex-direction: column; gap: 12px; margin-top: 22px; min-width: min(640px, 90vw); }
+    .d-podium .d-chip { justify-content: flex-start; border-radius: 16px; padding: 10px 22px 10px 10px; }
+    .d-podium .d-place { width: 2.4ch; font-size: 1.8rem; }
+    .d-podium .d-pts { margin-left: auto; color: var(--green); }
+
+    /* Host gone / game closed */
+    #d-msg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 500; }
+    #d-msg.visible { display: flex; }
+  </style>
+</head>
+<body class="display">
+
+  <!-- No game ID in the address: ask for one -->
+  <div id="d-join" class="d-screen d-center">
+    <div class="d-card">
+      <div class="d-title">📺 TV display</div>
+      <div class="d-sub">Enter the Game ID shown on the host screen</div>
+      <form onsubmit="event.preventDefault(); joinDisplay(document.getElementById('d-join-id').value)">
+        <input id="d-join-id" inputmode="numeric" maxlength="4" autocomplete="off" autofocus>
+        <button class="btn btn-primary btn-large" type="submit">Show</button>
+      </form>
+      <div id="d-join-error"></div>
+    </div>
+  </div>
+
+  <!-- Lobby: how to join + who's in -->
+  <div id="d-lobby" class="d-screen d-center">
+    <div class="d-card">
+      <div class="d-title" id="d-lobby-title">Join the game</div>
+      <div class="d-lobby">
+        <div id="d-qr"></div>
+        <div>
+          <div class="d-label">📱 Scan with a phone camera, or open</div>
+          <div class="d-url" id="d-url">—</div>
+          <div class="d-label">Game ID</div>
+          <div class="d-gameid" id="d-gameid">—</div>
+        </div>
+      </div>
+      <div class="d-players" id="d-lobby-players"></div>
+    </div>
+  </div>
+
+  <!-- The game -->
+  <div id="d-game" class="d-screen">
+    <div id="board-viewport">
+      <div id="board-world">
+        <div id="board-bg"></div>
+        <div id="board"></div>
+      </div>
+      <div id="dice-overlay">
+        <div class="dice-overlay-card">
+          <div id="dice-overlay-face"></div>
+          <div id="dice-overlay-num"></div>
+          <div id="dice-overlay-name"></div>
+        </div>
+      </div>
+      <div id="modal-overlay" class="hidden">
+        <div id="modal">
+          <div id="modal-icon"></div>
+          <h2 id="modal-title"></h2>
+          <div id="modal-content"></div>
+        </div>
+      </div>
+    </div>
+    <aside id="d-side">
+      <div class="d-panel">
+        <h3>Now playing</h3>
+        <div class="d-current">
+          <div id="d-current-token" class="player-token-large"></div>
+          <div>
+            <div id="d-current-name" class="d-current-name">—</div>
+            <div id="d-current-phase" class="d-current-phase"></div>
+          </div>
+        </div>
+      </div>
+      <div class="d-panel">
+        <div class="d-roll"><div id="d-roll-die"></div><div id="d-roll-text" class="d-roll-text">Waiting for the first roll</div></div>
+      </div>
+      <div class="d-panel idle" id="d-timer">
+        <div id="timer-bar-track"><div id="timer-bar"></div></div>
+        <div id="d-timer-time">60</div>
+      </div>
+      <div class="d-panel" id="d-score">
+        <h3>Scoreboard</h3>
+        <div id="d-scoreboard"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Game over -->
+  <div id="d-end" class="d-screen d-center">
+    <div class="d-card">
+      <div class="d-title">🏆 Final scores</div>
+      <div class="d-sub" id="d-end-msg"></div>
+      <div class="d-podium" id="d-podium"></div>
+    </div>
+  </div>
+
+  <div id="d-msg"><div class="d-card"><div class="d-title" id="d-msg-text"></div></div></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game_editions/editions.js"></script>
+  <script src="js/vendor/qrcode.js"></script>
+  <script src="js/shared/utils.js"></script>
+  <script src="js/shared/config.js"></script>
+  <script src="js/shared/edition.js"></script>
+  <script src="js/shared/players.js"></script>
+  <script src="js/shared/dice.js"></script>
+  <script src="js/shared/board.js"></script>
+  <script src="js/shared/viewport.js"></script>
+  <script src="js/shared/socket-client.js"></script>
+  <script src="js/display/display.js"></script>
+</body>
+</html>

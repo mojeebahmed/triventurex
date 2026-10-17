@@ -79,6 +79,7 @@ function _restoreSnapshot(snapshot) {
  * Token animation starts after this resolves.
  */
 async function _showDiceOverlay(result, player) {
+  _displayRoll(result, player);   // the TV rolls along (G16)
   const overlay = document.getElementById('dice-overlay');
   if (!overlay) return;
 
@@ -343,6 +344,7 @@ function _endGame() {
   state.turn      = null;
   state.turnPhase = 'roll';
   _syncStateToServer(); // player screens switch to activity mode on phase 'ended'
+  _displayLive();       // the TV shows the final scores (G16)
   clearSave();
   setTimeout(() => showEndScreen(state.players), 600);
 }

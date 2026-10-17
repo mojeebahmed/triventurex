@@ -1,6 +1,6 @@
 /**
  * test/board.test.js
- * Board generation (js/host/board.js) — T3 property test: generate many
+ * Board generation (js/shared/board.js) — T3 property test: generate many
  * random boards for every path template of every edition and check that the
  * rules generateBoard promises always hold. Plus _resolveRelativeLandmark (T2).
  *
@@ -26,7 +26,7 @@ function editionWorld(edition) {
   ctx.window = ctx;
   vm.createContext(ctx);
   for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/shared/csv.js', 'js/shared/rules.js',
-                   'js/host/board.js', 'js/host/edition-loader.js', 'js/host/ui.js']) {
+                   'js/shared/board.js', 'js/shared/edition.js', 'js/host/edition-loader.js', 'js/host/ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   if (edition) {

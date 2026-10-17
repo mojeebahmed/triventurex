@@ -15,7 +15,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
-const STUBBED = new Set(['js/host/ui.js', 'js/host/board.js', 'js/shared/dice.js', 'js/shared/socket-client.js']);
+const STUBBED = new Set(['js/host/ui.js', 'js/shared/board.js', 'js/shared/dice.js', 'js/shared/socket-client.js']);
 
 /** Local js/ scripts in index.html order, minus the ones replaced by stubs. */
 function hostScripts() {
@@ -63,6 +63,7 @@ function makeWorld() {
     updateGMPlayerSelect: noop, updateBoardTokens: noop, updateCurrentPlayerDisplay: noop,
     highlightSpace: noop, renderHistoryPanel: noop, showScoreFlyout: noop, timerStop: noop,
     renderDie: () => '', populatePathSelector: noop,
+    timer: { remaining: 60, duration: 60, running: false },
     generateBoard: () => Array.from({ length: 10 }, (_, i) =>
       ({ id: i, type: i === 0 ? 'start' : i === 9 ? 'finish' : 'question' })),
     animateDice: async () => {},

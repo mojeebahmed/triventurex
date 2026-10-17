@@ -557,6 +557,68 @@ describe('players without a phone (G17)', () => {
   });
 });
 
+describe('TV display (G16)', () => {
+  const joinTv = async gameId => {
+    const tv = await connect();
+    const got = collect(tv, 'display');
+    tv.emit('join_display', { gameId });
+    const joined = await once(tv, 'display_joined');
+    await settle();
+    return { tv, got, joined };
+  };
+
+  it('an unknown game is refused', async () => {
+    const tv = await connect();
+    tv.emit('join_display', { gameId: '0000' });
+    await once(tv, 'display_failed');
+  });
+
+  it('in the lobby: join links + the player list, updated as people join', async () => {
+    const { host, gameId } = await setupGame({ phones: 1, start: false });
+    const { got, joined } = await joinTv(gameId);
+    assert.match(joined.joinUrls[0] ?? 'none', /player\?game=|none/);
+    assert.deepEqual(got.at(-1), { kind: 'lobby', data: { players: [got.at(-1).data.players[0]] } });
+    host.emit('add_local_player', { gameId, profile: { name: 'Gran' } });
+    await settle();
+    assert.deepEqual(got.at(-1).data.players.map(p => p.name), ['P0', 'Gran']);
+    assert.equal(JSON.stringify(got).includes('rejoinToken'), false);
+  });
+
+  it("relays the host's messages; a late display gets the latest state", async () => {
+    const { host, gameId } = await setupGame({ phones: 1 });
+    const early = await joinTv(gameId);
+    host.emit('display', { gameId, kind: 'game', data: { board: [1] } });
+    host.emit('display', { gameId, kind: 'live', data: { n: 1 } });
+    host.emit('display', { gameId, kind: 'live', data: { n: 2 } });
+    host.emit('display', { gameId, kind: 'roll', data: { roll: 4 } });
+    host.emit('display', { gameId, kind: 'card', data: { title: 'Q' } });
+    await settle();
+    assert.deepEqual(early.got.map(m => m.kind), ['game', 'live', 'live', 'roll', 'card']);
+    const late = await joinTv(gameId);
+    assert.deepEqual(late.got, [
+      { kind: 'game', data: { board: [1] } }, { kind: 'live', data: { n: 2 } }, { kind: 'card', data: { title: 'Q' } },
+    ]);
+  });
+
+  it('only the host can send; phones never receive display messages', async () => {
+    const { gameId, players } = await setupGame({ phones: 2 });
+    const { got } = await joinTv(gameId);
+    const atPhone = collect(players[1].socket, 'display');
+    players[0].socket.emit('display', { gameId, kind: 'card', data: { title: 'fake' } });
+    await settle();
+    assert.equal(got.length, 0);
+    assert.equal(atPhone.length, 0);
+  });
+
+  it('tells the display when the game closes', async () => {
+    const { host, gameId } = await setupGame({ phones: 1 });
+    const { got } = await joinTv(gameId);
+    host.emit('close_room', { gameId });
+    await settle();
+    assert.equal(got.at(-1).kind, 'closed');
+  });
+});
+
 // ── Room lifecycle (A5) ───────────────────────────────────────────────────────
 
 describe('room lifecycle', () => {

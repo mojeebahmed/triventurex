@@ -48,6 +48,7 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `js/shared/` — no page access at load time; used by more than one place (host page, phone page, server, tests). A change here can affect all of them. Rule: top-level code in `shared/` must not touch `document`/`window` (only inside functions)
 - `js/host/` — host page (`index.html`) only
 - `js/player/` — phone page (`player.html`) only
+- `js/display/` — TV display page (`display.html`) only
 
 Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `js/host/game.js` is loaded last.
 
@@ -59,6 +60,9 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/shared/csv.js` — pure CSV parsing for questions/deeds; unit-tested
 - `js/shared/dice.js` — `renderDie(n, sizeClass)` CSS dot-die used by host + player screens
 - `js/shared/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
+- `js/shared/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`) — host + TV display
+- `js/shared/viewport.js` — pan / zoom / fit and the board background — host + TV display
+- `js/shared/edition.js` — `mergeEditionConfig`, `applyEditionColors` — host + TV display
 
 `js/host/` (the controller was one 2000-line game.js before A4):
 - `js/host/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
@@ -67,10 +71,8 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/host/setup.js` — setup screen: local / host / join tabs, player rows, host player row
 - `js/host/badge-picker.js` — one badge modal for setup rows and the host (`openBadgeModal(index | 'host')`)
 - `js/host/category-filter.js` — 3-level question topic tree in Game Settings
-- `js/host/edition-loader.js` — `loadEdition`, config merge, edition picker, colours + branding
+- `js/host/edition-loader.js` — `loadEdition`, edition picker, branding (merge + colours via shared/edition.js)
 - `js/host/storage.js` — saved game + remembered preferences (localStorage)
-- `js/host/viewport.js` — pan / zoom / fit and the board background
-- `js/host/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`)
 - `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 
 Player page + server:
@@ -160,6 +162,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Players without a phone (G17)**: host → `add_local_player` (lobby form or GM panel) → server seat with `socketId: null`, no `rejoinToken`, `noPhone: true` (server-owned, kept through `sync_state`) → announced with the normal `player_joined`. Host keeps `player.noPhone` (`_playerFromServer`); `_canReachPhone` is false for them, so their turns run on the host like the host's own player. Badge: first unused default (`_freeBadge`). A game can have zero phones. `remove_player` now also sends the new list (lobby updates)
 - **Changing badges (G17)**: the badge picker (badge-picker.js) also takes a seat target `{ playerId, where: 'lobby' | 'game' }`. Lobby: click any player's badge (host's own, phones, no-phone) → `update_player` (host only, badge only, `cleanProfile`) → server sends `player_updated { players }` to host + phones. Game: GM panel 🎨 (selected player, also offline) or a badge in the network list → `_setSeatBadge` changes `state.players`, redraws, saves, syncs. The host's own player's new badge is also saved as the host preference. A phone adopts a badge the host gave it (`_adoptHostBadge` on `player_updated` / `state_update`) and saves it as its identity. Undo keeps badges (`restoreFromSnapshot` keeps token/colour/noPhone live)
 - **Rejoin needs a real token**: `rejoin_game` only matches a non-empty string token — seats without one (host's own player, no-phone players) can't be taken over
+- **TV display (G16)**: `display.html` + `js/display/display.js` at `/display?game=ID`, read-only. Host → `display` {kind, data} → server relays to room `display:<id>` only (host socket only; never to phones). Kinds: `game` (edition + board, from `_displayGame` in `_enterGameScreen` / host rejoin), `live` (players + turn, from `updateBoardTokens` + `updateScoreboard` → every hop / score change), `card` (open modal or null, from `showModal` / `hideModal`), `roll`, `timer`. Server keeps the last game/live/card/timer and replays them to a display that (re)joins; lobby list via `displayLobby(room)`; `host` gone/back; `closed`. **Secrets**: `_publicHtml` strips `[data-secret]`, `[data-host-only]`, `.hidden`, buttons and inputs from card HTML — mark any new secret in a modal template with `data-secret`. Host buttons: lobby + GM panel *📺 Open TV display* (`openDisplay`)
 - **TX_NET events**: socket-client.js forwards only the events in its `events` list — a new server → page event must be added there (`test/socket-events.test.js` checks it)
 - **Action cards (C3)**: optional `actions.csv` per edition (`id, text, kind, note`; kinds in `CONFIG.ACTION_KINDS`: act / explain / sound). Drawn without repeats (`_drawActionCard`, tracked like questions under the `actions` key); the drawn card is stored on `state.turn.actionCard` so a resumed turn shows the same card. No actions.csv → physical-deck prompt
 - **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's "Play again" / lobby Cancel — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)

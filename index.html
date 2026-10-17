@@ -203,6 +203,10 @@
       <button id="lobby-start-btn" class="btn btn-primary btn-large" disabled onclick="startNetworkGame()">
         Start Game →
       </button>
+      <div class="lobby-tv">
+        <button type="button" class="btn btn-secondary btn-small" onclick="openDisplay()">📺 Open TV display</button>
+        <span class="lobby-hint">or on a smart TV open <strong id="lobby-display-url">—</strong></span>
+      </div>
       <button class="btn btn-secondary" style="margin-top:10px" onclick="cancelLobby()">← Back</button>
     </div>
   </div>
@@ -378,6 +382,8 @@
               </form>
               <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
                       onclick="showJoinCode()">📱 Show join code</button>
+              <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
+                      onclick="openDisplay()" title="A second screen with the board, scores and cards — no buttons">📺 Open TV display</button>
             </div>
 
           </div><!-- /gm-controls -->
@@ -425,7 +431,7 @@
   <script src="js/vendor/qrcode.js"></script>  <!-- QR codes for joining (MIT, Kazuhiko Arase) -->
   <script src="js/shared/utils.js"></script>
   <script src="js/shared/config.js"></script>
-  <script src="js/host/board.js"></script>
+  <script src="js/shared/board.js"></script>
   <script src="js/shared/players.js"></script>
   <script src="js/shared/turn.js"></script>
   <script src="js/shared/rules.js"></script>
@@ -434,6 +440,7 @@
   <script src="js/shared/socket-client.js"></script>
   <script src="js/shared/csv.js"></script>
   <script src="js/host/storage.js"></script>
+  <script src="js/shared/edition.js"></script>
   <script src="js/host/edition-loader.js"></script>
   <script src="js/host/category-filter.js"></script>
   <script src="js/host/badge-picker.js"></script>
@@ -441,7 +448,7 @@
   <script src="js/host/board-picker.js"></script>
   <script src="js/host/setup-flow.js"></script>
   <script src="js/host/rules-panel.js"></script>
-  <script src="js/host/viewport.js"></script>
+  <script src="js/shared/viewport.js"></script>
   <script src="js/host/presentation.js"></script>
   <script src="js/host/net-host.js"></script>
   <script src="js/host/turn-flow.js"></script>

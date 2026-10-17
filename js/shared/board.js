@@ -652,6 +652,8 @@ function updateBoardTokens(players, animatedPlayerId = null) {
       spaceEl.querySelector('.tokens-container').appendChild(makeToken(player, hop));
     }
   });
+  // Host page: every token change also goes to the TV display (G16)
+  if (typeof _displayLive === 'function') _displayLive();
 }
 
 /**

@@ -42,6 +42,7 @@ for (const dir of PUBLIC_DIRS) {
 }
 app.get(['/', '/index.html'],      (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get(['/player', '/player.html'], (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
+app.get(['/display', '/display.html'], (req, res) => res.sendFile(path.join(__dirname, 'display.html')));
 
 // ── Room state ────────────────────────────────────────────────────────────────
 // Map<gameId, RoomState>
@@ -154,8 +155,26 @@ function closeRoom(gameId, reason) {
   if (!room) return;
   clearTimeout(room.expiryTimer);
   rooms.delete(gameId);
+  io.to(displayRoom(gameId)).emit('display', { kind: 'closed' });
   io.in(gameId).socketsLeave(gameId);
+  io.in(displayRoom(gameId)).socketsLeave(displayRoom(gameId));
   console.log(`[room]       closed gameId=${gameId} (${reason})`);
+}
+
+// ── TV display (G16) ──────────────────────────────────────────────────────────
+// A display (/display?game=ID) is read-only: it joins its own socket.io room
+// and only ever receives what the HOST sends for it (already stripped of
+// secrets), plus the lobby list from the server. The last 'game' / 'live' /
+// 'card' / 'timer' message is kept so a display that opens late or refreshes
+// catches up at once.
+const DISPLAY_KINDS = ['game', 'live', 'card', 'timer', 'roll'];
+const DISPLAY_KEPT  = ['game', 'live', 'card', 'timer'];
+const displayRoom   = gameId => `display:${gameId}`;
+
+/** Lobby: the joined players, for displays waiting for the game to start. */
+function displayLobby(room) {
+  if (room.phase !== 'lobby') return;
+  io.to(displayRoom(room.gameId)).emit('display', { kind: 'lobby', data: { players: publicPlayers(room.players) } });
 }
 
 /** Every network (non-loopback IPv4) address of this computer — phones use one of these. */
@@ -268,6 +287,7 @@ io.on('connection', (socket) => {
       player:  publicPlayer(player),
       players: publicPlayers(room.players),
     });
+    displayLobby(room);
 
     // If game already started, send current state immediately
     if (room.phase === 'playing') socket.emit('state_update', publicState(room));
@@ -285,6 +305,7 @@ io.on('connection', (socket) => {
     player.noPhone = true;
     room.players.push(player);
     io.to(gameId).emit('player_joined', { player: publicPlayer(player), players: publicPlayers(room.players) });
+    displayLobby(room);
     console.log(`[add_local]  ${player.name} (no phone) added to gameId=${gameId}`);
   });
 
@@ -297,6 +318,7 @@ io.on('connection', (socket) => {
     if (!p) return;
     Object.assign(p, cleanProfile({ name: p.name, token: profile.token ?? p.token, color: profile.color ?? p.color }));
     io.to(gameId).emit('player_updated', { players: publicPlayers(room.players) });
+    displayLobby(room);
   });
 
   // ── start_game ─────────────────────────────────────────────────────────────
@@ -412,6 +434,7 @@ io.on('connection', (socket) => {
       // room broadcasts. No state_update here — the host owns turn order and
       // syncs the result itself (see player_removed in game.js).
       io.to(gameId).emit('player_removed', { playerId, players: publicPlayers(room.players) });
+      displayLobby(room);
       if (removed.socketId) io.sockets.sockets.get(removed.socketId)?.leave(gameId);
     }
   });
@@ -459,6 +482,7 @@ io.on('connection', (socket) => {
     cancelRoomExpiry(room);
     if (room.phase === 'ended') scheduleRoomExpiry(room, ROOM_TTL.endedMs, 'game ended');
     socket.to(gameId).emit('host_back');
+    io.to(displayRoom(gameId)).emit('display', { kind: 'host', data: { gone: false } });
 
     // A playing host is also a player — reconnect that entry too
     const hostPlayer = room.players.find(p => p.id === room.hostPlayerId);
@@ -481,6 +505,7 @@ io.on('connection', (socket) => {
       removeFromRoom(room, idx);
       socket.leave(room.gameId);
       io.to(room.gameId).emit('player_removed', { playerId: player.id, players: publicPlayers(room.players) });
+      displayLobby(room);
       console.log(`[leave_game] ${player.name} left ${room.gameId}`);
     }
   });
@@ -529,6 +554,33 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ── TV display (G16) ───────────────────────────────────────────────────────
+  socket.on('join_display', ({ gameId } = {}) => {
+    const room = rooms.get(String(gameId ?? ''));
+    if (!room) { socket.emit('display_failed', { msg: 'Game not found or ended.' }); return; }
+    socket.join(displayRoom(room.gameId));
+    socket.emit('display_joined', {
+      gameId: room.gameId,
+      joinUrls: joinUrls(room.gameId),
+      editionId: room.editionId,
+      phase: room.phase,
+    });
+    if (room.phase === 'lobby') socket.emit('display', { kind: 'lobby', data: { players: publicPlayers(room.players) } });
+    for (const kind of DISPLAY_KEPT) {
+      if (room.display?.[kind] !== undefined) socket.emit('display', { kind, data: room.display[kind] });
+    }
+  });
+
+  // Host → displays only. Never stored for 'roll' (a one-off animation).
+  socket.on('display', ({ gameId, kind, data } = {}) => {
+    const room = rooms.get(gameId);
+    if (!room || room.hostSocketId !== socket.id || !DISPLAY_KINDS.includes(kind)) return;
+    room.display ??= {};
+    if (kind === 'game') room.display = {};          // a new game: forget the old card etc.
+    if (DISPLAY_KEPT.includes(kind)) room.display[kind] = data;
+    io.to(displayRoom(gameId)).emit('display', { kind, data });
+  });
+
   // ── disconnect ─────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`[disconnect] socket=${socket.id}`);
@@ -540,6 +592,7 @@ io.on('connection', (socket) => {
       if (isHost) {
         console.log(`[disconnect] HOST disconnected gameId=${gameId}`);
         io.to(gameId).emit('host_left', { msg: 'The host disconnected. The game continues if they come back.' });
+        io.to(displayRoom(gameId)).emit('display', { kind: 'host', data: { gone: true } });
         scheduleRoomExpiry(room, ROOM_TTL.hostGoneMs, 'host gone');
       }
 

@@ -147,6 +147,7 @@ function _enterGameScreen() {
   renderHistoryPanel(state.history);
   _updateUndoButton();
   fitBoardInView(); // also applies the board background
+  _displayGame();   // TV display (G16) — network games only
 }
 
 /** Generate the board for a new game under its rules (tile mix, deed options). */

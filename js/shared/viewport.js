@@ -169,7 +169,7 @@ function fitBoardInView() {
   const fitScale = Math.min(
     (vp.offsetWidth  - pad * 2) / bW,
     (vp.offsetHeight - pad * 2) / bH,
-    isPresenting() ? (CONFIG.PRESENTATION?.maxFitScale ?? 1.0) : 1.0   // TV: let the board fill the screen
+    (typeof isPresenting === 'function' && isPresenting()) ? (CONFIG.PRESENTATION?.maxFitScale ?? 1.0) : 1.0   // TV: let the board fill the screen
   );
 
   view.scale = fitScale;

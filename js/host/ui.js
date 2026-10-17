@@ -40,6 +40,7 @@ function updateScoreboard(players) {
       </div>
     </div>
   `).join('');
+  if (typeof _displayLive === 'function') _displayLive();   // TV display (G16)
 }
 
 // ── GM Player Select ──────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ function updateGMPlayerSelect(players) {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 function showModal({ icon, title, content, actions }) {
+  if (typeof _displayCard === 'function') _displayCard({ icon, title, content });   // TV display (G16)
   document.getElementById('modal-icon').textContent = icon;
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-content').innerHTML = content;
@@ -73,6 +75,7 @@ function showModal({ icon, title, content, actions }) {
 }
 
 function hideModal() {
+  if (typeof _displayCard === 'function') _displayCard(null);
   document.getElementById('modal-overlay').classList.add('hidden');
 }
 
@@ -375,7 +378,7 @@ function _showQuestion(diff, player, onDone) {
     <div class="question-text">${q.q}</div>
     ${optionsHtml}
     ${onPhone ? _phoneWaitHtml(player, 'to answer') : ''}
-    <div id="question-answer-reveal" class="hidden">
+    <div id="question-answer-reveal" class="hidden" data-secret>
       <div class="answer-box">✅ Answer: <strong>${
         q.opts && q.opts.length
           ? `${q.answer} — ${q.opts[['A','B','C','D'].indexOf(q.answer)] ?? q.answer}`
@@ -531,7 +534,7 @@ function _showActionModal(player, onDone) {
              (card ? _actionCardHtml(card, player, onPhone)
                    : `<p>Draw an <em>Action Card</em> from the deck and perform it!</p>`) +
              `<p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
-              <small>Use the timer in the sidebar to manage time.</small></p>`,
+              <small data-host-only>Use the timer in the sidebar to manage time.</small></p>`,
     actions,
   });
 }
@@ -576,7 +579,7 @@ function _actionCardHtml(card, player, onPhone) {
               onclick="this.nextElementSibling.classList.toggle('hidden')">
         ${onPhone ? '👁 GM: show / hide card' : '👁 Show / hide card'}
       </button>
-      <div class="action-card-secret hidden">
+      <div class="action-card-secret hidden" data-secret>
         <div class="action-card-text">${esc(card.text)}</div>
         ${card.note ? `<div class="action-card-note">${esc(card.note)}</div>` : ''}
       </div>
@@ -908,6 +911,7 @@ function timerStart() {
   if (timer.remaining <= 0) { timer.remaining = timer.duration; }
   timer.running = true;
   document.getElementById('timer-startstop-btn').textContent = '⏸ Pause';
+  _timerRender();
   timer._interval = setInterval(() => {
     timer.remaining = Math.max(0, timer.remaining - 1);
     _timerRender();
@@ -918,6 +922,7 @@ function timerStart() {
 function timerPause() {
   timer.running = false;
   clearInterval(timer._interval);
+  if (typeof _displayTimer === 'function') _displayTimer();
   const btn = document.getElementById('timer-startstop-btn');
   if (btn) btn.textContent = '▶ Start';
 }
@@ -951,6 +956,7 @@ function _timerRender() {
   barEl.style.background =
     pct > 0.5 ? '#43A047' :
     pct > 0.25 ? '#FF9800' : '#E53935';
+  if (typeof _displayTimer === 'function') _displayTimer();   // TV display (G16)
 }
 
 // ── Toast notification ────────────────────────────────────────────────────────

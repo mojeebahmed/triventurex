@@ -2,7 +2,7 @@
  * test/socket-events.test.js
  * TX_NET (js/shared/socket-client.js) only forwards the socket events in its
  * `events` list. A handler for an event missing from that list never runs —
- * silently. Every TX_NET.on('…') in the host and phone code must be listed.
+ * silently. Every TX_NET.on('…') in the host, phone and TV display code must be listed.
  */
 
 const { describe, it } = require('node:test');
@@ -18,7 +18,8 @@ describe('TX_NET event list', () => {
   const listed = new Set([...client.match(/const events = \[([\s\S]*?)\];/)[1].matchAll(/'([a-z_]+)'/g)].map(m => m[1]));
 
   it('forwards every event the host and phone pages listen for', () => {
-    const files = ['js/player/player.js', ...fs.readdirSync(path.join(ROOT, 'js/host')).map(f => `js/host/${f}`)];
+    const files = ['js/player/player.js', 'js/display/display.js',
+                   ...fs.readdirSync(path.join(ROOT, 'js/host')).map(f => `js/host/${f}`)];
     const missing = [];
     for (const f of files) {
       for (const [, ev] of read(f).matchAll(/TX_NET\.on\('([a-z_]+)'/g)) {

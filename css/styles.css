@@ -1568,6 +1568,7 @@ body {
   flex-shrink: 0;
 }
 .die-face.die-sm { --ds: 30px; }
+.die-face.die-md { --ds: 56px; }
 .die-face.die-lg { --ds: 80px; }
 .die-face.die-xl { --ds: 110px; }
 .die-dot {
@@ -2177,3 +2178,7 @@ body.presenting.present-idle * { cursor: none !important; }
 .badge-btn:hover { outline: 2px solid var(--green); outline-offset: 2px; }
 .gm-player-row { display: flex; gap: 6px; align-items: center; }
 .gm-player-row select { flex: 1; min-width: 0; }
+
+/* ── TV display link in the lobby (G16) ── */
+.lobby-tv { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.lobby-tv .lobby-hint { font-size: .78rem; color: var(--text-muted); }

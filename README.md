@@ -71,6 +71,7 @@ Triventurex/
 │
 ├── index.html                    Host page (single device or network host)
 ├── player.html                   Phone page for network players
+├── display.html                  TV display: read-only second screen (/display?game=ID)
 ├── server.js                     Node.js + Socket.IO server (V2)
 ├── package.json                  Dependencies (express, socket.io) + npm scripts
 │
@@ -82,21 +83,24 @@ Triventurex/
 │   │   ├── turn.js               Pure turn logic: next player, undo snapshots, history rows
 │   │   ├── csv.js                CSV parsing for questions / deeds / action cards
 │   │   ├── dice.js               CSS dot-die rendering + roll animation
+│   │   ├── board.js              Board generation + rendering (host + TV display)
+│   │   ├── viewport.js           Pan / zoom / fit / board background (host + TV display)
+│   │   ├── edition.js            Edition config merge + colours (host + TV display)
 │   │   └── socket-client.js      TX_NET: Socket.IO layer, safe no-ops when offline
 │   ├── host/                     Host page only
 │   │   ├── game.js               Shared game state, start / resume / reset, bootstrap (loaded last)
 │   │   ├── turn-flow.js          The turn pipeline, undo, GM controls
 │   │   ├── net-host.js           Host side of network play (lobby, sync, socket events)
-│   │   ├── board.js              Board generation + rendering
 │   │   ├── ui.js                 Modals (question, deed, action, landmark), scoreboard, timer, history
 │   │   ├── setup.js              Setup screen, player rows
 │   │   ├── badge-picker.js       Badge (emoji + colour) picker
 │   │   ├── category-filter.js    3-level question topic filter
 │   │   ├── edition-loader.js     Edition loading, colours, branding
-│   │   ├── storage.js            Saved game + remembered preferences
-│   │   └── viewport.js           Pan / zoom / board background
-│   └── player/
-│       └── player.js             Phone screen logic
+│   │   └── storage.js            Saved game + remembered preferences
+│   ├── player/
+│   │   └── player.js             Phone screen logic
+│   └── display/
+│       └── display.js            TV display logic (G16)
 │
 ├── css/styles.css                All styling (colours driven by edition config)
 ├── images/                       Setup screen game-length illustrations
@@ -309,9 +313,10 @@ id,text,kind,note
 8. **Questions are answered on your phone**: tap Easy or Hard, then tap A / B / C. The host scores it automatically and both screens show the right answer. Open questions appear on your phone too; say the answer out loud and the GM judges it. (The GM can still answer for you on the host. Rule: *Rules → Questions → Players answer on their phone*.)
 9. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
 10. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
-11. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
-12. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
-13. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
+11. **📺 TV display**: in the lobby (or *GM controls*) click **📺 Open TV display** and drag the window to the TV (or open the shown address on a smart TV). The TV shows the lobby QR code, then the board, tokens, scoreboard, dice, timer and the open card — never an unrevealed answer or an action card. The laptop keeps all the controls.
+12. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
+13. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
+14. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
 
 ---
 
