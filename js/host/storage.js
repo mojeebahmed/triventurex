@@ -101,6 +101,35 @@ function _loadHostPlayerPref() {
   try { return JSON.parse(localStorage.getItem(LS_HOST_PLAYER)); } catch { return null; }
 }
 
+// ── Marked questions (G14 + G19) ─────────────────────────────────────────────
+// Questions the GM reported as wrong / unclear, per edition: { [id]: { note, at } }.
+// Kept until unmarked, so they can be fixed in questions.csv later.
+const LS_MARKED_PREFIX = 'triventurex_marked_';
+
+function loadMarkedQuestions(editionId = getActiveEditionId()) {
+  try { return JSON.parse(localStorage.getItem(LS_MARKED_PREFIX + editionId)) || {}; } catch { return {}; }
+}
+
+function saveMarkedQuestions(marked, editionId = getActiveEditionId()) {
+  try {
+    if (Object.keys(marked).length) localStorage.setItem(LS_MARKED_PREFIX + editionId, JSON.stringify(marked));
+    else localStorage.removeItem(LS_MARKED_PREFIX + editionId);
+  } catch {}
+}
+
+/** Mark (or update the note of) a question; note '' is fine. */
+function markQuestion(id, note = '') {
+  const marked = loadMarkedQuestions();
+  marked[id] = { note: String(note).trim().slice(0, 300), at: new Date().toISOString() };
+  saveMarkedQuestions(marked);
+}
+
+function unmarkQuestion(id) {
+  const marked = loadMarkedQuestions();
+  delete marked[id];
+  saveMarkedQuestions(marked);
+}
+
 function _saveGameSettings(gameLength, pathIndex) {
   try {
     localStorage.setItem(LS_GAME_SETTINGS, JSON.stringify({

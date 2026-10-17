@@ -73,6 +73,7 @@ function initSetupScreen() {
   document.getElementById('play-again-btn').addEventListener('click', resetToSetup);
   document.getElementById('rematch-btn').addEventListener('click', rematch);
   initSetupFlow();
+  initQuestionExplorer();
   document.getElementById('gm-only-toggle')?.addEventListener('change', () => { _applyGMOnlyUI(); updateSetupValues(); });
 }
 

@@ -33,6 +33,7 @@
       <div class="setup-tabs" role="tablist">
         <button type="button" class="setup-tab active" data-tab="new" role="tab">🎲 New game</button>
         <button type="button" class="setup-tab" data-tab="rules" role="tab">⚙️ Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
+        <button type="button" class="setup-tab" data-tab="questions" role="tab">📚 Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
       </div>
 
       <!-- ── Tab 1: New game — one step open at a time; choosing moves on ── -->
@@ -165,6 +166,32 @@
           <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()">📋 Copy as preset</button>
           <button type="button" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()">↺ Reset to preset</button>
         </div>
+      </div>
+
+      <!-- ── Tab 3: Questions (G19) — browse, search, mark wrong / unclear ── -->
+      <div id="setup-tab-questions" class="setup-tab-panel hidden">
+        <div class="qx-head">
+          <input id="qx-search" type="search" placeholder="Search questions, answers, notes or #id…" autocomplete="off">
+          <select id="qx-diff" class="settings-select">
+            <option value="all">Easy + hard</option><option value="easy">🟢 Easy</option><option value="hard">🔵 Hard</option>
+          </select>
+          <label class="qx-check"><input type="checkbox" id="qx-marked-only"> 🚩 Marked only</label>
+          <label class="qx-check"><input type="checkbox" id="qx-answers"> Show answers</label>
+        </div>
+        <div class="rules-layout qx-layout">
+          <nav id="qx-tree" class="qx-tree"></nav>
+          <div class="qx-list-wrap">
+            <div id="qx-count" class="qx-count"></div>
+            <div id="qx-list"></div>
+          </div>
+        </div>
+        <div class="rules-foot qx-foot">
+          <span id="qx-marked-summary" class="qx-marked-summary"></span>
+          <span class="rules-foot-spacer"></span>
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyMarkedQuestions()">📋 Copy marked list</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="clearMarkedQuestions()">Clear marks</button>
+        </div>
+        <textarea id="qx-export" class="rules-export hidden" rows="8" readonly></textarea>
       </div>
 
       <!-- Always visible: the whole setup + Start -->
@@ -437,6 +464,7 @@
   <script src="js/shared/turn.js"></script>
   <script src="js/shared/rules.js"></script>
   <script src="js/shared/stats.js"></script>
+  <script src="js/shared/questions.js"></script>
   <script src="js/shared/dice.js"></script>
   <script src="js/host/ui.js"></script>
   <script src="js/shared/socket-client.js"></script>
@@ -450,6 +478,7 @@
   <script src="js/host/board-picker.js"></script>
   <script src="js/host/setup-flow.js"></script>
   <script src="js/host/rules-panel.js"></script>
+  <script src="js/host/question-explorer.js"></script>
   <script src="js/shared/viewport.js"></script>
   <script src="js/host/presentation.js"></script>
   <script src="js/host/net-host.js"></script>

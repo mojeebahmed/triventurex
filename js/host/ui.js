@@ -385,7 +385,8 @@ function _showQuestion(diff, player, onDone) {
           : q.answer
       }</strong></div>
       ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
-    </div>`;
+    </div>
+    ${reportQuestionHtml(q)}`;
 
   showModal({
     icon: diff === 'easy' ? '🟢' : '🔵',
@@ -443,7 +444,8 @@ function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
       <div class="question-text">${q.q}</div>
       ${optionsHtml}
       <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
-      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}`,
+      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
+      ${reportQuestionHtml(q)}`,
     actions: [{ label: 'Continue ▶', class: 'btn btn-primary', callback: onDone }],
   });
 }
@@ -471,7 +473,8 @@ function _showQuestionWithAnswer(q, diff, pts, player, onDone) {
       <div class="question-text">${q.q}</div>
       ${optionsHtml}
       <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
-      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}`,
+      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
+      ${reportQuestionHtml(q)}`,
     actions: [
       { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
         callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },

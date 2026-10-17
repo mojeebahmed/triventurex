@@ -14,9 +14,9 @@ const _visibleSteps = () => SETUP_STEPS.map(id => document.getElementById(id))
 
 function showSetupTab(tab) {
   document.querySelectorAll('.setup-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.getElementById('setup-tab-new').classList.toggle('hidden', tab !== 'new');
-  document.getElementById('setup-tab-rules').classList.toggle('hidden', tab !== 'rules');
+  document.querySelectorAll('.setup-tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `setup-tab-${tab}`));
   if (tab === 'rules') renderRulesTab();
+  if (tab === 'questions') renderQuestionExplorer();
 }
 
 /** Open one step (or none with null); the others collapse. */
@@ -112,7 +112,8 @@ function initSetupFlow() {
   // (On a focused button Enter keeps pressing that button; selects/textareas are left alone.)
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !document.getElementById('setup-screen').classList.contains('active')) return;
-    if (e.target.closest('textarea, select, button, #setup-tab-rules')) return;
+    if (!e.target.isConnected) return;   // its element was just redrawn away — can't tell where it was
+    if (e.target.closest('textarea, select, button, #setup-tab-rules, #setup-tab-questions')) return;
     e.preventDefault();
     document.getElementById('start-game-btn').click();
   });

@@ -126,6 +126,7 @@ async function onEditionPicked(editionId) {
   const len = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
   populatePathSelector(len);
   if (picker) picker.style.opacity = '1';
+  resetQuestionExplorer();            // 📚 Questions tab: this edition's questions + marks
   onSetupChoice('edition-section');   // heading shows the edition; move on to length
 }
 

@@ -45,6 +45,7 @@ function makeUi(ruleChanges = {}, { phone = false } = {}) {
     _askOnPhone: (player, card, onChoice) => { if (phone) asked.push({ card, onChoice }); return phone; },
     _cancelPhonePrompt: () => { cancelled++; },
     _isStale: () => false,
+    reportQuestionHtml: () => '',
     _onScoreChange: () => {},
   });
   vm.runInContext('setAllowNegativeScores(gameRules().scoring.negativeScores)', ctx);

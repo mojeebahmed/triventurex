@@ -86,6 +86,8 @@ Triventurex/
 │   │   ├── board.js              Board generation + rendering (host + TV display)
 │   │   ├── viewport.js           Pan / zoom / fit / board background (host + TV display)
 │   │   ├── edition.js            Edition config merge + colours (host + TV display)
+│   │   ├── stats.js              End-screen stats + awards
+│   │   ├── questions.js          Question tree / search / marked-questions report
 │   │   └── socket-client.js      TX_NET: Socket.IO layer, safe no-ops when offline
 │   ├── host/                     Host page only
 │   │   ├── game.js               Shared game state, start / resume / reset, bootstrap (loaded last)
@@ -96,6 +98,7 @@ Triventurex/
 │   │   ├── badge-picker.js       Badge (emoji + colour) picker
 │   │   ├── category-filter.js    3-level question topic filter
 │   │   ├── edition-loader.js     Edition loading, colours, branding
+│   │   ├── question-explorer.js  Setup tab 📚 Questions + 🚩 report during play
 │   │   └── storage.js            Saved game + remembered preferences
 │   ├── player/
 │   │   └── player.js             Phone screen logic
@@ -299,6 +302,8 @@ id,text,kind,note
 **GM controls** (⚙️ on the game screen): adjust score, move a player, skip their next turn, **sit out / rejoin** (skipped in turn order but keeps their place and score), and remove a network player. Score/move/skip changes appear in the move history and can be undone.
 
 **📺 Presentation mode** (for a TV mirrored from the laptop): click 📺 next to the zoom buttons, or press **P**. The game goes full screen, the board fills the screen, and the current player, dice, timer and scoreboard are drawn bigger. GM controls, the game log, manual dice and the timer buttons are behind the small ⚙️ in the top corner. **Esc** (or ✕) goes back. Works offline too.
+
+**🚩 Reporting questions:** a question card on the host has *🚩 Report this question* (with an optional note) — for a wrong answer, a typo or an unclear question. The setup screen's **📚 Questions** tab lists every question by category › subcategory › topic, with search, a difficulty filter and *Show answers*. Mark or unmark questions there too, filter *🚩 Marked only*, and **📋 Copy marked list** to fix them in `questions.csv` (marks are kept per edition until you clear them).
 
 **Undo:** while a space card is open, Undo cancels just that turn (back to before the roll). Between turns, it undoes the last turn or GM change.
 

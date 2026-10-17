@@ -453,6 +453,7 @@ body {
 #board-viewport {
   flex: 1;
   overflow: hidden;
+  overflow: clip;   /* never scrolls (pan/zoom use transforms) — not even when an input in a card gets focus */
   position: relative;
   cursor: grab;
   user-select: none;
@@ -2196,3 +2197,64 @@ body.presenting.present-idle * { cursor: none !important; }
 /* ── TV display link in the lobby (G16) ── */
 .lobby-tv { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .lobby-tv .lobby-hint { font-size: .78rem; color: var(--text-muted); }
+
+/* ── 📚 Questions tab (G19) ─────────────────────────────────────── */
+#setup-tab-questions:not(.hidden) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.qx-head {
+  flex: none; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+  padding: 10px 14px; margin-bottom: 12px;
+  background: var(--green-light); border: 1px solid var(--border); border-radius: 10px;
+}
+#qx-search { flex: 1 1 240px; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; }
+#setup-tab-questions .settings-select { width: auto; flex: 0 0 auto; }
+.qx-check { font-size: .85rem; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.qx-layout {
+  flex: 1; min-height: 0; grid-template-columns: 220px 1fr; gap: 0;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.qx-tree { height: 100%; overflow-y: auto; padding: 8px; background: var(--bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.qx-node {
+  display: flex; justify-content: space-between; gap: 8px; text-align: left;
+  border: none; background: none; border-radius: 7px; padding: 6px 9px; font: inherit; font-size: .85rem; cursor: pointer; color: var(--text);
+}
+.qx-node small { color: var(--text-muted); }
+.qx-node:hover { background: var(--green-light); }
+.qx-node.active { background: var(--green); color: #fff; font-weight: 700; }
+.qx-node.active small { color: rgba(255,255,255,.85); }
+.qx-node.depth-1 { padding-left: 22px; font-size: .82rem; }
+.qx-node.depth-2 { padding-left: 36px; font-size: .8rem; }
+.qx-list-wrap { height: 100%; overflow-y: auto; padding: 12px 16px; }
+.qx-count { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
+.qx-empty { color: var(--text-muted); font-size: .9rem; }
+.qx-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; background: var(--card); text-align: left; }
+.qx-item.marked { border-color: var(--danger); box-shadow: inset 4px 0 0 var(--danger); }
+.qx-meta { font-size: .72rem; color: var(--text-muted); margin-bottom: 4px; }
+.qx-q { font-weight: 700; font-size: .92rem; }
+.qx-opts { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .84rem; }
+.qx-opts b { color: var(--text-muted); margin-right: 2px; }
+.qx-item.show-answers .qx-correct { color: var(--green); font-weight: 700; }
+.qx-reveal { margin-top: 6px; font-size: .84rem; }
+.qx-reveal summary { cursor: pointer; color: var(--text-muted); font-size: .78rem; }
+.qx-item.show-answers .qx-reveal summary { display: none; }
+.qx-answer { color: var(--green-dark, var(--green)); font-weight: 600; margin-top: 2px; }
+.qx-note-text { color: var(--text-muted); font-weight: 400; font-size: .8rem; margin-top: 2px; }
+.qx-mark { margin-top: 6px; font-size: .82rem; color: var(--danger); font-weight: 600; }
+.qx-actions { margin-top: 6px; display: flex; gap: 14px; }
+.qx-actions .link-btn { font-size: .8rem; }
+.qx-edit { display: flex; gap: 6px; margin-top: 8px; }
+.qx-note-input { flex: 1; min-width: 0; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-size: .85rem; }
+.qx-more { margin: 4px auto 8px; display: block; width: auto; }
+.qx-foot { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; }
+.qx-marked-summary { font-size: .82rem; color: var(--text-muted); }
+#setup-tab-questions .rules-export { flex: none; margin-bottom: 6px; }
+@media (max-width: 720px) {
+  .qx-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .qx-tree { height: auto; max-height: 160px; border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+/* 🚩 Report on a question card during play (G14) — host only, never on the TV */
+.q-report { margin-top: 12px; text-align: left; font-size: .82rem; }
+.q-report summary { cursor: pointer; color: var(--text-muted); }
+.q-report[open] summary { color: var(--danger); font-weight: 700; }
+.q-report-row { display: flex; gap: 6px; margin-top: 6px; }
+.q-report-row input { flex: 1; min-width: 0; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-size: .85rem; }
