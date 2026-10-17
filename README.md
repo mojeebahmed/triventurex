@@ -302,15 +302,16 @@ id,text,kind,note
 1. The host starts the server, opens `http://localhost:3000`, chooses edition, length and board, picks **📱 On phones** in ④ Players, and clicks **Open lobby**.
 2. The lobby shows a **QR code**, the join address and a 4-digit Game ID (e.g. `4823`).
 3. Players **scan the QR code** with their phone camera (the Game ID is filled in), or open the address and type the ID, then set their name/badge. Latecomers can join mid-game: *GM controls → 📱 Show join code*.
-4. The host clicks Start and the game begins. (Joined with the wrong name or badge? Tap *← Leave* in the phone lobby and join again.)
-5. The turn before yours, your phone shows *"You're next — get ready!"*. On your turn it buzzes (where supported) and shows an active **Roll Dice** box (green glow). Tap to roll.
-6. After rolling, your phone shows the die result while the GM resolves the space on the host screen.
-7. **Questions are answered on your phone**: tap Easy or Hard, then tap A / B / C. The host scores it automatically and both screens show the right answer. Open questions appear on your phone too; say the answer out loud and the GM judges it. (The GM can still answer for you on the host. Rule: *Rules → Questions → Players answer on their phone*.)
-8. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
-9. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
-10. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
-11. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
-12. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
+4. Someone without a phone? Type their name under the player list in the lobby (*No phone? Add a player by name*) — they play on the host screen: the GM rolls for them and handles their cards. Also possible mid-game in *GM controls*. A game can even run with no phones at all.
+5. The host clicks Start and the game begins. (Joined with the wrong name or badge? Tap *← Leave* in the phone lobby and join again.)
+6. The turn before yours, your phone shows *"You're next — get ready!"*. On your turn it buzzes (where supported) and shows an active **Roll Dice** box (green glow). Tap to roll.
+7. After rolling, your phone shows the die result while the GM resolves the space on the host screen.
+8. **Questions are answered on your phone**: tap Easy or Hard, then tap A / B / C. The host scores it automatically and both screens show the right answer. Open questions appear on your phone too; say the answer out loud and the GM judges it. (The GM can still answer for you on the host. Rule: *Rules → Questions → Players answer on their phone*.)
+9. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
+10. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
+11. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
+12. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
+13. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
 
 ---
 

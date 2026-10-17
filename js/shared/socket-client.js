@@ -47,6 +47,7 @@ const TX_NET = (() => {
   // Host → ONE player's phone (e.g. an action card only the performer may see)
   function sendPrivateCard(gameId, playerId, card) { _socket?.emit('private_card', { gameId, playerId, card }); }
   function sendCardChoice(gameId, promptId, choice) { _socket?.emit('card_choice', { gameId, promptId, choice }); }
+  function addLocalPlayer(gameId, profile) { _socket?.emit('add_local_player', { gameId, profile }); }
 
   function setGameId(id)   { _gameId = id; }
   function setPlayerId(id) { _playerId = id; }
@@ -59,7 +60,7 @@ const TX_NET = (() => {
     on, connect,
     hostGame, joinGame, startGame, requestRoll, manualRoll, syncState,
     removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
-    rejoinGame, hostRejoin, closeRoom, sendPrivateCard, sendCardChoice,
+    rejoinGame, hostRejoin, closeRoom, sendPrivateCard, sendCardChoice, addLocalPlayer,
     setGameId, setPlayerId, getGameId, getPlayerId,
     isHostMode, isConnected,
   };

@@ -194,6 +194,11 @@
         </div>
       </div>
       <div id="lobby-players" class="lobby-players-list"></div>
+      <!-- G17: someone at the table without a phone plays on this screen -->
+      <form class="add-local-row" onsubmit="event.preventDefault(); addPhonelessPlayer('lobby-local-name')">
+        <input id="lobby-local-name" type="text" maxlength="20" placeholder="No phone? Add a player by name" autocomplete="off">
+        <button type="submit" class="btn btn-secondary btn-small">➕ Add</button>
+      </form>
       <div id="lobby-status" class="lobby-status">Waiting for players to join...</div>
       <button id="lobby-start-btn" class="btn btn-primary btn-large" disabled onclick="startNetworkGame()">
         Start Game →
@@ -364,6 +369,10 @@
             <div id="gm-network-section" class="hidden">
               <h4>Network Players</h4>
               <div id="gm-network-list"></div>
+              <form class="add-local-row" onsubmit="event.preventDefault(); addPhonelessPlayer('gm-local-name')">
+                <input id="gm-local-name" type="text" maxlength="20" placeholder="Player without a phone" autocomplete="off">
+                <button type="submit" class="btn btn-secondary btn-small" title="Add a player who plays on this screen">➕</button>
+              </form>
               <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
                       onclick="showJoinCode()">📱 Show join code</button>
             </div>

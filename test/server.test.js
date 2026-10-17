@@ -24,6 +24,16 @@ function once(socket, event, ms = 1000) {
   });
 }
 
+/** Like once(), but skips payloads until `match(data)` is true. */
+function onceWhere(socket, event, match, ms = 1000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { socket.off(event, h); reject(new Error(`timeout waiting for '${event}'`)); }, ms);
+    const h = data => { if (match(data)) { clearTimeout(t); socket.off(event, h); resolve(data); } };
+    socket.on(event, h);
+  });
+}
+const joinedNamed = (socket, name) => onceWhere(socket, 'player_joined', d => d.player?.name === name);
+
 /** Record every `event` payload into an array (for "exactly N" / "none" checks). */
 function collect(socket, event) {
   const seen = [];
@@ -468,6 +478,62 @@ describe('card choices (G3)', () => {
     stranger.emit('card_choice', { gameId, promptId: 1, choice: 'A' });
     await settle();
     assert.equal(atHost.length, 0);
+  });
+});
+
+describe('players without a phone (G17)', () => {
+  it('the host adds one: everyone hears about it, it has no socket and no token', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 1, start: false });
+    const atPhone = joinedNamed(players[0].socket, 'Grandma');
+    host.emit('add_local_player', { gameId, profile: { name: 'Grandma', token: '👵', color: '#123456' } });
+    const { player, players: list } = await atPhone;
+    assert.equal(player.name, 'Grandma');
+    assert.equal(player.noPhone, true);
+    assert.equal(list.length, 2);
+    const seat = room.players.find(p => p.id === player.id);
+    assert.equal(seat.socketId, null);
+    assert.equal(seat.rejoinToken, undefined);
+  });
+
+  it('only the host can add one', async () => {
+    const { gameId, players, room } = await setupGame({ phones: 1, start: false });
+    players[0].socket.emit('add_local_player', { gameId, profile: { name: 'Fake' } });
+    await settle();
+    assert.equal(room.players.length, 1);
+  });
+
+  it('keeps noPhone through host syncs (server-owned)', async () => {
+    const { host, gameId, room } = await setupGame({ phones: 1 });
+    const added = joinedNamed(host, 'Grandma');
+    host.emit('add_local_player', { gameId, profile: { name: 'Grandma' } });
+    await added;
+    const view = hostView(room).map(({ noPhone, ...rest }) => rest);   // the host doesn't send it
+    host.emit('sync_state', { gameId, playerStates: view });
+    await settle();
+    assert.deepEqual(room.players.map(p => !!p.noPhone), [false, true]);
+  });
+
+  it('removing one in the lobby sends the new list', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 1, start: false });
+    const added = joinedNamed(host, 'Grandma');
+    host.emit('add_local_player', { gameId, profile: { name: 'Grandma' } });
+    const { player } = await added;
+    const removed = onceWhere(players[0].socket, 'player_removed', d => d.playerId === player.id);
+    host.emit('remove_player', { gameId, playerId: player.id });
+    assert.deepEqual((await removed).players.map(p => p.name), ['P0']);
+  });
+
+  it("a seat without a token can't be taken over by a phone", async () => {
+    const { host, gameId, room } = await setupGame({ phones: 1, hostPlays: true });
+    const added = joinedNamed(host, 'Grandma');
+    host.emit('add_local_player', { gameId, profile: { name: 'Grandma' } });
+    const { player } = await added;
+    for (const [playerId, rejoinToken] of [[0, undefined], [0, null], [player.id, undefined], [player.id, '']]) {
+      const thief = await connect();
+      thief.emit('rejoin_game', { gameId, playerId, rejoinToken });
+      await once(thief, 'rejoin_failed');
+    }
+    assert.equal(room.players.find(p => p.id === player.id).socketId, null);
   });
 });
 

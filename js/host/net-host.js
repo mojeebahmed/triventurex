@@ -131,7 +131,44 @@ function _renderLobbyPlayers(players) {
             <div class="token-emoji">${esc(p.token)}</div>
           </div>
           <span>${esc(p.name)}</span>
+          ${p.noPhone ? `<small class="no-phone-tag">🖥 no phone</small>
+            <button type="button" class="lobby-remove" title="Remove" onclick="removeLobbyPlayer(${p.id})">✕</button>` : ''}
         </div>`).join('');
+}
+
+// ── Players without a phone (G17) ─────────────────────────────────────────────
+// They sit at the table and play on the host screen: the host rolls for them,
+// resolves their spaces and shows action cards behind the host-screen toggle
+// (_canReachPhone is false for them). The server keeps them as seats with no
+// socket, so they're in every sync like anyone else.
+
+/** Host-side player from a server player entry. */
+function _playerFromServer(p) {
+  return Object.assign(createPlayer(p.id, p.name, p.color, p.token), { noPhone: !!p.noPhone });
+}
+
+/** A default badge (token + colour) nobody in `players` uses yet. */
+function _freeBadge(players) {
+  const tokens = new Set(players.map(p => p.token)), colors = new Set(players.map(p => p.color));
+  const defs = CONFIG.PLAYERS.defaults;
+  return defs.find(d => !tokens.has(d.token) && !colors.has(d.color))
+      ?? defs.find(d => !tokens.has(d.token))
+      ?? defs[players.length % defs.length];
+}
+
+/** Lobby or GM panel: add the name typed in `inputId` as a player without a phone. */
+function addPhonelessPlayer(inputId) {
+  const input = document.getElementById(inputId);
+  const name  = input?.value.trim();
+  if (!name || !_networkGameId) return;
+  const { token, color } = _freeBadge(_isNetworkGame ? state.players : _lobbyPlayers);
+  TX_NET.addLocalPlayer(_networkGameId, { name, token, color });
+  input.value = '';
+  input.focus();
+}
+
+function removeLobbyPlayer(playerId) {
+  if (_networkGameId) TX_NET.removePlayer(_networkGameId, playerId);
 }
 
 function _renderGMNetworkPlayers(serverPlayers) {
@@ -142,7 +179,7 @@ function _renderGMNetworkPlayers(serverPlayers) {
       <div class="score-token" style="background:${esc(p.color)}">
         <div class="token-emoji">${esc(p.token)}</div>
       </div>
-      <span class="gm-net-name">${esc(p.name)}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
+      <span class="gm-net-name">${esc(p.name)}${p.noPhone ? ' <small class="no-phone-tag">🖥 no phone</small>' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
       <button class="btn btn-small btn-danger" onclick="gmRemoveNetworkPlayer(${p.id})">✕</button>
     </div>`).join('');
 }
@@ -195,7 +232,7 @@ function _sendPrivateCard(player, card) {
 
 /** Can the host reach this player's own phone? */
 const _canReachPhone = player => !!(_isNetworkGame && _networkGameId && player &&
-  player.id !== state.hostPlayerId && !player.disconnected);
+  player.id !== state.hostPlayerId && !player.noPhone && !player.disconnected);
 
 /**
  * Show a card on ONE player's phone: `{ title, text, rule?, note?, hint?,
@@ -301,7 +338,7 @@ function _initSocketHandlers() {
     // Mid-game join — add them to the host's game state and sync, so the
     // server stops treating them as "not yet seen by the host"
     if (_isNetworkGame && state.phase === 'playing' && !state.players.some(p => p.id === player.id)) {
-      state.players.push(createPlayer(player.id, player.name, player.color, player.token));
+      state.players.push(_playerFromServer(player));
       refreshUI();
       _renderGMNetworkPlayers(state.players);
       saveGame();
@@ -315,7 +352,7 @@ function _initSocketHandlers() {
 
     _startNewGame({
       gameId:     _networkGameId,
-      players:    players.map(p => createPlayer(p.id, p.name, p.color, p.token)),
+      players:    players.map(_playerFromServer),
       gameLength: setup.gameLength,
       pathIndex:  setup.pathIndex,
       hostPlayerId: setup.hostPlayer?.id ?? null,   // the host's own player has no phone

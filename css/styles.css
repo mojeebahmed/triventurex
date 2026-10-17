@@ -2158,3 +2158,18 @@ body.presenting.present-idle * { cursor: none !important; }
 .question-option.option-wrong { background: #FFEBEE; border-color: var(--danger, #C62828); }
 .option-wrong .option-letter  { background: var(--danger, #C62828); }
 .option-picked { margin-left: auto; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+
+/* ── Players without a phone (G17) ── */
+.add-local-row { display: flex; gap: 6px; margin: 0 0 12px; }
+.add-local-row input {
+  flex: 1; min-width: 0;
+  padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-size: .85rem;
+}
+#gm-network-section .add-local-row { margin: 6px 0 0; }
+.no-phone-tag { font-size: .72rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.lobby-player-row .no-phone-tag { margin-left: auto; }
+.lobby-remove {
+  border: none; background: none; cursor: pointer; color: var(--text-muted);
+  font-size: .9rem; padding: 2px 6px; border-radius: 6px;
+}
+.lobby-remove:hover { background: #FFEBEE; color: var(--danger); }

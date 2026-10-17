@@ -423,6 +423,24 @@ describe('players and GM', () => {
     assert.deepEqual(got, ['B']);
   });
 
+  it('a player without a phone joins the host game and is never sent phone cards (G17)', () => {
+    const w = makeWorld(); w.network(); w.run("state.phase = 'playing'");
+    w.handlers.player_joined({ player: { id: 2, name: 'Gran', color: '#333', token: 'g', noPhone: true }, players: [] });
+    assert.equal(w.run('state.players.length'), 3);
+    assert.equal(w.run('state.players[2].noPhone'), true);
+    assert.equal(w.run(`_askOnPhone(state.players[2], { choices: [] }, () => {})`), false);
+    assert.equal(w.run(`_sendPhoneCard(state.players[2], { text: 'x' })`), false);
+  });
+
+  it('free badge: a default token + colour nobody uses yet', () => {
+    const w = makeWorld();
+    const used = w.run('state.players.map(p => p.token)');
+    const b = w.run(`state.players[0].token = CONFIG.PLAYERS.defaults[0].token;
+                     state.players[1].color = CONFIG.PLAYERS.defaults[1].color; _freeBadge(state.players)`);
+    assert.ok(![...used, w.run('CONFIG.PLAYERS.defaults[0].token')].includes(b.token));
+    assert.notEqual(b.color, w.run('CONFIG.PLAYERS.defaults[1].color'));
+  });
+
   it("phone prompts: never to the host's own player or a disconnected phone", () => {
     const w = makeWorld(); w.network();
     w.run('state.hostPlayerId = 0; state.players[1].disconnected = true');

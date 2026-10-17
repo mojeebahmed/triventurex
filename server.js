@@ -101,6 +101,30 @@ function publicState(room) {
   };
 }
 
+/** A new player seat in `room` with the next free id. */
+function newPlayer(room, profile, socketId) {
+  const ids = room.players.map(p => p.id);
+  let id = 0;
+  while (ids.includes(id)) id++;
+  return {
+    id,
+    socketId,
+    ...cleanProfile(profile, `Player ${id + 1}`),
+    position:             0,
+    score:                0,
+    finished:             false,
+    skipNextTurn:         false,
+    hasExtraTurn:         false,
+    protectedFromBadDeed: false,
+    finishOrder:          null,
+    inactive:             false,
+    disconnected:         false,
+    // Until a host sync includes this player, a sync with an older player list
+    // must not drop them (they joined after the host built that list)
+    awaitingHostSync:     true,
+  };
+}
+
 /** Take a player out of the room, keeping currentPlayerIndex on the same player. */
 function removeFromRoom(room, idx) {
   const [removed] = room.players.splice(idx, 1);
@@ -222,31 +246,10 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Assign next available id
-    const existingIds = room.players.map(p => p.id);
-    let playerId = 0;
-    while (existingIds.includes(playerId)) playerId++;
-
-    const player = {
-      id:                   playerId,
-      socketId:             socket.id,
-      ...cleanProfile({ name: playerName, token, color }, `Player ${playerId + 1}`),
-      position:             0,
-      score:                0,
-      finished:             false,
-      skipNextTurn:         false,
-      hasExtraTurn:         false,
-      protectedFromBadDeed: false,
-      finishOrder:          null,
-      inactive:             false,
-      disconnected:         false,
-    };
-
+    const player   = newPlayer(room, { name: playerName, token, color }, socket.id);
+    const playerId = player.id;
     const rejoinToken = Math.random().toString(36).slice(2, 10);
     player.rejoinToken = rejoinToken;
-    // Until a host sync includes this player, a sync with an older player list
-    // must not drop them (they joined after the host built that list)
-    player.awaitingHostSync = true;
 
     room.players.push(player);
     socket.join(gameId);
@@ -270,6 +273,19 @@ io.on('connection', (socket) => {
     if (room.phase === 'playing') socket.emit('state_update', publicState(room));
 
     console.log(`[join_game]  playerId=${playerId} joined gameId=${gameId} total=${room.players.length}`);
+  });
+
+  // ── add_local_player — host adds a player without a phone (G17) ────────────
+  // No socket and no rejoin token: the host rolls for them and resolves their
+  // spaces on its own screen. `noPhone` is connection state, owned here.
+  socket.on('add_local_player', ({ gameId, profile }) => {
+    const room = rooms.get(gameId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    const player = newPlayer(room, profile, null);
+    player.noPhone = true;
+    room.players.push(player);
+    io.to(gameId).emit('player_joined', { player: publicPlayer(player), players: publicPlayers(room.players) });
+    console.log(`[add_local]  ${player.name} (no phone) added to gameId=${gameId}`);
   });
 
   // ── start_game ─────────────────────────────────────────────────────────────
@@ -350,6 +366,7 @@ io.on('connection', (socket) => {
           socketId:         existing?.socketId    ?? null,
           rejoinToken:      existing?.rejoinToken ?? null,
           disconnected:     existing?.disconnected ?? false,
+          noPhone:          existing?.noPhone ?? false,
           awaitingHostSync: false,
         };
       });
@@ -383,8 +400,8 @@ io.on('connection', (socket) => {
       // Tell everyone (incl. the removed phone), then stop sending that phone
       // room broadcasts. No state_update here — the host owns turn order and
       // syncs the result itself (see player_removed in game.js).
-      io.to(gameId).emit('player_removed', { playerId });
-      io.sockets.sockets.get(removed.socketId)?.leave(gameId);
+      io.to(gameId).emit('player_removed', { playerId, players: publicPlayers(room.players) });
+      if (removed.socketId) io.sockets.sockets.get(removed.socketId)?.leave(gameId);
     }
   });
 
@@ -393,7 +410,10 @@ io.on('connection', (socket) => {
     const room = rooms.get(gameId);
     if (!room) { socket.emit('rejoin_failed', { msg: 'Game not found or expired.' }); return; }
 
-    const player = room.players.find(p => p.id === playerId && p.rejoinToken === rejoinToken);
+    // Seats without a token (the host's own player, players without a phone)
+    // can't be taken over: a missing token must never match a missing token
+    const player = typeof rejoinToken === 'string' && rejoinToken &&
+                   room.players.find(p => p.id === playerId && p.rejoinToken === rejoinToken);
     if (!player) { socket.emit('rejoin_failed', { msg: 'Invalid session.' }); return; }
 
     // Update socket ID
