@@ -24,11 +24,11 @@ Ask these before choosing a theme:
 
 1. **Too thin?** Can you name 20 distinct places/stops in a natural order? Can you write 200 questions *without* padding (e.g. "what colour is…" ×30)? Are there 25 things to act/explain/make a sound of?
 2. **Too wide?** Do the categories have little to do with each other (e.g. space + inventions + human body)? Would a player who loves one category be bored by the rest? Could each half reach 200 questions on its own? → **split it** into two editions.
-3. **Overlap?** Does it repeat another edition's content? Keep the shared part in one edition only.
+3. **Overlap?** Some overlap with other editions is fine — even duplicate questions (think of each edition as written by someone who doesn't know the others). But a topic that belongs to another edition must stay a small side dish, **at most ~10% of the questions**, so the edition doesn't feel like a different game (e.g. a few food questions in World Tour, a few country questions in Food Around the World).
 4. **Lasting?** Will the answers still be right in 5 years? Avoid content that dates fast (charts, current celebrities, records that keep changing) or note the year in the question.
 5. **Family-friendly?** Can a 7-year-old play the easy questions while adults get challenged by the hard ones?
 
-Verdicts used below: ✅ right size · ⚠️ thin, needs widening · ✂️ too wide, split · 🔀 merge with another idea.
+Verdicts used below: ✅ right size · ⚠️ thin, needs widening · ✂️ too wide, split · 🔀 merge with another idea. "Overlap" notes below mean *keep it small*, not *leave it out*.
 
 ---
 
@@ -53,7 +53,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 
 - Facts that change (records, "the current…", number of moons) — or put the year in the question.
 - Content that only works for one age group: `easy` should suit a 7-year-old, `hard` should challenge adults.
-- Repeating another edition's content — note the overlap in the idea and keep it in one place.
+- Letting another edition's topic take over — overlap is fine, but keep it to about 10% of the questions.
 - Reusing or renumbering question ids (asked-question tracking and 🚩 marks are stored by id).
 
 ---
@@ -64,7 +64,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 |---|---|---|---|---|
 | 1 | Animal Safari | Claude + Gemini (*Wild Kingdom*) | ✅ | Huge topic, easy for kids. Keep the ocean out (→ Ocean Deep) |
 | 2 | Space Explorer | Claude + Gemini (*Science & Innovation*, part) | ✅ | Strong journey (Earth → edge of the solar system) |
-| 3 | World Tour | Claude + Gemini (*Global Trekker*) | ✅ | Best landmarks of any idea. Leave food to #6 |
+| 3 | World Tour | Claude + Gemini (*Global Trekker*) | ✅ | Best landmarks of any idea. A little food is fine (≤10%) |
 | 4 | Dino Quest (Prehistoric) | Claude | ⚠️ → widened | Dinosaurs alone are thin for 200 questions; add fossils, ice age, early life |
 | 5 | Fairy Tales & Stories | Claude | ✅ | Classic tales + fables + children's books |
 | 6 | Food Around the World | Claude + Gemini (*Culinary World Tour*) | ✅ | Easiest action cards of all |
@@ -142,7 +142,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 
 **Deeds:** good — *Learned the local greeting*, *Caught a shortcut flight*; bad — *Missed the train*, *Lost your passport*, *Took the wrong bus*.
 **Actions:** mime a landmark, say "hello" in another language, act out a local activity (skiing the Alps, eating with chopsticks).
-**Sizing:** ✅ The richest landmarks of any idea. **Overlap:** food questions go to Food Around the World (#6), myths to #13.
+**Sizing:** ✅ The richest landmarks of any idea. **Overlap:** a few food (#6) and myth (#13) questions are fine — keep each under ~10%.
 
 ---
 
@@ -273,7 +273,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 **Pitch:** dive from the beach down to the deepest point on Earth.
 **Categories:** sea creatures (80), ocean zones (40), coral reefs & coasts (40), ships & explorers (40).
 **Landmarks:** Beach, Tide Pools, Coral Reef, Kelp Forest, Great Barrier Reef, Sunlight Zone, Shipwreck, Twilight Zone, Midnight Zone, Abyss, Hydrothermal Vents, Mariana Trench, Challenger Deep, Bermuda Triangle, Titanic Wreck, Galápagos, Antarctic Ice Shelf, Whale Highway, Sargasso Sea, Atlantis.
-**Sizing:** ✅ The board goes deeper as you play. **Overlap:** take ocean animals out of Animal Safari.
+**Sizing:** ✅ The board goes deeper as you play. **Overlap:** Animal Safari can keep a few ocean animals.
 
 ---
 
