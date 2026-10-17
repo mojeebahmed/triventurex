@@ -50,7 +50,8 @@ function renderBoardPicker(gameLength, selected = document.getElementById('path-
     card('random', '<span class="board-card-dice">🎲</span>', 'Random', 'A different path each game') +
     templates.map((t, i) => {
       const spaces = buildPathCoords(gameLength, t).coords.length;
-      return card(String(i), boardThumbSvg(gameLength, t), _pathLabel(t), `${t.name} · ${spaces} spaces`);
+      return card(String(i), boardThumbSvg(gameLength, t), (t.custom ? '✏️ ' : '') + _pathLabel(t),
+                  `${t.name} · ${spaces} spaces${t.custom ? ' · your board' : ''}`);
     }).join('');
 }
 

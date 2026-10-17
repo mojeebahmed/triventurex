@@ -101,6 +101,34 @@ function _loadHostPlayerPref() {
   try { return JSON.parse(localStorage.getItem(LS_HOST_PLAYER)); } catch { return null; }
 }
 
+// ── Custom boards (G20) ──────────────────────────────────────────────────────
+// Boards drawn in the ✏️ Boards tab: { short: [...], medium: [...], long: [...] },
+// each a path template + id. For every edition (a board is just a shape).
+const LS_CUSTOM_BOARDS = 'triventurex_custom_boards';
+
+function loadCustomBoards() {
+  try {
+    const b = JSON.parse(localStorage.getItem(LS_CUSTOM_BOARDS)) || {};
+    return { short: b.short || [], medium: b.medium || [], long: b.long || [] };
+  } catch { return { short: [], medium: [], long: [] }; }
+}
+
+function saveCustomBoards(boards) {
+  try { localStorage.setItem(LS_CUSTOM_BOARDS, JSON.stringify(boards)); } catch {}
+}
+
+/**
+ * Put the saved boards into CONFIG.PATH_TEMPLATES, after the built-in ones
+ * (so built-in indexes never change), marked `custom: true`. Safe to call again.
+ */
+function applyCustomBoards() {
+  const saved = loadCustomBoards();
+  for (const len of Object.keys(CONFIG.PATH_TEMPLATES)) {
+    CONFIG.PATH_TEMPLATES[len] = CONFIG.PATH_TEMPLATES[len].filter(t => !t.custom)
+      .concat((saved[len] || []).map(t => ({ ...t, custom: true })));
+  }
+}
+
 // ── Marked questions (G14 + G19) ─────────────────────────────────────────────
 // Questions the GM reported as wrong / unclear, per edition: { [id]: { note, at } }.
 // Kept until unmarked, so they can be fixed in questions.csv later.

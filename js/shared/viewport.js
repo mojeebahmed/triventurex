@@ -166,14 +166,19 @@ function fitBoardInView() {
   const bH  = board.offsetHeight;
   if (!bW || !bH) return;
 
+  // Keep the board clear of the legend (host page, bottom-left) — most boards
+  // start bottom-left, and the start tokens must not hide under it
+  const legend = document.getElementById('board-legend');
+  const padLeft = legend?.offsetWidth ? legend.offsetWidth + 20 : pad;
+
   const fitScale = Math.min(
-    (vp.offsetWidth  - pad * 2) / bW,
+    (vp.offsetWidth  - padLeft - pad) / bW,
     (vp.offsetHeight - pad * 2) / bH,
     (typeof isPresenting === 'function' && isPresenting()) ? (CONFIG.PRESENTATION?.maxFitScale ?? 1.0) : 1.0   // TV: let the board fill the screen
   );
 
   view.scale = fitScale;
-  view.x = (vp.offsetWidth  - bW * fitScale) / 2;
+  view.x = padLeft + (vp.offsetWidth - padLeft - pad - bW * fitScale) / 2;
   view.y = (vp.offsetHeight - bH * fitScale) / 2;
 
   // Pin board-world to the board grid size so #board-bg loading never causes

@@ -17,6 +17,7 @@ function showSetupTab(tab) {
   document.querySelectorAll('.setup-tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `setup-tab-${tab}`));
   if (tab === 'rules') renderRulesTab();
   if (tab === 'questions') renderQuestionExplorer();
+  if (tab === 'boards') renderBoardDesigner();
 }
 
 /** Open one step (or none with null); the others collapse. */
@@ -113,7 +114,7 @@ function initSetupFlow() {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !document.getElementById('setup-screen').classList.contains('active')) return;
     if (!e.target.isConnected) return;   // its element was just redrawn away — can't tell where it was
-    if (e.target.closest('textarea, select, button, #setup-tab-rules, #setup-tab-questions')) return;
+    if (e.target.closest('textarea, select, button, #setup-tab-rules, #setup-tab-questions, #setup-tab-boards')) return;
     e.preventDefault();
     document.getElementById('start-game-btn').click();
   });

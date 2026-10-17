@@ -74,6 +74,7 @@ function initSetupScreen() {
   document.getElementById('rematch-btn').addEventListener('click', rematch);
   initSetupFlow();
   initQuestionExplorer();
+  initBoardDesigner();
   document.getElementById('gm-only-toggle')?.addEventListener('change', () => { _applyGMOnlyUI(); updateSetupValues(); });
 }
 

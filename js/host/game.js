@@ -257,6 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   _applyColors();
   _applyBranding();
+  applyCustomBoards();   // boards drawn in the ✏️ Boards tab (G20)
   initSetupScreen();
   initPanZoom();
   initPresentation();

@@ -13,6 +13,7 @@ IDs in brackets (B1, A2, C3, …) refer to items in [`IMPROVEMENT-PLAN.md`](IMPR
 - Phones show *"You're next"* and buzz on your turn (G18); leave the lobby from the phone (G21).
 - 📺 Presentation mode for playing on a TV: full screen, big board and scoreboard, GM tools behind ⚙️ (G15).
 - Answer questions on the phone: choose the difficulty and tap the answer; multiple choice is scored automatically, open questions are judged by the GM. The answer stays hidden on the host screen until then. Rule: *Players answer on their phone* (G3).
+- ✏️ Boards tab: draw your own board path, see it as a thumbnail, save it to *My boards* (it appears in the board picker), play it straight away, or copy it as a `PATH_TEMPLATES` line (G20).
 - 🚩 Report a question during play (with a note), and a **📚 Questions** tab on the setup screen to browse, search and mark questions, then copy the marked list to fix the CSV (G14, G19).
 - End-screen stats and awards: questions right, actions guessed, average roll and spaces per player, plus fun awards (Quiz master, Lucky roller, Trouble magnet, …) on the host and the TV. Editions can rename awards (G13).
 - 📺 TV display: a read-only second screen (`/display?game=ID`) with the lobby QR code, board, tokens, scoreboard, dice, timer and the open card. Unrevealed answers and action cards never reach it (G16).
@@ -22,6 +23,7 @@ IDs in brackets (B1, A2, C3, …) refer to items in [`IMPROVEMENT-PLAN.md`](IMPR
 - Refreshing a phone that was first opened from an earlier game's QR code showed the join page and joined as a new player. It now rejoins the same seat.
 - The host scoreboard now shows ⚠️ next to a player whose phone is disconnected.
 - The board legend no longer shows on the end screen.
+- Fit-to-screen leaves room for the legend, so tokens on the start space are no longer hidden under it.
 - The board area can no longer be scrolled by the browser (e.g. by focusing a text box in a card).
 - A phone could take over the host's own player by rejoining without a token. Rejoining now needs the seat's real token.
 

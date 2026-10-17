@@ -34,6 +34,7 @@
         <button type="button" class="setup-tab active" data-tab="new" role="tab">🎲 New game</button>
         <button type="button" class="setup-tab" data-tab="rules" role="tab">⚙️ Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
         <button type="button" class="setup-tab" data-tab="questions" role="tab">📚 Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
+        <button type="button" class="setup-tab" data-tab="boards" role="tab">✏️ Boards</button>
       </div>
 
       <!-- ── Tab 1: New game — one step open at a time; choosing moves on ── -->
@@ -192,6 +193,43 @@
           <button type="button" class="btn btn-secondary btn-small" onclick="clearMarkedQuestions()">Clear marks</button>
         </div>
         <textarea id="qx-export" class="rules-export hidden" rows="8" readonly></textarea>
+      </div>
+
+      <!-- ── Tab 4: Boards (G20) — draw a board path, save it, play it ── -->
+      <div id="setup-tab-boards" class="setup-tab-panel hidden">
+        <div class="qx-head bd-head">
+          <input id="bd-name" type="text" maxlength="30" placeholder="Board name" autocomplete="off">
+          <select id="bd-length" class="settings-select" title="Which game length this board is for">
+            <option value="short">Short game</option><option value="medium">Medium game</option><option value="long">Long game</option>
+          </select>
+          <label class="qx-check">Grid
+            <input id="bd-rows" type="number" class="rules-number" min="6" max="16"> ×
+            <input id="bd-cols" type="number" class="rules-number" min="6" max="16"></label>
+          <select id="bd-load" class="settings-select" title="Start from an existing board"></select>
+        </div>
+        <div class="rules-layout bd-layout">
+          <div class="bd-grid-wrap">
+            <div id="bd-grid" class="bd-grid"></div>
+            <p class="bd-hint" id="bd-hint"></p>
+          </div>
+          <aside class="bd-side">
+            <div id="bd-thumb" class="bd-thumb"></div>
+            <div id="bd-stats" class="bd-stats"></div>
+            <div class="bd-tools">
+              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerUndo()">↩ Undo</button>
+              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerNew()">✨ New</button>
+            </div>
+            <h4 class="bd-saved-title">My boards</h4>
+            <div id="bd-saved" class="bd-saved"></div>
+          </aside>
+        </div>
+        <div class="rules-foot bd-foot">
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyBoardTemplate()">📋 Copy as template</button>
+          <span class="rules-foot-spacer"></span>
+          <button type="button" class="btn btn-secondary btn-small" onclick="saveDesignedBoard()">💾 Save board</button>
+          <button type="button" class="btn btn-primary btn-small" onclick="playDesignedBoard()">▶ Play this board</button>
+        </div>
+        <textarea id="bd-export" class="rules-export hidden" rows="3" readonly></textarea>
       </div>
 
       <!-- Always visible: the whole setup + Start -->
@@ -465,6 +503,7 @@
   <script src="js/shared/rules.js"></script>
   <script src="js/shared/stats.js"></script>
   <script src="js/shared/questions.js"></script>
+  <script src="js/shared/path-design.js"></script>
   <script src="js/shared/dice.js"></script>
   <script src="js/host/ui.js"></script>
   <script src="js/shared/socket-client.js"></script>
@@ -479,6 +518,7 @@
   <script src="js/host/setup-flow.js"></script>
   <script src="js/host/rules-panel.js"></script>
   <script src="js/host/question-explorer.js"></script>
+  <script src="js/host/board-designer.js"></script>
   <script src="js/shared/viewport.js"></script>
   <script src="js/host/presentation.js"></script>
   <script src="js/host/net-host.js"></script>
