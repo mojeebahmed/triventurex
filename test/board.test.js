@@ -17,7 +17,13 @@ const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
 const BOARDS_PER_TEMPLATE = 100;   // ~3,000 boards per run; raise locally to hunt rare bugs
-const EDITIONS = ['swab-quest', 'football-quest'];
+// Every edition in the registry (game_editions/editions.js), so a new edition is tested automatically
+const EDITIONS = (() => {
+  const ctx = { window: {} };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'game_editions/editions.js'), 'utf8'), ctx);
+  return ctx.window.TRIVENTUREX_EDITIONS.map(e => e.id);
+})();
 const ADJACENCY_RULED = new Set(['good_deed', 'bad_deed', 'action', 'landmark']);
 
 /** Sandbox with config, board.js, ui.js and an edition's config + deeds loaded. */

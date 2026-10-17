@@ -23,6 +23,7 @@ Save project files to this project's folder.
 ## Active editions
 - **Swab Quest** — Islamic/Ahmadiyya (first edition)
 - **Football Quest** — football trivia (second edition)
+- **World Tour** — travel & geography, family-friendly (third edition; outline in `game_editions/world-tour/OUTLINE.md`)
 
 ## Run (V1 offline)
 Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
@@ -36,7 +37,7 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 `npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`.
 - `test/turn-flow.test.js` drives the real host turn pipeline (scripts loaded in index.html order, UI stubbed) — add a scenario here when changing turn behaviour
 - `test/csv.test.js` — CSV parser + every edition's content (CSV must match the generated JS; valid answers/effects)
-- `test/board.test.js` — property test: random boards for every template of every edition must keep all placement rules, and every landmark tile label must match where the player actually goes (raise `BOARDS_PER_TEMPLATE` locally to hunt rare cases)
+- `test/board.test.js` — property test: random boards for every template of every edition in `editions.js` must keep all placement rules, and every landmark tile label must match where the player actually goes (raise `BOARDS_PER_TEMPLATE` locally to hunt rare cases)
 - `test/action-cards.test.js` — drawing/showing action cards
 - `test/ui-rules.test.js` — the space modals follow the game's rules (points, timer, difficulty, answering on the phone)
 - `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
@@ -208,10 +209,11 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 ## Current state
 - Version 2.2.0 (2026-10-17) — see `CHANGELOG.md` for what changed in each release (2.1 = code review & hardening, 2.2 = gameplay & play experience). The work-item IDs in commits and the changelog (B1…, A2…, C3…, T1…, G6…) come from the 2026-10 plan: B = bug, A = architecture, C = content, T = tests, G = gameplay
-- 2 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks)
+- 3 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks) + World Tour (220 questions, 56 deed cards, 25 action cards, 26 wonders with Wikimedia Commons photos — credits in `CREDITS.md`)
+- Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
 - Three pages: host (`index.html`), phones (`player.html`), TV (`display.html`)
-- ~310 tests (`npm test`)
+- ~320 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
 - `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)

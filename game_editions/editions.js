@@ -34,4 +34,12 @@ window.TRIVENTUREX_EDITIONS = [
     accentColor: '#3485bf',
   },
 
+  {
+    id:          'world-tour',
+    name:        'World Tour',
+    icon:        '🌍',
+    description: 'Collect Stamps on a trip around the world, from the Eiffel Tower to Machu Picchu.',
+    accentColor: '#00897B',
+  },
+
 ];

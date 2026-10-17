@@ -7,10 +7,13 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **World Tour** edition 🌍: a trip around the world collecting *Stamps*. 220 questions (capitals, flags & languages, wonders & nature, culture, a little food), 56 deed cards (*Smooth Travels* / *Travel Trouble*), 25 action cards and 26 wonders with photos from Wikimedia Commons (credits in `game_editions/world-tour/CREDITS.md`) on a 1635 world-map board.
+- `scripts/commons-image.js`: finds free-licence photos on Wikimedia Commons, crops/resizes them for an edition and records the credit.
 - **General action cards** (C4): 40 everyday cards in `game_editions/shared/actions.csv` (act / explain / sound) that are mixed into every edition's deck. ⚙️ Rules → Action cards → *Add general cards* (on by default). An edition without its own `actions.csv` now gets digital action cards too.
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
 
 ### Changed
+- `test/board.test.js` now tests every edition in `game_editions/editions.js` instead of a fixed list.
 - ⚙️ Rules tab: the header is a one-line action bar (preset, "✎ N changed", ↺ Reset, 📋 Copy) like the Questions and Boards tabs. The "Rules for …" line is gone (the edition is in the setup header) and the preset's description is its tooltip.
 
 ## [2.2.0] — 2026-10-17

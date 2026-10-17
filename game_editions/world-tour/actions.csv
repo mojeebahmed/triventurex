@@ -1,0 +1,26 @@
+id,text,kind,note
+1,Act out posing like the Statue of Liberty,act,
+2,Act out eating noodles with chopsticks,act,
+3,Act out riding a camel across the desert,act,
+4,Act out skiing down a steep mountain in the Alps,act,
+5,Act out packing a suitcase in a big hurry,act,
+6,Act out taking a selfie with a famous wonder,act,Others guess which wonder
+7,Act out paddling a gondola through Venice,act,
+8,Act out running to catch a train that is already leaving,act,
+9,Act out a traditional dance from another country,act,Others guess the country
+10,Act out climbing Mount Everest in a snowstorm,act,
+11,Passport,explain,"Don't say: travel, photo, border"
+12,Volcano,explain,"Don't say: lava, mountain, erupt"
+13,Pyramid,explain,"Don't say: Egypt, triangle, desert"
+14,Jet lag,explain,"Don't say: sleep, time, plane"
+15,Souvenir,explain,"Don't say: buy, shop, remember"
+16,Compass,explain,"Don't say: north, direction, needle"
+17,Island,explain,"Don't say: sea, water, beach"
+18,Desert,explain,"Don't say: sand, hot, camel"
+19,Make the sound of a busy airport,sound,
+20,Make the sound of Niagara Falls,sound,
+21,Make the sound of a camel,sound,
+22,Make the sound of a big ship's horn,sound,
+23,Hum the chimes of Big Ben,sound,"Hum only, no words"
+24,Make the sound of a lion roaring on the Serengeti,sound,
+25,Make the sounds of monkeys in the rainforest,sound,

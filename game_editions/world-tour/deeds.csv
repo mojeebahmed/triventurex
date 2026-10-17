@@ -1,0 +1,57 @@
+type,text,effect,value,effect_2,value_2,effect_3,value_3,mood
+good,You learned the local greeting and everyone smiled. Welcome!,score_add,2,move_forward,2,protection,1,social
+good,A friendly local showed you a shortcut through the old town.,move_forward,4,score_add,1,,,social
+good,You caught an earlier flight and landed with time to spare.,move_forward,3,extra_turn,1,,,blessing
+good,You helped a lost tourist find their way. They gave you a little souvenir!,score_add,2,all_players_gain,1,,,social
+good,Free upgrade to first class — a comfy seat and extra snacks!,move_forward,3,score_add,2,,,blessing
+good,You packed light and zoomed through the airport while everyone else queued.,move_forward,4,extra_turn,1,,,funny
+good,Your travel insurance came in handy. Nothing can go wrong now!,protection,1,score_add,1,,,blessing
+good,You swapped postcards with a new friend from another country.,all_players_gain,1,score_add,1,,,social
+good,You tried a food you'd never heard of — and loved it!,score_add,2,move_forward,2,,,risk
+good,The tour guide picked you to ring the bell at the top of the tower.,score_add,3,extra_turn,1,,,blessing
+good,You said three words in the local language and a whole café cheered.,score_add,2,protection,1,move_forward,1,funny
+good,A rainbow appeared right over your hotel. What a view!,score_add,2,move_forward,2,,,blessing
+good,You found your lost phone in the seat pocket. Phew! Stamps for staying calm.,protection,1,score_add,1,,,reflection
+good,"The train was late, but you stayed cheerful and made friends in the queue.",score_add,1,all_players_gain,1,move_forward,1,social
+good,Your tour bus takes you straight to {landmark}!,move_to_next_landmark,1,score_add,1,,,blessing
+good,"A hot-air balloon ride gives you the best view of {landmark}. Up, up and away!",move_to_next_landmark,1,score_add,2,,,blessing
+good,You took a night train and woke up far from where you started.,move_forward,4,score_add,1,,,blessing
+good,You learned to say thank you in five languages. Everyone is impressed.,score_add,3,move_forward,1,,,challenge
+good,You gave your seat to an older traveller and got a big smile.,protection,1,score_add,2,,,reflection
+good,You won a dance-off at the street festival!,score_add,2,extra_turn,1,move_forward,2,funny
+good,You took a wrong turn and found the best bakery in town.,move_forward,1,score_add,3,,,funny
+good,You shared your map with a family who were lost. Teamwork!,all_players_gain,2,move_forward,1,,,social
+good,You picked up litter on the beach and the whole town thanked you.,score_add,2,protection,1,,,reflection
+good,Not a single suitcase went missing today. Everything arrived on time!,extra_turn,1,move_forward,2,,,funny
+good,You took the scenic route and spotted a famous sight from the train window.,move_forward,3,score_add,1,,,blessing
+good,A friendly pilot invited you to peek into the cockpit.,extra_turn,1,score_add,2,,,blessing
+good,You danced with a street musician and shared your snack with the crowd.,score_add,2,all_players_gain,1,,,social
+good,You carried a stranger's heavy suitcase up all the stairs. What a hero!,score_add,2,protection,1,,,social
+bad,You missed your train by thirty seconds. Sit this one out.,skip_turn,1,score_remove,1,,,funny
+bad,You left your passport at the hotel! Hurry back.,move_back,3,score_remove,1,,,challenge
+bad,"Your luggage went to the wrong country. Hello, borrowed socks!",score_remove,2,move_back,1,,,funny
+bad,You got on the bus going the wrong way.,move_back,3,score_remove,1,,,funny
+bad,Your flight was delayed by a storm. Wait here.,skip_turn,1,move_back,1,,,challenge
+bad,"You forgot to charge your phone, so no map! Back to {landmark}.",move_to_prev_landmark,1,score_remove,1,,,funny
+bad,You tried to bargain in the wrong language and paid triple.,score_remove,3,move_back,1,,,funny
+bad,A seagull stole your sandwich right out of your hand!,score_remove,1,move_back,2,,,funny
+bad,You fell asleep on the train and missed your stop.,move_back,4,skip_turn,1,,,funny
+bad,The hotel gave away your room. You spent the night in the lobby.,skip_turn,1,score_remove,1,,,challenge
+bad,You wore flip-flops on a mountain hike. Blisters!,score_remove,2,move_back,2,,,funny
+bad,Lost in the old town — every street looks the same! Back to {landmark}.,move_to_prev_landmark,1,score_remove,1,,,funny
+bad,Your suitcase was too heavy and you had to pay extra.,score_remove,3,move_back,1,,,reflection
+bad,You forgot your sunscreen and now you look like a tomato.,score_remove,2,move_back,1,,,funny
+bad,Traffic jam! Everyone in the taxi is stuck.,all_players_lose,1,move_back,2,,,challenge
+bad,You missed the last ferry and had to sleep on the pier.,skip_turn,1,score_remove,2,move_back,1,challenge
+bad,You dropped your ice cream on the very first lick.,score_remove,1,move_back,1,,,funny
+bad,You trusted a map that was upside down. Back to {landmark}.,move_to_prev_landmark,2,score_remove,1,,,funny
+bad,You pushed into the line at the museum and got sent to the back.,move_back,3,score_remove,1,,,reflection
+bad,"Rain, rain, rain! The whole day of sightseeing is cancelled.",all_players_lose,1,score_remove,1,,,challenge
+bad,"You left the tour bus without telling the guide, and it left without you.",move_back,3,skip_turn,1,,,challenge
+bad,You pressed the wrong button and ordered twelve bowls of soup.,score_remove,2,move_back,1,,,funny
+bad,You forgot about the time zone and arrived a whole day late.,skip_turn,1,move_back,2,,,funny
+bad,Your camera battery died right before the best photo of the trip.,score_remove,2,move_back,1,,,funny
+bad,You complained loudly about the queue instead of being patient.,score_remove,2,move_back,2,,,reflection
+bad,You lost the group in a crowded market. Hurry back to {landmark}!,move_to_prev_landmark,1,score_remove,2,skip_turn,1,challenge
+bad,You ignored the 'wet floor' sign. Splash!,score_remove,1,move_back,2,skip_turn,1,funny
+bad,A strong headwind forces your plane to take a longer route.,move_back,2,all_players_lose,1,,,challenge

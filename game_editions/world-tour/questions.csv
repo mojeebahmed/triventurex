@@ -1,0 +1,221 @@
+id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
+1,What is the capital of France?,multi,2,Nice,Paris,Lyon,Marseille,easy,Countries & Capitals,Capitals,Europe,
+2,What is the capital of Italy?,multi,1,Rome,Venice,Milan,Naples,easy,Countries & Capitals,Capitals,Europe,
+3,What is the capital of Spain?,multi,3,Seville,Valencia,Madrid,Barcelona,easy,Countries & Capitals,Capitals,Europe,
+4,What is the capital of Germany?,multi,1,Berlin,Frankfurt,Munich,Hamburg,easy,Countries & Capitals,Capitals,Europe,
+5,What is the capital of Greece?,multi,1,Athens,Thessaloniki,Sparta,Crete,easy,Countries & Capitals,Capitals,Europe,
+6,What is the capital of Switzerland?,multi,2,Geneva,Bern,Basel,Zurich,hard,Countries & Capitals,Capitals,Europe,"Zurich is the biggest city, but Bern is the capital."
+7,What is the capital of Croatia?,multi,1,Zagreb,Dubrovnik,Split,Rijeka,hard,Countries & Capitals,Capitals,Europe,
+8,What is the capital of Romania?,multi,4,Budapest,Belgrade,Sofia,Bucharest,hard,Countries & Capitals,Capitals,Europe,
+9,What is the capital of Ireland?,open,Dublin,,,,,easy,Countries & Capitals,Capitals,Europe,
+10,"Which European capital is built on 14 islands, where a big lake meets the Baltic Sea?",open,Stockholm,,,,,hard,Countries & Capitals,Capitals,Europe,Stockholm lies where Lake Mälaren meets the Baltic Sea.
+11,What is the capital of Japan?,multi,2,Kyoto,Tokyo,Osaka,Hiroshima,easy,Countries & Capitals,Capitals,Asia,
+12,What is the capital of India?,multi,3,Chennai,Kolkata,New Delhi,Mumbai,easy,Countries & Capitals,Capitals,Asia,
+13,What is the capital of South Korea?,multi,4,Incheon,Pyongyang,Busan,Seoul,easy,Countries & Capitals,Capitals,Asia,
+14,What is the capital of Turkey?,multi,1,Ankara,Antalya,Izmir,Istanbul,hard,Countries & Capitals,Capitals,Asia,"Istanbul is the biggest city, but Ankara is the capital."
+15,What is the capital of Vietnam?,multi,3,Hue,Ho Chi Minh City,Hanoi,Da Nang,hard,Countries & Capitals,Capitals,Asia,
+16,Tokyo used to have a different name until 1868. What was it?,open,Edo,,,,,hard,Countries & Capitals,Capitals,Asia,
+17,What is the capital of Egypt?,multi,3,Giza,Luxor,Cairo,Alexandria,easy,Countries & Capitals,Capitals,Africa,
+18,What is the capital of Kenya?,multi,1,Nairobi,Dar es Salaam,Mombasa,Kampala,easy,Countries & Capitals,Capitals,Africa,
+19,What is the capital of Nigeria?,multi,3,Kano,Accra,Abuja,Lagos,hard,Countries & Capitals,Capitals,Africa,"Lagos is the biggest city, but Abuja is the capital."
+20,What is the capital of Morocco?,multi,4,Casablanca,Marrakech,Fez,Rabat,hard,Countries & Capitals,Capitals,Africa,
+21,What is the capital of Ethiopia?,multi,4,Khartoum,Mogadishu,Nairobi,Addis Ababa,easy,Countries & Capitals,Capitals,Africa,
+22,South Africa has three capital cities. Name one of them.,open,"Pretoria, Cape Town or Bloemfontein",,,,,hard,Countries & Capitals,Capitals,Africa,"Pretoria (government), Cape Town (parliament) and Bloemfontein (courts)."
+23,What is the capital of the United States?,multi,1,"Washington, D.C.",Los Angeles,Chicago,New York,easy,Countries & Capitals,Capitals,Americas,
+24,What is the capital of Canada?,multi,4,Vancouver,Toronto,Montreal,Ottawa,hard,Countries & Capitals,Capitals,Americas,
+25,What is the capital of Brazil?,multi,4,Salvador,São Paulo,Rio de Janeiro,Brasília,hard,Countries & Capitals,Capitals,Americas,"Rio was the capital until 1960, when the new city of Brasília took over."
+26,What is the capital of Mexico?,multi,3,Guadalajara,Acapulco,Mexico City,Cancún,easy,Countries & Capitals,Capitals,Americas,
+27,"What is the capital of Peru, the country of Machu Picchu?",open,Lima,,,,,easy,Countries & Capitals,Capitals,Americas,
+28,What is the capital of Australia?,multi,4,Perth,Sydney,Melbourne,Canberra,hard,Countries & Capitals,Capitals,Oceania,"Sydney is the biggest city, but Canberra is the capital."
+29,What is the capital of New Zealand?,multi,3,Queenstown,Auckland,Wellington,Christchurch,hard,Countries & Capitals,Capitals,Oceania,
+30,What is the capital of the island country Fiji?,open,Suva,,,,,hard,Countries & Capitals,Capitals,Oceania,
+31,Which country is shaped like a boot?,multi,2,Spain,Italy,Portugal,Greece,easy,Countries & Capitals,Countries & borders,Europe,
+32,How many countries share a land border with Germany?,multi,4,12,7,5,9,hard,Countries & Capitals,Countries & borders,Europe,"Denmark, Poland, Czechia, Austria, Switzerland, France, Luxembourg, Belgium and the Netherlands."
+33,"Which country is known as the ""Land of a Thousand Lakes""?",multi,2,Norway,Finland,Estonia,Sweden,hard,Countries & Capitals,Countries & borders,Europe,"Finland has around 188,000 lakes."
+34,"Which country is called the ""Land of the Rising Sun""?",multi,1,Japan,India,Thailand,China,easy,Countries & Capitals,Countries & borders,Asia,
+35,"Which country is made up of more than 17,000 islands?",multi,4,Japan,Philippines,Maldives,Indonesia,hard,Countries & Capitals,Countries & borders,Asia,
+36,"Which famous city is split between two continents, Europe and Asia?",open,Istanbul,,,,,easy,Countries & Capitals,Countries & borders,Asia,The Bosphorus strait runs through the middle of the city.
+37,Through which of these countries does the equator pass?,multi,3,Nigeria,Ethiopia,Kenya,Egypt,hard,Countries & Capitals,Countries & borders,Africa,
+38,Which small African country is completely surrounded by South Africa?,open,Lesotho,,,,,hard,Countries & Capitals,Countries & borders,Africa,"Lesotho is an ""enclave"" — a country inside another country."
+39,Which big island off the east coast of Africa is home to lemurs?,multi,4,Zanzibar,Mauritius,Sicily,Madagascar,easy,Countries & Capitals,Countries & borders,Africa,
+40,Which is the only country in South America where most people speak Portuguese?,multi,1,Brazil,Peru,Chile,Argentina,easy,Countries & Capitals,Countries & borders,Americas,
+41,"Which South American country is very long and thin, stretching along the Andes mountains?",multi,1,Chile,Uruguay,Colombia,Bolivia,easy,Countries & Capitals,Countries & borders,Americas,
+42,Which two countries share the longest land border in the world?,open,Canada and the United States,,,,,hard,Countries & Capitals,Countries & borders,Americas,
+43,Which country is also a whole continent?,multi,4,Greenland,New Zealand,Indonesia,Australia,easy,Countries & Capitals,Countries & borders,Oceania,
+44,"Which continent has no permanent residents, only visiting scientists?",open,Antarctica,,,,,easy,Countries & Capitals,Countries & borders,World,
+45,"Which country has the most time zones, counting its overseas territories?",multi,2,China,France,Russia,United States,hard,Countries & Capitals,Countries & borders,World,Overseas areas such as French Polynesia give France 12 time zones.
+46,Which country is the largest in the world by area?,multi,4,Canada,China,United States,Russia,easy,Countries & Capitals,"Biggest, smallest & highest",World,
+47,Which is the smallest country in the world?,multi,1,Vatican City,Monaco,San Marino,Liechtenstein,easy,Countries & Capitals,"Biggest, smallest & highest",World,"Vatican City covers only about 0.44 square kilometres, inside the city of Rome."
+48,"Since 2023, which country has the most people in the world?",multi,2,China,India,United States,Indonesia,hard,Countries & Capitals,"Biggest, smallest & highest",World,
+49,Which is the longest river in Africa?,multi,4,Niger,Zambezi,Congo,Nile,easy,Countries & Capitals,"Biggest, smallest & highest",Africa,
+50,Which mountain is the highest above sea level?,multi,3,K2,Kilimanjaro,Mount Everest,Mont Blanc,easy,Countries & Capitals,"Biggest, smallest & highest",World,"Everest is 8,849 metres tall."
+51,Which is the biggest ocean in the world?,open,The Pacific Ocean,,,,,easy,Countries & Capitals,"Biggest, smallest & highest",World,
+52,"What is the largest desert in the world, if you count cold deserts too?",open,Antarctica,,,,,hard,Countries & Capitals,"Biggest, smallest & highest",World,"A desert is a place with very little rain or snow. Antarctica is the driest, coldest one."
+53,What is the deepest known place in the oceans?,multi,3,Java Trench,Puerto Rico Trench,Mariana Trench,Tonga Trench,hard,Countries & Capitals,"Biggest, smallest & highest",World,The Challenger Deep in the Mariana Trench is almost 11 km deep.
+54,Which lake is the largest freshwater lake in the world by surface area?,multi,1,Lake Superior,Lake Victoria,Lake Michigan,Lake Baikal,hard,Countries & Capitals,"Biggest, smallest & highest",Americas,
+55,Which lake in Russia is the deepest lake in the world?,multi,4,Lake Superior,Lake Tanganyika,Lake Ladoga,Lake Baikal,hard,Countries & Capitals,"Biggest, smallest & highest",Asia,"Baikal is about 1,640 metres deep."
+56,Which is the tallest waterfall in the world?,multi,4,Niagara Falls,Victoria Falls,Iguazu Falls,Angel Falls,hard,Countries & Capitals,"Biggest, smallest & highest",Americas,"Angel Falls in Venezuela drops almost 1,000 metres."
+57,Which is the largest island in the world (not counting continents)?,multi,4,Madagascar,Borneo,Iceland,Greenland,easy,Countries & Capitals,"Biggest, smallest & highest",World,
+58,Which country is usually said to have the most islands in the world?,multi,4,Greece,Indonesia,Philippines,Sweden,hard,Countries & Capitals,"Biggest, smallest & highest",Europe,"Counting rules vary, but Sweden is usually named first: over 200,000 islands, most tiny and empty."
+59,"Which South American capital is the highest capital city in the world, high up in the Andes?",open,La Paz (Bolivia),,,,,hard,Countries & Capitals,"Biggest, smallest & highest",Americas,"La Paz, the seat of government, lies at about 3,600 metres."
+60,Which country is the largest in Africa by area?,multi,4,Sudan,Libya,DR Congo,Algeria,hard,Countries & Capitals,"Biggest, smallest & highest",Africa,Sudan was bigger until South Sudan became independent in 2011.
+61,Which Nordic country's flag is blue with a yellow cross?,multi,2,Norway,Sweden,Finland,Denmark,easy,Flags & Languages,Flags,Europe,
+62,The Danish flag is said to be the oldest national flag still in use. What are its colours?,open,Red with a white cross,,,,,easy,Flags & Languages,Flags,Europe,It is called the Dannebrog.
+63,"Which country's flag has three horizontal stripes: red on top, white in the middle and green at the bottom?",multi,4,Italy,Bulgaria,Poland,Hungary,hard,Flags & Languages,Flags,Europe,"Italy's stripes go up and down; Bulgaria's are white, green and red."
+64,Which two countries have square national flags?,open,Switzerland and Vatican City,,,,,hard,Flags & Languages,Flags,Europe,
+65,Which part of the United Kingdom has a red dragon on its flag?,multi,4,Northern Ireland,England,Scotland,Wales,easy,Flags & Languages,Flags,Europe,
+66,"What are the colours of the German flag, from top to bottom?",open,"Black, red and gold",,,,,easy,Flags & Languages,Flags,Europe,
+67,The Union Jack combines the crosses of three patron saints. Which three?,open,"St George (England), St Andrew (Scotland) and St Patrick (Ireland)",,,,,hard,Flags & Languages,Flags,Europe,
+68,Which country's flag has nine blue and white stripes and a white cross in the corner?,multi,3,Argentina,Israel,Greece,Finland,easy,Flags & Languages,Flags,Europe,
+69,Which country's flag is white with a big red circle in the middle?,multi,3,Turkey,Vietnam,Japan,China,easy,Flags & Languages,Flags,Asia,
+70,Which country has the only national flag that is not a rectangle or a square?,multi,3,Bhutan,Switzerland,Nepal,Sri Lanka,hard,Flags & Languages,Flags,Asia,Nepal's flag is made of two stacked triangles.
+71,Which country's flag is red with a white crescent moon and star?,multi,4,Pakistan,Iran,Saudi Arabia,Turkey,easy,Flags & Languages,Flags,Asia,"Tunisia's flag is similar, with the crescent inside a white circle."
+72,What is the blue wheel in the middle of India's flag called?,open,The Ashoka Chakra,,,,,hard,Flags & Languages,Flags,Asia,
+73,How many stars are on China's flag?,multi,2,4,5,3,7,easy,Flags & Languages,Flags,Asia,One big star and four small ones.
+74,Which African country's flag has a golden eagle in the middle?,multi,2,Morocco,Egypt,Nigeria,Kenya,hard,Flags & Languages,Flags,Africa,
+75,Which African country's flag shows a traditional Maasai shield and two spears?,multi,3,Ghana,Zimbabwe,Kenya,Uganda,hard,Flags & Languages,Flags,Africa,
+76,"Which three colours are on the flags of many African countries, such as Ghana and Senegal?",open,"Red, gold (yellow) and green",,,,,hard,Flags & Languages,Flags,Africa,They are known as the Pan-African colours.
+77,Which country's flag has a red maple leaf in the middle?,multi,1,Canada,Mexico,Peru,Chile,easy,Flags & Languages,Flags,Americas,
+78,How many stars are on the flag of the United States?,multi,2,13,50,52,48,easy,Flags & Languages,Flags,Americas,One for each state.
+79,"How many stripes does the US flag have, and what do they stand for?",open,13 — one for each of the first colonies,,,,,easy,Flags & Languages,Flags,Americas,
+80,Which country's flag has a blue globe inside a yellow diamond on a green background?,multi,2,Jamaica,Brazil,Colombia,Bolivia,easy,Flags & Languages,Flags,Americas,
+81,Which country's flag shows an eagle sitting on a cactus and holding a snake?,multi,2,Peru,Mexico,Chile,Colombia,hard,Flags & Languages,Flags,Americas,
+82,Which group of stars appears on the flags of both Australia and New Zealand?,multi,1,The Southern Cross,Orion,The Big Dipper,The Pleiades,hard,Flags & Languages,Flags,Oceania,
+83,What is in the top-left corner of the Australian flag?,open,The Union Jack (the British flag),,,,,easy,Flags & Languages,Flags,Oceania,
+84,Which colour appears on the most national flags?,multi,2,Green,Red,Blue,Yellow,hard,Flags & Languages,Flags,World,
+85,What is the word for a person who studies flags?,open,A vexillologist,,,,,hard,Flags & Languages,Flags,World,"From the Latin word ""vexillum"", meaning flag."
+86,"How do you say ""hello"" in Spanish?",multi,3,Ciao,Bonjour,Hola,Hallo,easy,Flags & Languages,Languages & greetings,Europe,
+87,"""Ciao"" is a friendly hello and goodbye in which language?",multi,2,Greek,Italian,Spanish,Dutch,easy,Flags & Languages,Languages & greetings,Europe,
+88,"What does ""merci"" mean in French?",open,Thank you,,,,,easy,Flags & Languages,Languages & greetings,Europe,
+89,How many official languages does Switzerland have?,multi,4,2,5,3,4,hard,Flags & Languages,Languages & greetings,Europe,"German, French, Italian and Romansh."
+90,"What does ""konnichiwa"" mean in Japanese?",multi,1,Hello (good afternoon),Sorry,Goodbye,Thank you,easy,Flags & Languages,Languages & greetings,Asia,
+91,"""Namaste"" is a greeting with pressed palms. Which country is it from?",multi,2,Mongolia,India,Japan,Vietnam,easy,Flags & Languages,Languages & greetings,Asia,It is also used in Nepal.
+92,"""Annyeonghaseyo"" means hello in which language?",multi,1,Korean,Thai,Vietnamese,Japanese,hard,Flags & Languages,Languages & greetings,Asia,
+93,Which language has the most native speakers in the world?,multi,4,English,Spanish,Hindi,Mandarin Chinese,hard,Flags & Languages,Languages & greetings,Asia,
+94,"What does ""jambo"" mean in Swahili?",multi,3,Goodbye,Please,Hello,Thank you,hard,Flags & Languages,Languages & greetings,Africa,"Swahili is spoken in Kenya, Tanzania and several other countries."
+95,"What does the Swahili phrase ""hakuna matata"" mean?",open,No worries,,,,,easy,Flags & Languages,Languages & greetings,Africa,
+96,What is the main language spoken in Egypt?,multi,3,Swahili,Hebrew,Arabic,French,easy,Flags & Languages,Languages & greetings,Africa,
+97,Which language is spoken in most of Central and South America?,multi,2,English,Spanish,Portuguese,French,easy,Flags & Languages,Languages & greetings,Americas,Brazil is the big exception: people there speak Portuguese.
+98,Which province of Canada is the one where most people speak French?,open,Quebec,,,,,hard,Flags & Languages,Languages & greetings,Americas,
+99,"How do you say ""thank you"" in Spanish?",multi,1,Gracias,Danke,Merci,Grazie,easy,Flags & Languages,Languages & greetings,Americas,
+100,"What does ""aloha"" mean in Hawaiian?",open,Hello and goodbye (it can also mean love),,,,,easy,Flags & Languages,Languages & greetings,Oceania,
+101,"""Kia ora"" is a greeting in which indigenous language of New Zealand?",multi,2,Samoan,Māori,Hawaiian,Fijian,hard,Flags & Languages,Languages & greetings,Oceania,
+102,"Which language is spoken by the most people in the world, if you count everyone who speaks it, even as a second language?",open,English,,,,,hard,Flags & Languages,Languages & greetings,World,
+103,Which of these languages is written from right to left?,multi,3,Russian,Thai,Arabic,Greek,easy,Flags & Languages,Languages & greetings,World,
+104,What is Esperanto?,open,A language invented in the 1880s so that people from every country could talk to each other,,,,,hard,Flags & Languages,Languages & greetings,World,
+105,Is sign language the same all over the world?,open,No — different countries have their own sign languages,,,,,easy,Flags & Languages,Languages & greetings,World,
+106,In which city is the Eiffel Tower?,multi,2,Rome,Paris,Berlin,London,easy,Wonders & Nature,Famous buildings,Europe,
+107,In which city would you find the Colosseum?,multi,3,Paris,Athens,Rome,Madrid,easy,Wonders & Nature,Famous buildings,Europe,
+108,What is the real name of the tower that holds the bell called Big Ben?,open,The Elizabeth Tower,,,,,hard,Wonders & Nature,Famous buildings,Europe,It was simply called the Clock Tower until 2012.
+109,Which architect designed the Sagrada Família church in Barcelona?,multi,1,Antoni Gaudí,Salvador Dalí,Joan Miró,Pablo Picasso,hard,Wonders & Nature,Famous buildings,Europe,
+110,In which Italian city is the famous Leaning Tower?,multi,3,Venice,Florence,Pisa,Rome,easy,Wonders & Nature,Famous buildings,Europe,
+111,Which king built Neuschwanstein Castle in Germany?,open,King Ludwig II of Bavaria,,,,,hard,Wonders & Nature,Famous buildings,Europe,
+112,Which famous London bridge opens in the middle to let tall ships pass?,multi,2,London Bridge,Tower Bridge,Millennium Bridge,Westminster Bridge,hard,Wonders & Nature,Famous buildings,Europe,
+113,Which museum in Paris is home to the Mona Lisa?,multi,3,The Uffizi,The British Museum,The Louvre,The Prado,easy,Wonders & Nature,Famous buildings,Europe,
+114,What was the Taj Mahal built as?,multi,3,A palace,A temple,A tomb,A fort,hard,Wonders & Nature,Famous buildings,Asia,"Shah Jahan built it for his wife, Mumtaz Mahal."
+115,In which city is the Burj Khalifa?,multi,2,Abu Dhabi,Dubai,Doha,Riyadh,easy,Wonders & Nature,Famous buildings,Asia,
+116,In which country is the huge temple complex of Angkor Wat?,multi,1,Cambodia,Vietnam,Thailand,Laos,hard,Wonders & Nature,Famous buildings,Asia,
+117,The Great Wall of China was built to keep out invaders from which direction?,open,The north,,,,,hard,Wonders & Nature,Famous buildings,Asia,
+118,In which city is the Hagia Sophia?,multi,1,Istanbul,Cairo,Ankara,Athens,easy,Wonders & Nature,Famous buildings,Asia,
+119,Which ancient city in Jordan is carved into rose-red cliffs?,multi,2,Babylon,Petra,Palmyra,Carthage,easy,Wonders & Nature,Famous buildings,Asia,
+120,"Since 2010, which building has been the tallest in the world?",multi,2,Taipei 101,Burj Khalifa,Shanghai Tower,Petronas Towers,easy,Wonders & Nature,Famous buildings,Asia,
+121,Which famous building in Sydney has roofs that look like white sails?,multi,4,Sydney Town Hall,Queen Victoria Building,Sydney Tower,Sydney Opera House,easy,Wonders & Nature,Famous buildings,Oceania,
+122,The Sydney Opera House was designed by an architect from which country?,open,Denmark,,,,,hard,Wonders & Nature,Famous buildings,Oceania,Jørn Utzon was Danish.
+123,Which country gave the Statue of Liberty to the United States?,multi,1,France,Spain,Italy,England,easy,Wonders & Nature,Famous buildings,Americas,
+124,In which city is the statue of Christ the Redeemer?,multi,2,São Paulo,Rio de Janeiro,Lima,Buenos Aires,easy,Wonders & Nature,Famous buildings,Americas,
+125,Which Inca city sits high in the Andes mountains of Peru?,multi,3,Chichén Itzá,Tikal,Machu Picchu,Teotihuacan,easy,Wonders & Nature,Famous buildings,Americas,
+126,How many steps does the pyramid El Castillo at Chichén Itzá have in total?,multi,1,365,100,250,500,hard,Wonders & Nature,Famous buildings,Americas,There are 91 steps on each side plus the top platform: one for each day of the year.
+127,Which ancient people built the pyramid at Chichén Itzá in Mexico?,multi,2,The Aztecs,The Maya,The Incas,The Romans,easy,Wonders & Nature,Famous buildings,Americas,
+128,In which US city is the Golden Gate Bridge?,multi,4,Seattle,New York,Los Angeles,San Francisco,easy,Wonders & Nature,Famous buildings,Americas,
+129,The Great Sphinx of Giza has the body of which animal and the head of a person?,open,A lion,,,,,easy,Wonders & Nature,Famous buildings,Africa,
+130,"In which country is the Great Mosque of Djenné, the largest mud-brick building in the world?",multi,3,Ethiopia,Morocco,Mali,Egypt,hard,Wonders & Nature,Famous buildings,Africa,
+131,What kind of mountain is Mount Fuji in Japan?,multi,4,A glacier,A limestone cliff,A sand dune,A volcano,easy,Wonders & Nature,Natural wonders,Asia,
+132,Which is the highest mountain range in the world?,multi,2,The Rockies,The Himalayas,The Alps,The Andes,easy,Wonders & Nature,Natural wonders,Asia,
+133,"In which country is Ha Long Bay, with its many limestone islands rising out of the sea?",multi,2,Philippines,Vietnam,China,Thailand,hard,Wonders & Nature,Natural wonders,Asia,
+134,What is the largest hot desert in the world?,multi,3,The Gobi,The Arabian Desert,The Sahara,The Kalahari,easy,Wonders & Nature,Natural wonders,Africa,
+135,"In which country is Mount Kilimanjaro, Africa's highest mountain?",multi,2,Ethiopia,Tanzania,Uganda,Kenya,hard,Wonders & Nature,Natural wonders,Africa,
+136,"What does the local name of Victoria Falls, ""Mosi-oa-Tunya"", mean?",open,The smoke that thunders,,,,,hard,Wonders & Nature,Natural wonders,Africa,
+137,Millions of which animals travel across the Serengeti every year in the Great Migration?,multi,2,Giraffes,Wildebeest,Elephants,Rhinos,easy,Wonders & Nature,Natural wonders,Africa,Zebras and gazelles travel with them.
+138,Which is the highest mountain in the Alps?,multi,1,Mont Blanc,The Matterhorn,The Zugspitze,The Eiger,hard,Wonders & Nature,Natural wonders,Europe,
+139,"What are the long, narrow sea inlets between steep cliffs in Norway called?",open,Fjords,,,,,easy,Wonders & Nature,Natural wonders,Europe,
+140,Iceland is famous for geysers. What does a geyser shoot into the air?,multi,3,Lava,Snow,Hot water and steam,Ice,easy,Wonders & Nature,Natural wonders,Europe,
+141,Which river carved the Grand Canyon?,multi,3,The Missouri River,The Rio Grande,The Colorado River,The Mississippi River,hard,Wonders & Nature,Natural wonders,Americas,
+142,Which river carries more water than any other river in the world?,multi,1,The Amazon,The Nile,The Mississippi,The Yangtze,easy,Wonders & Nature,Natural wonders,Americas,
+143,Which famous waterfalls lie on the border between Canada and the USA?,open,Niagara Falls,,,,,easy,Wonders & Nature,Natural wonders,Americas,
+144,Which scientist visited the Galápagos Islands in 1835 and studied the animals there?,multi,3,Galileo Galilei,Isaac Newton,Charles Darwin,Albert Einstein,hard,Wonders & Nature,Natural wonders,Americas,
+145,Which is the longest mountain range on land?,multi,2,The Himalayas,The Andes,The Alps,The Rockies,hard,Wonders & Nature,Natural wonders,Americas,
+146,Which is the largest coral reef system in the world?,multi,3,The Maldives Reef,The Belize Barrier Reef,The Great Barrier Reef,The Red Sea Reef,easy,Wonders & Nature,Natural wonders,Oceania,
+147,What is a coral reef built by?,multi,3,Sea turtles,Giant seaweed,Tiny animals called coral polyps,Underwater volcanoes,hard,Wonders & Nature,Natural wonders,Oceania,
+148,What is the giant rock Uluru in Australia made of?,multi,4,Granite,Limestone,Marble,Sandstone,hard,Wonders & Nature,Natural wonders,Oceania,
+149,"What is the ""Ring of Fire""?",open,A zone around the Pacific Ocean with lots of volcanoes and earthquakes,,,,,hard,Wonders & Nature,Natural wonders,World,
+150,What are the colourful lights that dance in the sky near the North Pole called?,open,The Northern Lights (Aurora Borealis),,,,,easy,Wonders & Nature,Natural wonders,World,
+151,Which of the Seven Wonders of the Ancient World is still standing today?,multi,2,The Colossus of Rhodes,The Great Pyramid of Giza,The Hanging Gardens of Babylon,The Lighthouse of Alexandria,easy,Wonders & Nature,Ancient wonders,Africa,
+152,What was the Pharos of Alexandria in Egypt?,multi,2,A palace,A giant lighthouse,A tomb,A temple,hard,Wonders & Nature,Ancient wonders,Africa,
+153,Which Wonder of the Ancient World was a giant statue standing at the harbour of the Greek island of Rhodes?,multi,1,The Colossus of Rhodes,The Terracotta Army,The Statue of Liberty,The Great Sphinx,hard,Wonders & Nature,Ancient wonders,Europe,
+154,"Which king of the Greek gods had a giant statue at Olympia, one of the ancient wonders?",multi,2,Apollo,Zeus,Poseidon,Ares,easy,Wonders & Nature,Ancient wonders,Europe,
+155,Which Roman emperor opened the Colosseum in the year 80?,multi,1,Titus,Augustus,Hadrian,Nero,hard,Wonders & Nature,Ancient wonders,Europe,His father Vespasian began building it.
+156,In which modern country were the legendary Hanging Gardens of Babylon?,multi,2,Syria,Iraq,Egypt,Iran,hard,Wonders & Nature,Ancient wonders,Asia,
+157,"In which modern country was the Temple of Artemis at Ephesus, one of the ancient wonders?",multi,2,Egypt,Turkey,Italy,Greece,hard,Wonders & Nature,Ancient wonders,Asia,
+158,Which emperor first joined old walls together into one Great Wall of China?,multi,3,Confucius,Genghis Khan,Qin Shi Huang,Kublai Khan,hard,Wonders & Nature,Ancient wonders,Asia,
+159,Which ancient people built the city of Machu Picchu?,multi,2,The Maya,The Inca,The Aztecs,The Romans,easy,Wonders & Nature,Ancient wonders,Americas,
+160,Near Mexico City lie the huge Pyramids of the Sun and the Moon. What is the ancient city called?,multi,1,Teotihuacan,Cusco,Chichén Itzá,Tikal,hard,Wonders & Nature,Ancient wonders,Americas,
+161,In which country do people have a giant tomato fight at a festival called La Tomatina?,multi,4,Mexico,Italy,Portugal,Spain,easy,Culture & Customs,Festivals & traditions,Europe,
+162,"Which Italian city is famous for its carnival, where people wear fancy masks?",multi,2,Rome,Venice,Naples,Florence,hard,Culture & Customs,Festivals & traditions,Europe,
+163,"Which Swedish festival celebrates the longest day of the year, with flowers and dancing around a pole?",open,Midsummer (Midsommar),,,,,easy,Culture & Customs,Festivals & traditions,Europe,
+164,Which country celebrates St Patrick's Day on 17 March?,multi,3,Scotland,England,Ireland,Wales,easy,Culture & Customs,Festivals & traditions,Europe,
+165,What is the colourful festival of lights in India called?,multi,2,Holi,Diwali,Songkran,Hanami,easy,Culture & Customs,Festivals & traditions,Asia,
+166,In which Indian festival do people throw coloured powder at each other?,multi,2,Onam,Holi,Diwali,Eid,easy,Culture & Customs,Festivals & traditions,Asia,
+167,"Which festival, with red envelopes and dragon dances, marks the start of the new year in China?",open,Chinese New Year (Lunar New Year),,,,,easy,Culture & Customs,Festivals & traditions,Asia,
+168,What is the Japanese tradition of watching the cherry blossoms called?,multi,2,Origami,Hanami,Ikebana,Kabuki,hard,Culture & Customs,Festivals & traditions,Asia,
+169,The Maasai are known for their high jumping dance. In which two countries do they mainly live?,open,Kenya and Tanzania,,,,,hard,Culture & Customs,Festivals & traditions,Africa,
+170,"Which country celebrates Día de los Muertos, the Day of the Dead, with colourful skulls and flowers?",multi,3,Peru,Spain,Mexico,Brazil,easy,Culture & Customs,Festivals & traditions,Americas,
+171,In which Brazilian city is the world's most famous Carnival held?,multi,2,Curitiba,Rio de Janeiro,Brasília,Manaus,easy,Culture & Customs,Festivals & traditions,Americas,
+172,"Which American holiday in November is celebrated with a big family meal, often with turkey?",open,Thanksgiving,,,,,easy,Culture & Customs,Festivals & traditions,Americas,
+173,Which dance do the New Zealand All Blacks perform before a rugby match?,multi,1,The haka,The samba,The tango,The hula,easy,Culture & Customs,Festivals & traditions,Oceania,
+174,Which festival marks the end of the month of Ramadan?,open,Eid al-Fitr,,,,,easy,Culture & Customs,Festivals & traditions,World,
+175,On which date do most Christians celebrate Christmas?,open,25 December,,,,,easy,Culture & Customs,Festivals & traditions,World,Some Orthodox churches celebrate it on 7 January.
+176,"Which currency is used in many European countries, including France, Germany and Italy?",multi,3,The franc,The dollar,The euro,The pound,easy,Culture & Customs,Money & everyday life,Europe,
+177,What is the currency of the United Kingdom called?,open,The pound (sterling),,,,,easy,Culture & Customs,Money & everyday life,Europe,
+178,What is the currency of Sweden?,multi,4,The euro,The mark,The franc,The krona,easy,Culture & Customs,Money & everyday life,Europe,
+179,What is the currency of Switzerland?,multi,4,The euro,The krone,The pound,The Swiss franc,hard,Culture & Customs,Money & everyday life,Europe,
+180,Which Swedish tradition is a relaxed break with coffee or tea and something sweet?,multi,4,Siesta,Tapas,Hygge,Fika,hard,Culture & Customs,Money & everyday life,Europe,
+181,Which country has more bicycles than people?,multi,1,The Netherlands,Denmark,Belgium,Germany,hard,Culture & Customs,Money & everyday life,Europe,About 23 million bikes for 17 million people.
+182,What is the currency of Japan?,multi,1,The yen,The baht,The won,The yuan,easy,Culture & Customs,Money & everyday life,Asia,
+183,What is the currency of India?,multi,2,The rand,The rupee,The dollar,The yen,easy,Culture & Customs,Money & everyday life,Asia,
+184,"In Japan, what do people take off before going into a home?",open,Their shoes,,,,,easy,Culture & Customs,Money & everyday life,Asia,
+185,In which country is it normal to greet people with a bow?,multi,1,Japan,Italy,Kenya,Brazil,easy,Culture & Customs,Money & everyday life,Asia,
+186,What is the currency of South Africa?,multi,2,The dinar,The rand,The shilling,The birr,hard,Culture & Customs,Money & everyday life,Africa,
+187,What is the currency of Mexico?,multi,1,The peso,The euro,The dollar,The real,easy,Culture & Customs,Money & everyday life,Americas,
+188,What is the currency of Australia?,open,The Australian dollar,,,,,easy,Culture & Customs,Money & everyday life,Oceania,
+189,"In New Zealand's Māori culture, people greet each other by pressing noses. What is this greeting called?",multi,1,The hongi,The poi,The haka,The koru,hard,Culture & Customs,Money & everyday life,Oceania,
+190,In which of these countries do people drive on the left side of the road?,multi,1,Japan,France,Germany,Brazil,hard,Culture & Customs,Money & everyday life,World,"The UK, India and Australia also drive on the left."
+191,In which country did the ancient Olympic Games begin?,multi,1,Greece,Egypt,Italy,China,easy,Culture & Customs,Sports & games,Europe,
+192,How many rings are on the Olympic flag?,multi,4,6,3,4,5,easy,Culture & Customs,Sports & games,World,The rings stand for the five inhabited continents.
+193,Which country has won the men's football World Cup the most times?,multi,3,Argentina,Italy,Brazil,Germany,easy,Culture & Customs,Sports & games,Americas,Brazil has won it five times.
+194,Which country invented the sport of cricket?,multi,1,England,Australia,South Africa,India,hard,Culture & Customs,Sports & games,Europe,
+195,Which country is the sport of sumo wrestling from?,multi,3,Korea,Mongolia,Japan,China,easy,Culture & Customs,Sports & games,Asia,
+196,What colour shirt does the leader of the Tour de France cycling race wear?,multi,2,Red,Yellow,Blue,Green,easy,Culture & Customs,Sports & games,Europe,
+197,"In which sport do England and Australia play for ""The Ashes""?",multi,1,Cricket,Rugby,Football,Tennis,hard,Culture & Customs,Sports & games,World,
+198,"Which board game, with kings, queens and pawns, was first played in India about 1,500 years ago?",multi,1,Chess,Ludo,Backgammon,Draughts,hard,Culture & Customs,Sports & games,Asia,
+199,Where does the board game Snakes and Ladders come from?,multi,4,Egypt,Greece,China,India,easy,Culture & Customs,Sports & games,Asia,
+200,"In which city were the first modern Olympic Games held, in 1896?",multi,2,London,Athens,Paris,Rome,hard,Culture & Customs,Sports & games,Europe,
+201,Which country is pizza from?,multi,1,Italy,Greece,France,Spain,easy,A Taste of the World,Dishes and where they come from,Europe,
+202,Which Spanish rice dish is cooked in a big flat pan?,multi,4,Risotto,Biryani,Sushi,Paella,easy,A Taste of the World,Dishes and where they come from,Europe,
+203,"Which country is famous for fondue, a pot of melted cheese?",multi,3,Belgium,Norway,Switzerland,Austria,hard,A Taste of the World,Dishes and where they come from,Europe,
+204,Which country is famous for waffles and chocolate?,multi,1,Belgium,Greece,Portugal,Poland,easy,A Taste of the World,Dishes and where they come from,Europe,
+205,"Which Nordic country celebrates a ""Cinnamon Bun Day"" every year on 4 October?",multi,2,Denmark,Sweden,Finland,Norway,hard,A Taste of the World,Dishes and where they come from,Europe,
+206,Which country is famous for fish and chips?,multi,2,Italy,The United Kingdom,Germany,Spain,easy,A Taste of the World,Dishes and where they come from,Europe,
+207,Which country is sushi from?,multi,2,Thailand,Japan,China,Korea,easy,A Taste of the World,Dishes and where they come from,Asia,
+208,"Kimchi, spicy fermented cabbage, comes from which country?",multi,3,Japan,China,Korea,India,easy,A Taste of the World,Dishes and where they come from,Asia,
+209,"Which country are dim sum, small steamed snacks, from?",multi,4,India,Japan,Vietnam,China,easy,A Taste of the World,Dishes and where they come from,Asia,
+210,Pad thai is a stir-fried noodle dish from which country?,multi,3,Laos,Vietnam,Thailand,Cambodia,hard,A Taste of the World,Dishes and where they come from,Asia,
+211,Pho is a noodle soup that comes from which country?,multi,4,Korea,Thailand,Malaysia,Vietnam,hard,A Taste of the World,Dishes and where they come from,Asia,
+212,"Which flat bread, baked in a clay oven called a tandoor, is popular in India?",multi,3,Baguette,Pita,Naan,Tortilla,easy,A Taste of the World,Dishes and where they come from,Asia,
+213,Tagine is a slow-cooked stew named after its cone-shaped pot. Which North African country is it famous in?,multi,4,Nigeria,South Africa,Kenya,Morocco,easy,A Taste of the World,Dishes and where they come from,Africa,
+214,"Injera, a spongy, sour flatbread, is a main food in which country?",multi,4,Egypt,Ghana,Tanzania,Ethiopia,hard,A Taste of the World,Dishes and where they come from,Africa,
+215,Which country are tacos from?,multi,1,Mexico,Brazil,Spain,Peru,easy,A Taste of the World,Dishes and where they come from,Americas,
+216,"Poutine, chips topped with cheese curds and gravy, is a favourite in which country?",multi,3,The USA,Belgium,Canada,Ireland,hard,A Taste of the World,Dishes and where they come from,Americas,
+217,"Ceviche, fresh fish ""cooked"" in lime juice, is the national dish of which country?",multi,3,Brazil,Chile,Peru,Mexico,hard,A Taste of the World,Dishes and where they come from,Americas,
+218,Which country makes most of the world's maple syrup?,multi,4,Sweden,The USA,Japan,Canada,easy,A Taste of the World,Dishes and where they come from,Americas,
+219,"What salty brown spread, made from yeast, do many Australians eat on toast?",open,Vegemite,,,,,hard,A Taste of the World,Dishes and where they come from,Oceania,
+220,"Which spice, from a crocus flower, is the most expensive in the world?",open,Saffron,,,,,hard,A Taste of the World,Dishes and where they come from,World,

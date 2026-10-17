@@ -1,6 +1,6 @@
 # World Tour 🌍 — outline (step 1)
 
-Design notes for the World Tour edition. Step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md): approve or change this, then step 2 (images) starts.
+Design notes for the World Tour edition (step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md)). **Status: built.** The final content is in the CSV files and `config.js`; where they differ from this plan, they win (56 deeds instead of 52, three landmark facts reworded after checking sources).
 
 **Pitch:** a trip around the world, collecting passport stamps at famous wonders.
 **Audience:** ages 7+ for `easy`; `hard` should challenge adults.
@@ -56,10 +56,10 @@ Rules for writing:
 Spread over every continent. Each one will get a Wikimedia Commons photo in step 2.
 
 ### Europe
-1. **Eiffel Tower — Paris** — Built for the 1889 World's Fair in Paris, the iron tower is about 330 metres tall. It was the tallest structure in the world until 1930, and it gets a fresh coat of paint about every seven years.
+1. **Eiffel Tower — Paris** — Built for the 1889 World's Fair in Paris, the iron tower is over 320 metres tall. It was the tallest structure in the world until 1930, and it gets a fresh coat of paint about every seven years.
 2. **Colosseum — Rome** — This giant amphitheatre opened almost 2,000 years ago, in AD 80. Around 50,000 people came to watch gladiator contests and shows here. It is still the largest amphitheatre ever built.
 3. **Big Ben — London** — "Big Ben" is really the name of the huge bell inside the clock tower; the tower itself was renamed the Elizabeth Tower in 2012. The clock has kept time over London since 1859.
-4. **Sagrada Família — Barcelona** — Architect Antoni Gaudí designed this church, and building began in 1882. More than 140 years later, it is still being finished!
+4. **Sagrada Família — Barcelona** — Architect Antoni Gaudí designed this church, and building began in 1882. More than 140 years later it is still not completely finished! Its tallest tower was planned for 2026, 100 years after Gaudí's death.
 5. **Acropolis — Athens** — A rocky hill above Athens crowned by the Parthenon, a temple built about 2,500 years ago for the goddess Athena. It is a symbol of ancient Greece, where democracy was born.
 6. **Neuschwanstein Castle — Bavaria** — King Ludwig II of Bavaria built this fairy-tale castle in the 1800s. It helped inspire the castle in Disney's *Sleeping Beauty*.
 
@@ -75,13 +75,13 @@ Spread over every continent. Each one will get a Wikimedia Commons photo in step
 13. **Great Wall of China** — Built and rebuilt over more than 2,000 years, the wall and its branches stretch for thousands of kilometres. A popular myth says you can see it from the Moon — you can't!
 14. **Mount Fuji — Japan** — Japan's highest mountain, 3,776 metres tall, with an almost perfect cone shape. It is a volcano, and its snowy top is one of the most famous sights in Japan.
 15. **Angkor Wat — Cambodia** — Built in the 1100s, it is the largest religious monument in the world. It is so important to Cambodia that it appears on the country's flag.
-16. **Burj Khalifa — Dubai** — When it opened in 2010, this 828-metre skyscraper became the tallest building in the world. It has more than 160 floors.
+16. **Burj Khalifa — Dubai** — When it opened in 2010, this 828-metre skyscraper became the tallest building in the world. It has more than 150 floors.
 17. **Hagia Sophia — Istanbul** — Finished in the year 537, its giant dome amazed the world for centuries. It has been a church, a mosque, a museum and is a mosque again today.
 
 ### Oceania
 18. **Sydney Opera House — Sydney** — Its roofs look like white sails on the harbour. Designed by Danish architect Jørn Utzon, it opened in 1973.
 19. **Uluru — Australia** — A huge sandstone rock rising from the desert in the middle of Australia. It is sacred to the Anangu, its traditional owners, and glows red at sunset.
-20. **Moai of Rapa Nui — Easter Island** — Nearly 1,000 giant stone heads (with bodies, often buried!) carved by the Rapa Nui people. The island is one of the most remote places on Earth where people live.
+20. **Moai of Rapa Nui — Easter Island** — Nearly 900 giant stone statues (many with bodies buried!) carved by the Rapa Nui people. The island is one of the most remote places on Earth where people live.
 
 ### The Americas
 21. **Statue of Liberty — New York** — A gift from France to the United States, opened in 1886. It is made of copper, which turned green over the years.
@@ -97,7 +97,7 @@ Spread over every continent. Each one will get a Wikimedia Commons photo in step
 
 ---
 
-## Deeds — 52 (26 good / 26 bad), 2–3 effects each
+## Deeds — 56 (28 good / 28 bad), 2–3 effects each
 
 | ✈️ Smooth Travels (examples) | 🧳 Travel Trouble (examples) |
 |---|---|
@@ -120,8 +120,6 @@ Effects: the usual mix (points, move forward/back, next/previous **wonder**, ext
 
 ---
 
-## Open questions for Mojeeb
+## Decisions
 
-1. Topic level = continent — OK, or would you rather have the continent as the *category* (filter "only Europe" in one click)?
-2. Points name *Stamps* and finish *Home Again* — OK?
-3. Hagia Sophia's history (church → mosque → museum → mosque) — fine to include as written?
+Approved as written: the continent is the *topic*, points are *Stamps*, finish is *Home Again*, Hagia Sophia's history is included.
