@@ -110,7 +110,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - Any field containing a comma MUST be wrapped in double quotes (`"Madrid, Spain"`)
 - Never edit questions.js / deeds.js by hand — they're generated (the fallback for index.html opened from disk)
 - Column + effect reference for authors: `game_editions/template/README.md`
-- `scripts/` = Node-only dev tooling (not served); `tools/` = browser dev tools (served)
+- `scripts/` = Node-only dev tooling (not served); `tools/` = browser dev tools (served). `scripts/commons-image.js` finds, crops and credits Wikimedia Commons photos for an edition (see `game_editions/IDEAS.md`)
 
 ## Terminology
 - **Edition** = interchangeable game content pack (was "theme" before 2026-06-01)

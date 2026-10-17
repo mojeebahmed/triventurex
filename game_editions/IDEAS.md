@@ -46,8 +46,9 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 
 - **Real places** (cities, wonders, parks, planets): photos from [Wikimedia Commons](https://commons.wikimedia.org), which are free to reuse. Never random web images — they are usually copyrighted.
 - **Fictional places** (fairy tales, myths): no photos exist. Use public-domain storybook illustrations from Commons, images made with an image generator from prompts in one shared style, or simple SVG illustrations.
-- **Size**: resize and crop with macOS `sips` to the same shape, JPEG, about 100 KB each, saved as `images/landmarks/<kebab-name>.jpg`.
+- **Size**: landscape 4:3, 800×600 JPEG (about 100–150 KB) saved as `images/landmarks/<kebab-name>.jpg`; the board background is 1920×1080 (under about 700 KB). The game shows them cropped (wide in the cards, square on the board), so choose photos with the subject in the middle.
 - **Credits**: CC BY / CC BY-SA images need attribution. Each edition keeps a `CREDITS.md` with file, title, author, licence and source link for every image.
+- **Tool**: `node scripts/commons-image.js search "<name>"` lists free-licence candidates; `get <edition> <slug> "File:…"` downloads, crops, resizes and writes the credit row (`--bg` for a background). Look at the candidates before choosing: search results are ranked by relevance, not by how good the photo is.
 
 ### Avoid
 
