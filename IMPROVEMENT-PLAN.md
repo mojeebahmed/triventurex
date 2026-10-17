@@ -189,6 +189,8 @@ _Brainstormed 2026-10-17 with Mojeeb. Order: 5a → 5b → 5c. Every setting has
 - [ ] **G18 — "You're next" on phones** + a vibration when it's your turn.
 - [ ] **G13 — End screen stats and awards:** per-player questions right, distance travelled, deeds, plus fun awards ("Quiz master", "Unluckiest roller").
 - [ ] **G14 — 🚩 Report question** button for the GM during play: saves the question id + a note, to fix the content later.
+- [ ] **G19 — Question explorer tab** on the setup screen: browse an edition's questions by category > subcategory > topic (question, options, answer, note, difficulty), search, see counts; **mark a question as wrong / unclear** with a note (same list as G14's in-game report) and export the marked list to fix in the CSV. Also lets the GM or players see what a category contains before choosing topics. _(idea 2026-10-17 — G14 would feed the same "marked questions" list)_
+- [ ] **G20 — Board designer tab:** the path designer (`tools/path-designer.html`) built into the setup screen as a tab — draw a new board path, preview it as a thumbnail, play it straight away, and copy it as a `PATH_TEMPLATES` entry (like "Copy as preset") or keep it as a saved custom board. _(idea 2026-10-17)_
 
 ### Future ideas (not planned)
 - Sound effects (dice roll, correct answer, finish fanfare)

@@ -84,7 +84,17 @@ function _populateCategoryFilter() {
     });
   };
 
-  // Build HTML
+  // Questions per category / subcategory, shown on each row
+  const qCount = {};
+  for (const q of (window.QUESTIONS_DATA || [])) {
+    const c = q.cat || 'General', sc = `${c}||${q.subcat || 'Other'}`;
+    qCount[c] = (qCount[c] || 0) + 1;
+    qCount[sc] = (qCount[sc] || 0) + 1;
+  }
+  const count = key => `<span class="tree-count">${qCount[key] || 0} questions</span>`;
+
+  // Build HTML. A row has two parts: the checkbox + name (a <label>, toggles
+  // the selection) and the rest of the row (expands / collapses the level below).
   let html = '';
   for (const [cat, subcats] of Object.entries(tree)) {
     const catTopics = Object.values(subcats).flat();
@@ -92,12 +102,15 @@ function _populateCategoryFilter() {
     const catSome   = _someTopicsIn(catTopics);
     const catInd    = !catAll && catSome;
     html += `<div class="cat-group">
-      <label class="cat-label">
-        <input type="checkbox" data-level="cat" data-key="${cat}"
-          ${catAll ? 'checked' : ''} ${catInd ? 'data-indeterminate' : ''}>
-        <span class="cat-name">${cat}</span>
-        <button class="cat-toggle" type="button" aria-label="expand">▾</button>
-      </label>
+      <div class="cat-label tree-row" role="button" aria-expanded="false">
+        <label class="tree-check">
+          <input type="checkbox" data-level="cat" data-key="${cat}"
+            ${catAll ? 'checked' : ''} ${catInd ? 'data-indeterminate' : ''}>
+          <span class="cat-name">${cat}</span>
+        </label>
+        ${count(cat)}
+        <span class="cat-toggle tree-toggle" aria-hidden="true">▾</span>
+      </div>
       <div class="subcat-list collapsed">`;
     for (const [subcat, topics] of Object.entries(subcats)) {
       const scKey  = `${cat}||${subcat}`;
@@ -105,12 +118,15 @@ function _populateCategoryFilter() {
       const scSome = _someTopicsIn(topics);
       const scInd  = !scAll && scSome;
       html += `<div class="subcat-group">
-        <label class="subcat-label">
-          <input type="checkbox" data-level="subcat" data-key="${scKey}" data-cat="${cat}"
-            ${scAll ? 'checked' : ''} ${scInd ? 'data-indeterminate' : ''}>
-          <span class="subcat-name">${subcat}</span>
-          <button class="subcat-toggle" type="button" aria-label="expand">▾</button>
-        </label>
+        <div class="subcat-label tree-row" role="button" aria-expanded="false">
+          <label class="tree-check">
+            <input type="checkbox" data-level="subcat" data-key="${scKey}" data-cat="${cat}"
+              ${scAll ? 'checked' : ''} ${scInd ? 'data-indeterminate' : ''}>
+            <span class="subcat-name">${subcat}</span>
+          </label>
+          ${count(scKey)}
+          <span class="subcat-toggle tree-toggle" aria-hidden="true">▾</span>
+        </div>
         <div class="topic-list collapsed">`;
       for (const topic of topics) {
         html += `<label class="topic-label">
@@ -128,19 +144,15 @@ function _populateCategoryFilter() {
   // Set indeterminate state (can't do in HTML)
   box.querySelectorAll('[data-indeterminate]').forEach(el => { el.indeterminate = true; });
 
-  // Cat expand/collapse toggles
-  box.querySelectorAll('.cat-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const list = btn.closest('.cat-group').querySelector('.subcat-list');
+  // Clicking a row outside its checkbox + name expands / collapses it
+  box.querySelectorAll('.tree-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.tree-check')) return;   // the checkbox / name handle selection
+      const list = row.nextElementSibling;
       list.classList.toggle('collapsed');
-      btn.textContent = list.classList.contains('collapsed') ? '▾' : '▴';
-    });
-  });
-  box.querySelectorAll('.subcat-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const list = btn.closest('.subcat-group').querySelector('.topic-list');
-      list.classList.toggle('collapsed');
-      btn.textContent = list.classList.contains('collapsed') ? '▾' : '▴';
+      const open = !list.classList.contains('collapsed');
+      row.setAttribute('aria-expanded', String(open));
+      row.querySelector('.tree-toggle').textContent = open ? '▴' : '▾';
     });
   });
 

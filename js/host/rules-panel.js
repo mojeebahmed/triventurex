@@ -85,50 +85,51 @@ function _rulesSchema() {
   const kinds = CONFIG.ACTION_KINDS || {};
   return [
     { id: 'scoring', title: '🏆 Scoring', fields: [
-      { key: 'scoring.questionEasy',    type: 'number', label: 'Easy question',  unit: pts },
-      { key: 'scoring.questionHard',    type: 'number', label: 'Hard question',  unit: pts },
-      { key: 'scoring.actionPerformer', type: 'number', label: 'Action card — performer', unit: pts },
-      { key: 'scoring.actionGuesser',   type: 'number', label: 'Action card — first correct guesser', unit: pts },
-      { key: 'scoring.finishBonus',     type: 'select', label: 'Finish bonus', options: [
+      { group: 'Questions', key: 'scoring.questionEasy', type: 'number', label: 'Easy question', unit: pts },
+      { group: 'Questions', key: 'scoring.questionHard', type: 'number', label: 'Hard question', unit: pts },
+      { group: 'Action cards', key: 'scoring.actionPerformer', type: 'number', label: 'Performer', unit: pts },
+      { group: 'Action cards', key: 'scoring.actionGuesser',   type: 'number', label: 'First correct guesser', unit: pts },
+      { group: 'Landmarks', hint: 'Points by how a player gets there — 0 = just information, negative is allowed',
+        key: 'scoring.landmarkRoll', type: 'number', label: 'Landing on it by a roll', unit: pts },
+      { group: 'Landmarks', key: 'scoring.landmarkGoodDeed', type: 'number', label: 'Sent there by a good deed', unit: pts },
+      { group: 'Landmarks', key: 'scoring.landmarkBadDeed',  type: 'number', label: 'Sent back there by a bad deed', unit: pts },
+      { group: 'Finishing', key: 'scoring.finishBonus', type: 'select', label: 'Finish bonus', options: [
           ['standard', `Standard (${(CONFIG.FINISH_BONUS || []).join(' / ')})`],
           ['small', 'Small (5 / 3 / 2 / 1)'], ['off', 'Off'] ] },
-      { key: 'scoring.landmarkRoll',     type: 'number', label: 'Landmark — landing on it by a roll', unit: pts,
-        hint: '0 = just information. Can be negative.' },
-      { key: 'scoring.landmarkGoodDeed', type: 'number', label: 'Landmark — sent there by a good deed', unit: pts },
-      { key: 'scoring.landmarkBadDeed',  type: 'number', label: 'Landmark — sent back there by a bad deed', unit: pts },
-      { key: 'scoring.negativeScores',   type: 'toggle', label: 'Allow negative scores', hint: 'Off: scores never go below 0' },
+      { group: 'Finishing', key: 'scoring.negativeScores', type: 'toggle', label: 'Allow negative scores',
+        hint: 'Off: scores never go below 0' },
     ] },
     { id: 'questions', title: '❓ Questions', fields: [
-      { key: 'questions.difficulty', type: 'select', label: 'Difficulty', options: [
+      { group: 'Asking', key: 'questions.difficulty', type: 'select', label: 'Difficulty', options: [
           ['choose', 'Player chooses'], ['easy', 'Always easy'], ['hard', 'Always hard'] ] },
-      { key: 'questions.timerAuto',    type: 'toggle', label: 'Start the timer automatically' },
-      { key: 'questions.timerSeconds', type: 'number', label: 'Question timer', unit: 'seconds' },
-      { key: 'questions.tracking',     type: 'select', label: 'Avoid repeated questions', options: [
+      { group: 'Asking', key: 'questions.tracking', type: 'select', label: 'Avoid repeated questions', options: [
           ['session', 'Remember across games'], ['game', 'Reset every game'] ] },
+      { group: 'Timer', key: 'questions.timerAuto',    type: 'toggle', label: 'Start the timer automatically' },
+      { group: 'Timer', key: 'questions.timerSeconds', type: 'number', label: 'Time per question', unit: 'seconds' },
     ] },
     { id: 'actions', title: '🎬 Action cards', fields: [
-      { key: 'actions.cards', type: 'select', label: 'Cards', options: [
-          ['digital', _hasActionCards() ? 'Digital cards' : 'Digital cards (none in this edition)'],
+      { group: 'Cards', key: 'actions.cards', type: 'select', label: 'Cards', options: [
+          ['digital', _hasActionCards() ? 'Digital cards' : 'Digital (none in this edition)'],
           ['physical', 'Physical deck'] ],
         disabled: v => v === 'digital' && !_hasActionCards(),
         hint: 'A digital card can always be swapped for a physical one during play' },
-      { key: 'actions.kinds', type: 'kinds', label: 'Kinds allowed',
+      { group: 'Cards', key: 'actions.kinds', type: 'kinds', label: 'Kinds allowed',
         options: Object.entries(kinds).map(([k, v]) => [k, `${v.icon} ${v.label}`]) },
-      { key: 'actions.timerSeconds', type: 'number', label: 'Action timer', unit: 'seconds' },
+      { group: 'Timer', key: 'actions.timerSeconds', type: 'number', label: 'Time per action', unit: 'seconds' },
     ] },
     { id: 'board', title: '🗺️ Board', fields: [
-      { key: 'board.tileMix', type: 'tilemix', label: 'Tile mix' },
-      { key: 'board.deedEffects', type: 'select', label: 'Deed card effects', options: [
-          ['varied', 'Varied — a random effect each game'], ['first', "Always the card's first effect"] ] },
-      { key: 'board.noBackwards', type: 'toggle', label: 'No going backwards',
-        hint: 'Leaves out move-back, back-to-a-landmark and skip-turn deed effects' },
+      { group: 'Tile mix', key: 'board.tileMix', type: 'tilemix', label: 'Tile mix' },
+      { group: 'Deed cards', key: 'board.deedEffects', type: 'select', label: 'Effects', options: [
+          ['varied', 'Varied — random each game'], ['first', "Always the card's first effect"] ] },
+      { group: 'Deed cards', key: 'board.noBackwards', type: 'toggle', label: 'No going backwards',
+        hint: 'Leaves out move-back, back-to-a-landmark and skip-turn effects' },
     ] },
     { id: 'turns', title: '⏱ Turn & pace', fields: [
-      { key: 'turns.exactFinish', type: 'toggle', label: 'Exact finish',
+      { group: 'Turns', key: 'turns.exactFinish', type: 'toggle', label: 'Exact finish',
         hint: 'The exact number is needed to land on the finish — overshooting does not move' },
-      { key: 'turns.whoStarts', type: 'select', label: 'Who starts', options: [
+      { group: 'Turns', key: 'turns.whoStarts', type: 'select', label: 'Who starts', options: [
           ['order', 'First player in the list'], ['random', 'Random'] ] },
-      { key: 'turns.animation', type: 'select', label: 'Animation speed', options: [
+      { group: 'Pace', key: 'turns.animation', type: 'select', label: 'Animation speed', options: [
           ['normal', 'Normal'], ['fast', 'Fast'] ] },
     ] },
   ];
@@ -209,13 +210,27 @@ function _renderRulesPanel() {
   document.getElementById('rules-body').innerHTML = section ? `
     <section class="rules-section">
       <h3>${section.title}</h3>
-      ${section.fields.map(_rulesFieldHtml).join('')}
+      ${_groupedFieldsHtml(section.fields)}
     </section>` : '';
   // The topic tree is static DOM (category-filter.js, saved on its own)
   document.getElementById('rules-topics').classList.toggle('hidden', _rulesSection !== 'topics');
   _rulesRendering = false;
 
   _updateRulesPreview();
+}
+
+/** Consecutive fields with the same `group` go into one card. */
+function _groupedFieldsHtml(fields) {
+  const groups = [];
+  for (const f of fields) {
+    if (!groups.length || groups.at(-1).name !== f.group) groups.push({ name: f.group, fields: [] });
+    groups.at(-1).fields.push(f);
+  }
+  return groups.map(g => `
+    <div class="rules-group">
+      ${g.name ? `<div class="rules-group-title">${esc(g.name)}</div>` : ''}
+      ${g.fields.map(_rulesFieldHtml).join('')}
+    </div>`).join('');
 }
 
 function _rulesFieldHtml(f) {
@@ -266,21 +281,22 @@ function _tileMixHtml() {
   const current = _rulesDraft.board.tileMix;
   const presetId = Object.entries(TILE_MIX_PRESETS)
     .find(([, p]) => JSON.stringify(p.mix) === JSON.stringify(current))?.[0] ?? 'custom';
-  return `<div class="rules-field rules-field-wide">
-    <div class="rules-label">Tile mix
-      <span class="rules-hint">Share of the board per tile type — 0 removes it. Questions fill the rest.</span></div>
-    <div class="rules-control">
-      <select class="settings-select" data-rule-mix>${Object.entries(TILE_MIX_PRESETS).map(([id, p]) =>
-        `<option value="${id}" ${id === presetId ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}
-        <option value="custom" ${presetId === 'custom' ? 'selected' : ''}>Custom</option>
-      </select>
+  return `<div class="rules-field">
+      <div class="rules-label">Mix
+        <span class="rules-hint">Share of the board per tile type — 0 removes it. Questions fill the rest.</span></div>
+      <div class="rules-control">
+        <select class="settings-select" data-rule-mix>${Object.entries(TILE_MIX_PRESETS).map(([id, p]) =>
+          `<option value="${id}" ${id === presetId ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}
+          <option value="custom" ${presetId === 'custom' ? 'selected' : ''}>Custom</option>
+        </select>
+      </div>
     </div>
     <div class="rules-tiles">${TILE_TYPES.map(t => `
-      <label class="rules-tile"><span>${esc(labels[t])}</span>
-        <input type="number" class="rules-number" min="0" max="100" data-tile="${t}" value="${mix[t]}"> %</label>`).join('')}
+      <label class="rules-tile"><span class="rules-tile-name">${esc(labels[t])}</span>
+        <span class="rules-tile-input"><input type="number" class="rules-number" min="0" max="100"
+          data-tile="${t}" value="${mix[t]}"> %</span></label>`).join('')}
     </div>
-    <div class="rules-tile-preview" id="rules-tile-preview"></div>
-  </div>`;
+    <div class="rules-tile-preview" id="rules-tile-preview"></div>`;
 }
 
 /** Live bits: tile counts for the chosen length + "N changed" next to the preset. */

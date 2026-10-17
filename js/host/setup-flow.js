@@ -98,8 +98,9 @@ function initSetupFlow() {
   }
 
   // Choices that move the flow on
+  // 'click' (not 'change'): clicking the already-selected length must move on too
   document.querySelectorAll('input[name="gameLength"]').forEach(r =>
-    r.addEventListener('change', () => onSetupChoice('length-section')));
+    r.addEventListener('click', () => onSetupChoice('length-section')));
   document.getElementById('board-picker').addEventListener('click', e => {
     if (e.target.closest('.board-card')) onSetupChoice('board-section');
   });
