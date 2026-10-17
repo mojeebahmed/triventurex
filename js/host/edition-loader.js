@@ -95,6 +95,13 @@ async function _loadEditionCSV(editionId) {
     const parsed = _parseActionsCSV(aText);
     if (parsed.length) { window.ACTIONS_DATA = parsed; }
   }
+
+  // General action cards (C4) — the same for every edition
+  const gText = await get('game_editions/shared/actions.csv');
+  if (gText) {
+    const parsed = _parseActionsCSV(gText);
+    if (parsed.length) { window.GENERAL_ACTIONS_DATA = parsed; }
+  }
 }
 
 // ── Edition picker ──────────────────────────────────────────────────────────────

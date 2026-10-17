@@ -99,6 +99,8 @@ Content:
 - `game_editions/<id>/config.js` — edition config (name, colours, landmarks, finish text, SPACE_INFO, SPACE_DISTRIBUTION)
 - `game_editions/<id>/questions.csv` + `deeds.csv` + `actions.csv` — edit content here
 - `game_editions/<id>/questions.js` + `deeds.js` + `actions.js` — generated from CSV (`npm run build:content`)
+- `game_editions/shared/actions.csv` (+ generated `actions.js`, `GENERAL_ACTIONS_DATA`) — general action cards for every edition (C4)
+- `game_editions/IDEAS.md` — ideas for new editions, content targets, and how we build one
 
 ## Content workflow
 Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js / actions.js) → refresh browser.
@@ -185,6 +187,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Setup tabs**: `showSetupTab(tab)` shows `#setup-tab-<tab>`; Enter-to-start ignores the Rules and Questions tabs and elements already redrawn away (`!e.target.isConnected`)
 - **#board-viewport never scrolls** (`overflow: clip`): pan/zoom are transforms; a focused input in a card must not shift the board. The legend lives inside it (absolute), so it only shows with the board
 - **TX_NET events**: socket-client.js forwards only the events in its `events` list — a new server → page event must be added there (`test/socket-events.test.js` checks it)
+- **General action cards (C4)**: `game_editions/shared/actions.csv` → `window.GENERAL_ACTIONS_DATA` (index.html script + CSV fetch in `_loadEditionCSV`). `_actionDeck(general)` in ui.js mixes them into the edition's deck with ids `g<id>` so tracking never clashes with edition ids. Rule `actions.general` (default on). Digital cards are possible when the edition OR the shared file has cards (`_hasActionCards`). `shared/` has no questions.csv, so `listEditions()` skips it; `build:content` / `check:content` handle it as `shared`
 - **Action cards (C3)**: optional `actions.csv` per edition (`id, text, kind, note`; kinds in `CONFIG.ACTION_KINDS`: act / explain / sound). Drawn without repeats (`_drawActionCard`, tracked like questions under the `actions` key); the drawn card is stored on `state.turn.actionCard` so a resumed turn shows the same card. No actions.csv → physical-deck prompt
 - **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's end-screen "New game setup" / lobby Back — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)
 - **Host → phone relays** (`turn_result`, `space_card`, `space_card_done`) are accepted from the host socket only

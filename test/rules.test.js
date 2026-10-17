@@ -32,6 +32,7 @@ describe('defaults', () => {
     assert.equal(r.board.tileMix, null);
     assert.equal(r.actions.cards, 'digital');
     assert.deepEqual([...r.actions.kinds], Object.keys(C.ACTION_KINDS));
+    assert.equal(r.actions.general, true);
   });
 
   it('use the physical deck when the edition has no action cards', () => {
@@ -113,6 +114,15 @@ describe('normalizeRules', () => {
     assert.equal(r.questions.timerSeconds, 5);
     assert.equal(r.questions.difficulty, 'choose');
     assert.equal(r.turns.whoStarts, 'order');
+  });
+
+  it('keeps "general cards" off when switched off, on for anything else', () => {
+    assert.equal(R.buildRules(config(), { changes: { actions: { general: false } } }, WITH_CARDS).actions.general, false);
+    assert.equal(R.buildRules(config(), { changes: { actions: { general: 'yes' } } }, WITH_CARDS).actions.general, true);
+    // Rules saved before C4 have no `general` key
+    const old = R.defaultRules(config(), WITH_CARDS);
+    delete old.actions.general;
+    assert.equal(R.normalizeRules(old, WITH_CARDS).actions.general, true);
   });
 
   it('keeps at least one action kind, and only known ones', () => {

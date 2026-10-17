@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = require('../js/shared/csv.js');
 
-const { listEditions, loadEdition, makeEdition, checkEdition, generateEditionJs } = require('../scripts/content.js');
+const { listEditions, loadEdition, loadSharedContent, makeEdition, checkEdition, generateEditionJs } = require('../scripts/content.js');
 
 const quiet = fn => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
 
@@ -168,3 +168,24 @@ for (const id of listEditions()) {
     });
   });
 }
+
+describe('general action cards (game_editions/shared, C4)', () => {
+  const shared = loadSharedContent();
+
+  it('has cards, and passes the content checker', () => {
+    assert.ok(shared.actions.length > 0);
+    const { errors } = checkEdition(shared);
+    assert.equal(errors.length, 0, '\n' + messages(errors));
+  });
+
+  it('generated actions.js is up to date and sets GENERAL_ACTIONS_DATA (run: npm run build:content shared)', () => {
+    const text = generateEditionJs(shared)['actions.js'];
+    assert.match(text, /window\.GENERAL_ACTIONS_DATA = \[/);
+    assert.equal(fs.readFileSync(path.join(shared.dir, 'actions.js'), 'utf8'), text);
+  });
+
+  it('is loaded by index.html', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    assert.match(html, /<script src="game_editions\/shared\/actions\.js"><\/script>/);
+  });
+});

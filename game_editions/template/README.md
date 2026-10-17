@@ -56,7 +56,7 @@ Board generation places deeds sensibly. For example, `move_back 3` never appears
 
 ## actions.csv
 
-Optional. Without it, action spaces ask players to draw a card from a physical deck.
+Optional. The edition's own cards are mixed with the **general cards** in `game_editions/shared/actions.csv` (everyday cards that suit any edition, same columns; ⚙️ Rules → Action cards → *Add general cards*). Write cards that belong to your edition here; put a card that suits every edition in the shared file and rebuild with `npm run build:content shared`. With no cards at all, action spaces ask players to draw from a physical deck.
 
 | Column | Meaning |
 |---|---|

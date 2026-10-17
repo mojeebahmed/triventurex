@@ -65,6 +65,7 @@ function defaultRules(config, { hasActionCards = false } = {}) {
     },
     actions: {
       cards:        hasActionCards ? 'digital' : 'physical',
+      general:      true,         // mix in the general cards (game_editions/shared/actions.csv, C4)
       kinds:        Object.keys(config.ACTION_KINDS || { act: 1, explain: 1, sound: 1 }),
       timerSeconds: config.TIMER?.action ?? 90,
     },
@@ -155,6 +156,7 @@ function normalizeRules(rules, { hasActionCards = false, actionKinds = ['act', '
 
   const a = r.actions;
   if (!hasActionCards || !['digital', 'physical'].includes(a.cards)) a.cards = hasActionCards ? (a.cards === 'physical' ? 'physical' : 'digital') : 'physical';
+  a.general = a.general !== false;
   a.kinds = (a.kinds || []).filter(k => actionKinds.includes(k));
   if (!a.kinds.length) a.kinds = [...actionKinds];
   a.timerSeconds = _clampInt(a.timerSeconds, 5, 600, 90);

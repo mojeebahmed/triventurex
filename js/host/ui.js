@@ -515,7 +515,7 @@ function _showActionModal(player, onDone) {
   const guess = R.scoring.actionGuesser;
 
   let card = state.turn?.actionCard;
-  if (card === undefined) card = R.actions.cards === 'digital' ? _drawActionCard(R.actions.kinds) : null;
+  if (card === undefined) card = R.actions.cards === 'digital' ? _drawActionCard(R.actions.kinds, R.actions.general) : null;
   if (state.turn) state.turn.actionCard = card;
   const onPhone = card ? _sendPrivateCard(player, card) : false;
 
@@ -547,13 +547,24 @@ function _showActionModal(player, onDone) {
 }
 
 /**
+ * The action deck: the edition's cards, plus the general cards when `general`
+ * is on (C4). General ids get a 'g' prefix ('g7') so they never clash with the
+ * edition's numeric ids in the no-repeat tracking.
+ */
+function _actionDeck(general = true) {
+  const deck = [...(window.ACTIONS_DATA || [])];
+  if (general) deck.push(...(window.GENERAL_ACTIONS_DATA || []).map(a => ({ ...a, id: `g${a.id}` })));
+  return deck;
+}
+
+/**
  * Draw an action card the table hasn't had yet (same no-repeat tracking as
  * questions, under the 'actions' key). Reshuffles when all have been used.
- * `kinds` limits the draw to the allowed kinds (rules). Returns null if the
- * edition has no (allowed) action cards.
+ * `kinds` limits the draw to the allowed kinds (rules); `general` mixes in the
+ * general cards. Returns null if there are no (allowed) action cards.
  */
-function _drawActionCard(kinds = null) {
-  const all = (window.ACTIONS_DATA || []).filter(a => !kinds || kinds.includes(a.kind));
+function _drawActionCard(kinds = null, general = true) {
+  const all = _actionDeck(general).filter(a => !kinds || kinds.includes(a.kind));
   if (!all.length) return null;
   const used = _getAskedIds('actions');
   let pool = all.filter(a => !used.has(a.id));

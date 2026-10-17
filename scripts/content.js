@@ -26,6 +26,12 @@ const EFFECTS = new Set(['score_add', 'score_remove', 'move_forward', 'move_back
 const LANDMARK_EFFECTS = new Set(['move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark']);
 const ACTION_KINDS = new Set(['act', 'explain', 'sound']); // keep in sync with CONFIG.ACTION_KINDS
 
+/**
+ * The general action cards every edition can mix in (game_editions/shared/).
+ * Not an edition: no questions.csv, so listEditions() leaves it out.
+ */
+const SHARED_ID = 'shared';
+
 /** Edition folders that have content CSVs (includes `template`). */
 function listEditions() {
   return fs.readdirSync(EDITIONS_DIR)
@@ -47,6 +53,14 @@ function loadEdition(id) {
   }
   return { ...makeEdition({ id, config, questionsCsv: read('questions.csv'), deedsCsv: read('deeds.csv'),
                            actionsCsv: read('actions.csv') }), dir };
+}
+
+/** The shared folder as an edition-like object: only actions.csv, generated as GENERAL_ACTIONS_DATA. */
+function loadSharedContent() {
+  const dir = path.join(EDITIONS_DIR, SHARED_ID);
+  const file = path.join(dir, 'actions.csv');
+  const actionsCsv = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+  return { ...makeEdition({ id: SHARED_ID, actionsCsv }), dir, actionsGlobal: 'GENERAL_ACTIONS_DATA' };
 }
 
 /** Build an edition object from CSV text (also used by tests for made-up content). */
@@ -225,7 +239,7 @@ function generateEditionJs(ed) {
   if (ed.actionsCsv) {
     const kinds = [...ACTION_KINDS].map(k => `${ed.actions.filter(a => a.kind === k).length} ${k}`).join(' / ');
     out['actions.js'] = generatedFile({
-      id: ed.id, file: 'actions.js', source: 'actions.csv', globalName: 'ACTIONS_DATA',
+      id: ed.id, file: 'actions.js', source: 'actions.csv', globalName: ed.actionsGlobal ?? 'ACTIONS_DATA',
       summary: `${ed.actions.length} action cards  (${kinds})`,
       items: ed.actions,
     });
@@ -233,4 +247,5 @@ function generateEditionJs(ed) {
   return out;
 }
 
-module.exports = { EDITIONS_DIR, EFFECTS, listEditions, loadEdition, makeEdition, checkEdition, generateEditionJs };
+module.exports = { EDITIONS_DIR, EFFECTS, SHARED_ID, listEditions, loadEdition, loadSharedContent, makeEdition,
+                   checkEdition, generateEditionJs };

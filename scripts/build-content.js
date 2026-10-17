@@ -2,10 +2,10 @@
 /**
  * scripts/build-content.js
  * Check every edition's CSV content and regenerate questions.js / deeds.js /
- * actions.js.
+ * actions.js, plus the general action cards in game_editions/shared/.
  *
  *   npm run build:content            check, then write the JS files
- *   npm run build:content swab-quest only that edition
+ *   npm run build:content swab-quest only that edition (or `shared`)
  *   npm run check:content            check only; also fails if a JS file is
  *                                    out of date (CSV edited, not rebuilt)
  *
@@ -14,25 +14,26 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { listEditions, loadEdition, checkEdition, generateEditionJs } = require('./content.js');
+const { SHARED_ID, listEditions, loadEdition, loadSharedContent, checkEdition, generateEditionJs } = require('./content.js');
 
 const args      = process.argv.slice(2);
 const checkOnly = args.includes('--check');
 const only      = args.filter(a => !a.startsWith('--'));
-const editions  = only.length ? only : listEditions();
+const editions  = only.length ? only : [...listEditions(), SHARED_ID];
 
 let failed = false;
 
 for (const id of editions) {
-  if (!listEditions().includes(id)) {
+  if (id !== SHARED_ID && !listEditions().includes(id)) {
     console.log(`✗ ${id}: no game_editions/${id}/questions.csv`);
     failed = true;
     continue;
   }
-  const ed = loadEdition(id);
+  const ed = id === SHARED_ID ? loadSharedContent() : loadEdition(id);
   const { errors, warnings } = checkEdition(ed);
 
-  const counts = `${ed.questions.length} questions, ${ed.deeds.length} deeds, ${ed.actions.length} action cards`;
+  const counts = id === SHARED_ID ? `${ed.actions.length} general action cards`
+    : `${ed.questions.length} questions, ${ed.deeds.length} deeds, ${ed.actions.length} action cards`;
   console.log(`${errors.length ? '✗' : '✓'} ${id} — ${counts}` +
               (errors.length ? `, ${errors.length} error(s)` : '') +
               (warnings.length ? `, ${warnings.length} warning(s)` : ''));

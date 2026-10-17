@@ -1,0 +1,41 @@
+id,text,kind,note
+1,Brushing your teeth,act,
+2,Riding a bicycle up a steep hill,act,
+3,Building a snowman,act,
+4,Walking a dog that doesn't want to walk,act,
+5,Carrying a very heavy suitcase up the stairs,act,
+6,Trying to catch a fly,act,
+7,Opening a jar that won't open,act,
+8,Ice skating for the first time,act,
+9,Washing a big car,act,
+10,Waking up late for school,act,
+11,Flying a kite on a windy day,act,
+12,Eating very hot soup,act,
+13,Wrapping a present,act,
+14,Walking on a slippery floor,act,
+15,Changing a baby's nappy,act,
+16,Planting a tree,act,
+17,Umbrella,explain,"Don't say: rain, open, wet"
+18,Birthday,explain,"Don't say: cake, party, age"
+19,Library,explain,"Don't say: book, read, borrow"
+20,Rainbow,explain,"Don't say: colours, rain, sky"
+21,Teacher,explain,"Don't say: school, class, learn"
+22,Refrigerator,explain,"Don't say: cold, food, kitchen"
+23,Airport,explain,"Don't say: plane, fly, travel"
+24,Toothpaste,explain,"Don't say: teeth, brush, mint"
+25,Grandparents,explain,"Don't say: grandma, grandpa, old"
+26,Picnic,explain,"Don't say: food, park, blanket"
+27,Shadow,explain,"Don't say: sun, dark, light"
+28,Alarm clock,explain,"Don't say: wake, time, ring"
+29,Hospital,explain,"Don't say: doctor, sick, nurse"
+30,Snow,explain,"Don't say: white, cold, winter"
+31,Bicycle,explain,"Don't say: wheels, ride, pedal"
+32,Breakfast,explain,"Don't say: morning, eat, food"
+33,A thunderstorm,sound,
+34,A busy farmyard,sound,
+35,A train leaving the station,sound,
+36,A car that won't start,sound,
+37,Popcorn popping,sound,
+38,A washing machine,sound,
+39,A crowded playground,sound,
+40,Rain on a tin roof,sound,

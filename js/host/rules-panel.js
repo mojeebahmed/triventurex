@@ -25,7 +25,10 @@ function rulesForNewGame() {
   return JSON.parse(JSON.stringify(_setupRules || gameRules()));
 }
 
-function _hasActionCards() { return (window.ACTIONS_DATA || []).length > 0; }
+const _editionActionCount = () => (window.ACTIONS_DATA || []).length;
+const _generalActionCount = () => (window.GENERAL_ACTIONS_DATA || []).length;
+/** Digital cards are possible: the edition's own or the general ones (C4). */
+function _hasActionCards() { return _editionActionCount() + _generalActionCount() > 0; }
 function _rulesOpts() { return { hasActionCards: _hasActionCards() }; }
 const _clone = o => JSON.parse(JSON.stringify(o));
 
@@ -115,6 +118,8 @@ function _rulesSchema() {
           ['physical', 'Physical deck'] ],
         disabled: v => v === 'digital' && !_hasActionCards(),
         hint: 'A digital card can always be swapped for a physical one during play' },
+      { group: 'Cards', key: 'actions.general', type: 'toggle', label: 'Add general cards',
+        hint: `${_generalActionCount()} everyday cards that suit any edition, mixed in with this edition's ${_editionActionCount()}` },
       { group: 'Cards', key: 'actions.kinds', type: 'kinds', label: 'Kinds allowed',
         options: Object.entries(kinds).map(([k, v]) => [k, `${v.icon} ${v.label}`]) },
       { group: 'Timer', key: 'actions.timerSeconds', type: 'number', label: 'Time per action', unit: 'seconds' },

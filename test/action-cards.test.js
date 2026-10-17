@@ -11,7 +11,7 @@ const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
 
-function makeUi(cards) {
+function makeUi(cards, general = []) {
   const store = {};
   const toasts = [];
   const ctx = {
@@ -31,6 +31,7 @@ function makeUi(cards) {
   }
   ctx.showToast = t => toasts.push(t); // ui.js defines its own; use the recorder
   ctx.ACTIONS_DATA = cards;
+  ctx.GENERAL_ACTIONS_DATA = general;
   return { ctx, store, toasts };
 }
 
@@ -62,6 +63,33 @@ describe('_drawActionCard', () => {
     ctx._drawActionCard();
     ctx.resetAskedQuestions();
     assert.equal(store['triventurex_asked_test-edition_actions'], undefined);
+  });
+});
+
+describe('general action cards (C4)', () => {
+  const GENERAL = [1, 2].map(id => ({ id, text: `General ${id}`, kind: 'explain', note: '' }));
+
+  it('mixes the general cards in, with g-prefixed ids that never clash with the edition ids', () => {
+    const { ctx } = makeUi(CARDS, GENERAL);
+    const ids = [1, 2, 3, 4, 5].map(() => ctx._drawActionCard().id).map(String).sort();
+    assert.deepEqual(ids, ['1', '2', '3', 'g1', 'g2']);
+  });
+
+  it('leaves them out when the rule is off', () => {
+    const { ctx } = makeUi(CARDS, GENERAL);
+    const ids = [1, 2, 3].map(() => ctx._drawActionCard(null, false).id);
+    assert.ok(ids.every(id => typeof id === 'number'));
+  });
+
+  it('gives an edition without its own cards a digital deck', () => {
+    const { ctx } = makeUi([], GENERAL);
+    assert.match(ctx._drawActionCard().id, /^g\d$/);
+    assert.equal(ctx._drawActionCard(null, false), null);
+  });
+
+  it('respects the allowed kinds for general cards too', () => {
+    const { ctx } = makeUi(CARDS, GENERAL);
+    for (let i = 0; i < 6; i++) assert.equal(ctx._drawActionCard(['act']).kind, 'act');
   });
 });
 
