@@ -304,6 +304,7 @@ function _initSocketHandlers() {
     if (!_isNetworkGame) return;
     const p = state.players.find(pl => pl.id === playerId);
     if (p) p.disconnected = true;
+    updateScoreboard(state.players);          // ⚠️ next to the player, not only in the GM panel
     _renderGMNetworkPlayers(state.players);
     _updateNetworkStatusBar();
   });
@@ -312,6 +313,7 @@ function _initSocketHandlers() {
     if (!_isNetworkGame) return;
     const p = state.players.find(pl => pl.id === playerId);
     if (p) p.disconnected = false;
+    updateScoreboard(state.players);
     _renderGMNetworkPlayers(state.players);
   });
 

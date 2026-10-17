@@ -640,8 +640,11 @@ function leaveAndReset() {
 
   _refreshJoinBadge();
 
-  // Opened from the host's QR code / link: player?game=4823 fills in the Game ID (G11)
+  // Opened from the host's QR code / link: player?game=4823 fills in the Game ID (G11).
+  // Read it ONCE and remove it from the address: otherwise a refresh would
+  // re-apply an old link and drop the session for the game actually joined.
   const linkedGame = new URLSearchParams(location.search).get('game')?.replace(/\D/g, '').slice(0, 4) || '';
+  if (location.search) history.replaceState(null, '', location.pathname);
   if (linkedGame) {
     document.getElementById('input-game-id').value = linkedGame;
     // Name already known → just tap Join; otherwise type the name first

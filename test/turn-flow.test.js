@@ -406,8 +406,10 @@ describe('players and GM', () => {
 
   it('player_reconnected clears the disconnected marker', async () => {
     const w = makeWorld(); w.network();
+    let boards = 0; w.ctx.updateScoreboard = () => boards++;
     w.handlers.player_disconnected({ playerId: 1 });
     assert.equal(w.run('state.players[1].disconnected'), true);
+    assert.ok(boards > 0, 'scoreboard redrawn to show ⚠️');
     w.handlers.player_reconnected({ playerId: 1 });
     assert.equal(w.run('state.players[1].disconnected'), false);
   });

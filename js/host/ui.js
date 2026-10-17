@@ -35,7 +35,7 @@ function updateScoreboard(players) {
       <div class="score-name">${esc(p.name)}</div>
       <div>
         <div class="score-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
-        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}</div>
+        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}${p.disconnected ? ' <span title="Phone disconnected">⚠️</span>' : ''}</div>
       </div>
     </div>
   `).join('');
