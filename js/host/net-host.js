@@ -127,10 +127,8 @@ function _renderLobbyPlayers(players) {
     ? '<p class="lobby-empty">No players yet...</p>'
     : players.map(p => `
         <div class="lobby-player-row">
-          ${p.noPhone
-            ? `<button type="button" class="score-token badge-btn" style="background:${esc(p.color)}" title="Change badge"
-                       onclick="openBadgeModal({ playerId: ${p.id}, where: 'lobby' })"><div class="token-emoji">${esc(p.token)}</div></button>`
-            : `<div class="score-token" style="background:${esc(p.color)}"><div class="token-emoji">${esc(p.token)}</div></div>`}
+          <button type="button" class="score-token badge-btn" style="background:${esc(p.color)}" title="Change badge"
+                  onclick="openBadgeModal({ playerId: ${p.id}, where: 'lobby' })"><div class="token-emoji">${esc(p.token)}</div></button>
           <span>${esc(p.name)}</span>
           ${p.noPhone ? `<small class="no-phone-tag">🖥 no phone</small>
             <button type="button" class="lobby-remove" title="Remove" onclick="removeLobbyPlayer(${p.id})">✕</button>` : ''}

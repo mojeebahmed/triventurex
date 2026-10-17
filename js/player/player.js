@@ -282,6 +282,7 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
 
   const me = playerStates.find(p => p.id === _myId);
   if (!me) return;
+  _adoptHostBadge(playerStates);
 
   // Own badge + score
   document.getElementById('game-own-badge').style.background = me.color;
@@ -588,8 +589,20 @@ TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
 
 // The host changed someone's badge in the lobby
 TX_NET.on('player_updated', ({ players } = {}) => {
-  if (players && document.getElementById('lobby-view').classList.contains('active')) renderLobbyPlayers(players);
+  if (!players) return;
+  _adoptHostBadge(players);
+  if (document.getElementById('lobby-view').classList.contains('active')) renderLobbyPlayers(players);
 });
+
+/** The host may change this phone's badge (lobby or GM panel): use and remember it. */
+function _adoptHostBadge(players) {
+  const me = players.find(p => p.id === _myId);
+  if (!me || (me.token === _myToken && me.color === _myColor)) return;
+  _myToken = me.token;
+  _myColor = me.color;
+  _saveIdentity();       // next join starts with this badge
+  _refreshJoinBadge();
+}
 
 TX_NET.on('player_removed', ({ playerId, players }) => {
   // Someone left the lobby — refresh the list we're showing

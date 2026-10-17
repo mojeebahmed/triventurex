@@ -114,6 +114,13 @@ function gmChangeBadge() {
  * In the network lobby there's no game yet — the server keeps the list.
  */
 function _setSeatBadge(playerId, where, patch) {
+  // The host's own player: remember the new badge for next time too
+  const hostId = where === 'game' ? state.hostPlayerId : _pendingNetworkSetup?.hostPlayer?.id;
+  if (hostId != null && playerId === hostId) {
+    _hostPlayerState = { ..._hostPlayerState, ...patch };
+    const seat = (where === 'game' ? state.players : _lobbyPlayers).find(pl => pl.id === playerId);
+    if (seat) _saveHostPlayerPref(seat.name, patch.color ?? seat.color, patch.token ?? seat.token);
+  }
   if (where === 'game') {
     const p = state.players.find(pl => pl.id === playerId);
     if (!p) return;
