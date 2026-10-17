@@ -32,6 +32,32 @@ Verdicts used below: ✅ right size · ⚠️ thin, needs widening · ✂️ too
 
 ---
 
+## How we build an edition
+
+Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Claude does the research and writing; Mojeeb approves each step before the next one starts.
+
+1. **Outline**: categories › subcategories › topics with rough question counts, the 20+ landmarks (name + 2–3 sentence description), the look (colours, icon, `pointsName`, good/bad deed labels in `SPACE_INFO`, finish texts, award names). → approve
+2. **Images**: one photo per landmark plus a board background (see *Images* below), and a `CREDITS.md`. → approve
+3. **Questions**: written one category at a time (≈50 per batch) into `questions.csv`. Facts checked against at least two sources; the fact behind the answer goes in `note`. → review each batch
+4. **Deeds and actions**: 50+ deeds with 2–3 effects each, 25+ edition actions.
+5. **Check and play**: `npm run build:content <id>` → add to `editions.js` → `npm test` → play one offline and one network game → fix what was 🚩 marked → merge.
+
+### Images
+
+- **Real places** (cities, wonders, parks, planets): photos from [Wikimedia Commons](https://commons.wikimedia.org), which are free to reuse. Never random web images — they are usually copyrighted.
+- **Fictional places** (fairy tales, myths): no photos exist. Use public-domain storybook illustrations from Commons, images made with an image generator from prompts in one shared style, or simple SVG illustrations.
+- **Size**: resize and crop with macOS `sips` to the same shape, JPEG, about 100 KB each, saved as `images/landmarks/<kebab-name>.jpg`.
+- **Credits**: CC BY / CC BY-SA images need attribution. Each edition keeps a `CREDITS.md` with file, title, author, licence and source link for every image.
+
+### Avoid
+
+- Facts that change (records, "the current…", number of moons) — or put the year in the question.
+- Content that only works for one age group: `easy` should suit a 7-year-old, `hard` should challenge adults.
+- Repeating another edition's content — note the overlap in the idea and keep it in one place.
+- Reusing or renumbering question ids (asked-question tracking and 🚩 marks are stored by id).
+
+---
+
 ## Overview
 
 | # | Edition | Source | Verdict | Notes |
