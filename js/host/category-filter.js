@@ -34,14 +34,10 @@ function _buildCatTree() {
   return sorted;
 }
 
-// Returns a Set of selected topic strings. If nothing saved, all topics are selected.
+// Returns a Set of selected topic keys ("cat › subcat › topic", see topicKey in
+// js/shared/questions.js). If nothing saved, all topics are selected.
 function getSelectedTopics() {
-  const edId  = _activeEditionId || 'default';
-  const tree  = _buildCatTree();
-  const allTopics = Object.values(tree).flatMap(sc => Object.values(sc).flat());
-  const saved = _getSavedTopics(edId);
-  if (!saved) return new Set(allTopics);
-  return new Set(saved.filter(t => allTopics.includes(t)));
+  return selectedTopicKeys(_getSavedTopics(_activeEditionId || 'default'), window.QUESTIONS_DATA || []);
 }
 
 function _populateCategoryFilter() {
@@ -54,11 +50,11 @@ function _populateCategoryFilter() {
   const allTopics = Object.values(tree).flatMap(sc => Object.values(sc).flat());
   if (allTopics.length === 0) { row.style.display = 'none'; return; }
 
-  const saved = _getSavedTopics(edId);
-  const selTopics = new Set(saved || allTopics);
-
-  const _allTopicsIn   = (topics) => topics.every(t => selTopics.has(t));
-  const _someTopicsIn  = (topics) => topics.some(t => selTopics.has(t));
+  // Selection by full path: the same topic name can sit under several branches
+  const selKeys = getSelectedTopics();
+  const key = (cat, subcat, topic) => [cat, subcat, topic].join(TOPIC_SEP);
+  const _allTopicsIn   = (cat, subcat, topics) => topics.every(t => selKeys.has(key(cat, subcat, t)));
+  const _someTopicsIn  = (cat, subcat, topics) => topics.some(t => selKeys.has(key(cat, subcat, t)));
 
   const _saveCurrentState = () => {
     const nowSelected = [...box.querySelectorAll('input[data-level="topic"]:checked')].map(i => i.value);
@@ -97,9 +93,8 @@ function _populateCategoryFilter() {
   // the selection) and the rest of the row (expands / collapses the level below).
   let html = '';
   for (const [cat, subcats] of Object.entries(tree)) {
-    const catTopics = Object.values(subcats).flat();
-    const catAll    = _allTopicsIn(catTopics);
-    const catSome   = _someTopicsIn(catTopics);
+    const catAll    = Object.entries(subcats).every(([sc, ts]) => _allTopicsIn(cat, sc, ts));
+    const catSome   = Object.entries(subcats).some(([sc, ts]) => _someTopicsIn(cat, sc, ts));
     const catInd    = !catAll && catSome;
     html += `<div class="cat-group">
       <div class="cat-label tree-row" role="button" aria-expanded="false">
@@ -114,8 +109,8 @@ function _populateCategoryFilter() {
       <div class="subcat-list collapsed">`;
     for (const [subcat, topics] of Object.entries(subcats)) {
       const scKey  = `${cat}||${subcat}`;
-      const scAll  = _allTopicsIn(topics);
-      const scSome = _someTopicsIn(topics);
+      const scAll  = _allTopicsIn(cat, subcat, topics);
+      const scSome = _someTopicsIn(cat, subcat, topics);
       const scInd  = !scAll && scSome;
       html += `<div class="subcat-group">
         <div class="subcat-label tree-row" role="button" aria-expanded="false">
@@ -130,8 +125,8 @@ function _populateCategoryFilter() {
         <div class="topic-list collapsed">`;
       for (const topic of topics) {
         html += `<label class="topic-label">
-          <input type="checkbox" data-level="topic" data-cat="${cat}" data-subcat="${scKey}" value="${topic}"
-            ${selTopics.has(topic) ? 'checked' : ''}>
+          <input type="checkbox" data-level="topic" data-cat="${cat}" data-subcat="${scKey}" value="${esc(key(cat, subcat, topic))}"
+            ${selKeys.has(key(cat, subcat, topic)) ? 'checked' : ''}>
           ${topic}
         </label>`;
       }

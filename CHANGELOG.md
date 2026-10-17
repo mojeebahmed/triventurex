@@ -14,6 +14,7 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
 
 ### Fixed
+- ⚙️ Rules → Topics: a topic that appears under several categories (World Tour's "Europe", Animal Safari's "Africa") could not be switched off in one branch only. The selection is now kept per full path (category › subcategory › topic); saved selections carry over.
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed

@@ -238,7 +238,7 @@ function _availablePool(diff) {
   const selTopics = typeof getSelectedTopics === 'function' ? getSelectedTopics() : null;
   const all = (window.QUESTIONS_DATA || []).filter(q => {
     if (q.diff !== diff) return false;
-    if (selTopics && q.topic && !selTopics.has(q.topic)) return false;
+    if (selTopics && q.topic && !selTopics.has(topicKey(q))) return false;
     return true;
   });
   if (!all.length) return { pool: [], recycled: false };
@@ -265,7 +265,7 @@ function _showQuestionChoice(player, space, onDone) {
   // Both exhausted at the same time means _availablePool already recycled them above.
   // Build actions — disable whichever type has no questions in the active topic filter.
   const selTopics = typeof getSelectedTopics === 'function' ? getSelectedTopics() : null;
-  const _inTopic = q => !selTopics || !q.topic || selTopics.has(q.topic);
+  const _inTopic = q => !selTopics || !q.topic || selTopics.has(topicKey(q));
   const allEasy = (window.QUESTIONS_DATA || []).filter(q => q.diff === 'easy' && _inTopic(q));
   const allHard = (window.QUESTIONS_DATA || []).filter(q => q.diff === 'hard' && _inTopic(q));
 

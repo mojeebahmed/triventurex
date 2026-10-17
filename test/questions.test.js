@@ -6,7 +6,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { questionTree, filterQuestions, answerLabel, markedReport } = require('../js/shared/questions.js');
+const { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys } = require('../js/shared/questions.js');
 
 const Q = [
   { id: 1, q: 'Capital of <em>Sweden</em>?', opts: ['Oslo', 'Stockholm'], answer: 'B', diff: 'easy', cat: 'Geo', subcat: 'Europe', topic: 'Capitals', note: '' },
@@ -57,5 +57,39 @@ describe('marked report', () => {
     assert.match(text, /#2 \[hard\] Geo > Africa > Rivers\n {3}Longest river\?\n {3}Answer: Nile\n {3}Note: Amazon is longer\?/);
     assert.match(text, /Capital of Sweden\?/, 'HTML removed');
     assert.match(text, /#99 \(no longer in questions.csv\)/);
+  });
+});
+
+describe('topic filter keys (same topic name under several branches)', () => {
+  const T = [
+    { id: 1, cat: 'Capitals', subcat: 'Capitals', topic: 'Europe' },
+    { id: 2, cat: 'Flags', subcat: 'Flags', topic: 'Europe' },
+    { id: 3, cat: 'Flags', subcat: 'Flags', topic: 'Asia' },
+    { id: 4, cat: 'Misc', subcat: '', topic: '' },
+  ];
+
+  it('keys a question by its full path, with the tree fallbacks', () => {
+    assert.equal(topicKey(T[0]), 'Capitals › Capitals › Europe');
+    assert.equal(topicKey(T[3]), 'Misc › Other › General');
+  });
+
+  it('nothing saved = everything selected', () => {
+    assert.equal(selectedTopicKeys(null, T).size, 4);
+  });
+
+  it('a saved path selects only that branch — "Europe" under Flags stays off', () => {
+    const sel = selectedTopicKeys(['Capitals › Capitals › Europe', 'Flags › Flags › Asia'], T);
+    assert.ok(sel.has(topicKey(T[0])));
+    assert.ok(!sel.has(topicKey(T[1])));
+    assert.ok(sel.has(topicKey(T[2])));
+  });
+
+  it('old saves (plain topic names) select every branch with that name', () => {
+    const sel = selectedTopicKeys(['Europe'], T);
+    assert.deepEqual([...sel].sort(), ['Capitals › Capitals › Europe', 'Flags › Flags › Europe']);
+  });
+
+  it('keys for branches that no longer exist are dropped', () => {
+    assert.equal(selectedTopicKeys(['Gone › Gone › Gone'], T).size, 0);
   });
 });

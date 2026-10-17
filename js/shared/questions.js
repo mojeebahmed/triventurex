@@ -5,6 +5,30 @@
  * A question: { id, q, opts, answer, diff, cat, subcat, topic, note }.
  */
 
+/**
+ * The topic filter (Rules → Topics) selects by full path, because the same
+ * topic name can sit under several categories ("Europe" under Capitals and
+ * under Flags). Key = "cat › subcat › topic", with the same fallbacks the tree
+ * uses ('General' / 'Other').
+ */
+const TOPIC_SEP = ' › ';
+function topicKey(q) {
+  return [q.cat || 'General', q.subcat || 'Other', q.topic || 'General'].join(TOPIC_SEP);
+}
+
+/**
+ * The saved selection as a Set of topic keys. `saved` = the stored array or
+ * null (null = everything selected). Selections saved before topic keys were
+ * plain topic names; those select every path with that topic name.
+ */
+function selectedTopicKeys(saved, questions) {
+  const all = [...new Set((questions || []).map(topicKey))];
+  if (!Array.isArray(saved)) return new Set(all);
+  const keys = new Set(saved.filter(s => String(s).includes(TOPIC_SEP)));
+  const names = new Set(saved.filter(s => !String(s).includes(TOPIC_SEP)));
+  return new Set(all.filter(k => keys.has(k) || names.has(k.split(TOPIC_SEP)[2])));
+}
+
 /** Plain text of a question field (content may hold a little HTML, e.g. <em>). */
 const _qPlain = s => String(s ?? '').replace(/<[^>]*>/g, '');
 
@@ -79,4 +103,6 @@ function markedReport(marked, questions, editionName = '') {
   return lines.join('\n').trimEnd() + '\n';
 }
 
-if (typeof module !== 'undefined') module.exports = { questionTree, filterQuestions, answerLabel, markedReport };
+if (typeof module !== 'undefined') {
+  module.exports = { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, TOPIC_SEP };
+}
