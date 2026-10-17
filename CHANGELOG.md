@@ -7,6 +7,8 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **Prophets' Stories** edition 📖 (in review): the stories of the prophets from Hadhrat Adam (as) to the Holy Prophet Muhammad (sa) and the Promised Messiah (as), collecting *Noor*, finishing at Al-Ka'ba. Ahmadiyya understanding; every question cites its source (Qur'an with Bismillah as verse 1, hadith or books). 221 questions in 8 eras (category = era, subcategory = prophet, topic = story / miracles & signs / prayers & lessons), 56 deed cards (*Good Deed* / *Lesson to Learn*), 25 action cards (nobody acts a prophet) and 24 blessed places (photos of places only).
+- `scripts/review-sheet.js`: a printable review sheet (REVIEW.md) of an edition's questions, answers and sources.
 - **Animal Safari** edition 🦁: an expedition through the world's wild places collecting *Paw Prints*. 220 questions (mammals, birds, reptiles/frogs/bugs, habitats, animal superpowers, a little "under the sea"), 56 deed cards (*Wildlife Hero* / *Safari Mishap*), 25 action cards and 26 reserves with photos from Wikimedia Commons (credits in `game_editions/animal-safari/CREDITS.md`).
 - **World Tour** edition 🌍: a trip around the world collecting *Stamps*. 220 questions (capitals, flags & languages, wonders & nature, culture, a little food), 56 deed cards (*Smooth Travels* / *Travel Trouble*), 25 action cards and 26 wonders with photos from Wikimedia Commons (credits in `game_editions/world-tour/CREDITS.md`) on a 1635 world-map board.
 - `scripts/commons-image.js`: finds free-licence photos on Wikimedia Commons, crops/resizes them for an edition and records the credit.

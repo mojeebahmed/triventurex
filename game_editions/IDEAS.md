@@ -78,7 +78,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 | 13 | Myths & Legends | Claude | ✅ | Norse, Greek, Egyptian… |
 | 14 | Planet Earth (Wild Weather) | Claude | ✅ | Volcanoes, weather, rivers, mountains |
 | 15 | Sports Champions | Claude | ✅ | All sports except football (Football Quest exists) |
-| 16 | Prophets' Stories (Kids) | Claude | ✅ | Kid-level companion to Swab Quest |
+| 16 | Prophets' Stories (Kids) | Claude | ✅ **built** (in review) | Kid-level companion to Swab Quest |
 | 17 | Music Maestro | Claude | ⚠️ | Sound action cards are great; questions date fast if pop-heavy |
 
 ---

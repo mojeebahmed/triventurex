@@ -1,6 +1,8 @@
 # Prophets' Stories 📖 — outline (step 1)
 
-Design notes for the Prophets' Stories edition. Step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md): approve or change this, then step 2 (images) starts.
+Design notes for the Prophets' Stories edition (step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md)). **Status: built, questions in review** — see [REVIEW.md](REVIEW.md). The final content is in the CSV files and `config.js`; where they differ from this plan, they win (finish = Al-Ka'ba; Midian replaced by the Umayyad Mosque; 221 questions).
+
+**Left out on purpose until the review decides:** stories whose meaning depends on interpretation in the Ahmadiyya commentary — talking animals (Hadhrat Sulayman (as) and the ant, the hoopoe), jinn, the mountains and birds praising with Hadhrat Dawud (as), and the clay birds of Hadhrat Isa (as).
 
 **Pitch:** a journey through the stories of the prophets, from Hadhrat Adam (as) to the Holy Prophet Muhammad (sa) and the Promised Messiah (as), visiting the places where the stories happened.
 **Audience:** families who play Swab Quest; ages 5+ to adults in a good mix, with the stories told for children.
@@ -136,10 +138,10 @@ Effects: the usual mix; `{landmark}` cards, e.g. *"Your caravan reaches {landmar
 
 ---
 
-## Open questions for Mojeeb
+## Decisions (2026-10-18)
 
-1. Points name **Noor** and finish **Qadian** — OK? (Alternatives: *Barakah*; finish *Masjid an-Nabawi*.)
-2. Deed labels **Good Deed** / **Lesson to Learn**, landmark label **Blessed Place** — OK?
-3. **"Prophets from hadith and other sources":** which should be included? Suggested: Shith (Seth), Yusha' (Joshua), Danyal (Daniel), Shamwil (Samuel), Hizqil (Ezekiel), Armiya (Jeremiah). Should questions also mention the Promised Messiah's (as) teaching that prophets were sent to every nation, with examples he gave (e.g. Hadhrat Krishna, Hadhrat Buddha), or leave those out for children?
-4. **Review:** who checks the questions before the edition goes live (Mojeeb, a murabbi, both)?
-5. **Swab Quest note:** a few Swab Quest answers describe miracles literally (e.g. Hadhrat Isa (as) "raised the dead", clay birds "became real birds") where the Ahmadiyya understanding is different. Should those be reviewed separately?
+1. Points **Noor**; finish **Al-Ka'ba, Mecca** (same as Swab Quest), not Qadian.
+2. Labels **Good Deed** / **Lesson to Learn** / **Blessed Place** approved.
+3. Prophets from tradition: Shith, Yusha', Danyal, Shamwil, Hizqil, Armiya — plus Krishna and Buddha (a messenger to every people).
+4. Mojeeb reviews quickly; a knowledgeable person reviews this edition's and Swab Quest's questions (REVIEW.md).
+5. Swab Quest's literal miracle answers: reviewed by the same person, separately.

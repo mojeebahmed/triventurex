@@ -50,4 +50,12 @@ window.TRIVENTUREX_EDITIONS = [
     accentColor: '#558B2F',
   },
 
+  {
+    id:          'prophets-stories',
+    name:        "Prophets' Stories",
+    icon:        '📖',
+    description: 'Travel through the stories of the prophets, from Hadhrat Adam (as) to the Promised Messiah (as), and collect Noor.',
+    accentColor: '#283593',
+  },
+
 ];

@@ -25,6 +25,7 @@ Each **edition** is its own content pack with its own questions, cards, landmark
 | Football Quest | ✅ Live | Goals | The Final | 92 | 25 | 20 iconic stadiums & venues |
 | World Tour | ✅ Live | Stamps | Home Again | 220 | 25 | 26 world wonders |
 | Animal Safari | ✅ Live | Paw Prints | Safari Lodge | 220 | 25 | 26 wild places & reserves |
+| Prophets' Stories | 🔍 In review | Noor | Al-Ka'ba, Mecca | 221 | 25 | 24 blessed places from the stories |
 
 Every edition also gets **40 general action cards** (`game_editions/shared/`), mixed in with its own. Switch them off in ⚙️ Rules → Action cards. Ideas for further editions, and how one is built, are in [`game_editions/IDEAS.md`](game_editions/IDEAS.md).
 
@@ -56,10 +57,11 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~365, a few seconds): server, turn flow, board generation, rules, stats, content
+npm test                  # all tests (~390, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
+node scripts/review-sheet.js <edition>                 # printable question review sheet (REVIEW.md) for someone without the game
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
@@ -147,7 +149,9 @@ Triventurex/
     │
     ├── world-tour/               Travel & geography edition (same layout, plus OUTLINE.md and CREDITS.md for its photos)
     │
-    └── animal-safari/            Animals & wild places edition (same layout as world-tour)
+    ├── animal-safari/            Animals & wild places edition (same layout as world-tour)
+    │
+    └── prophets-stories/         Stories of the prophets, Ahmadiyya understanding (plus REVIEW.md, a printable question review sheet)
 ```
 
 ---
@@ -359,7 +363,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 ## Roadmap
 
 ### V1: Complete ✅
-- Edition-neutral engine (Swab Quest, Football Quest, World Tour, Animal Safari)
+- Edition-neutral engine (Swab Quest, Football Quest, World Tour, Animal Safari, Prophets' Stories)
 - Variable deed effects: up to 3 effects per card, one picked at board-gen time
 - Constraint-aware board generation: no move-back near start, no move-forward near finish
 - Relative landmark deeds (`move_to_prev/next_landmark`) with resolved names on board tiles
@@ -394,7 +398,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - ~310 automated tests — details in `CHANGELOG.md`
 
 ### Unreleased (2026-10)
-- **World Tour** 🌍 and **Animal Safari** 🦁 editions; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
+- **World Tour** 🌍, **Animal Safari** 🦁 and **Prophets' Stories** 📖 editions; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
 
 ### Future ideas
 - Sound effects (dice roll, correct answer, finish fanfare)

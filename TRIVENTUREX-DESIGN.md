@@ -30,6 +30,7 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 | Football Quest | Goals | The Final | Good Play / Foul Play | 20 iconic stadiums & venues | 92 | 25 |
 | World Tour | Stamps | Home Again | Smooth Travels / Travel Trouble | 26 world wonders | 220 | 25 |
 | Animal Safari | Paw Prints | Safari Lodge | Wildlife Hero / Safari Mishap | 26 wild places & reserves | 220 | 25 |
+| Prophets' Stories (in review) | Noor | Al-Ka'ba, Mecca | Good Deed / Lesson to Learn | 24 blessed places | 221 | 25 |
 
 Every edition also gets 40 general action cards from `game_editions/shared/actions.csv`.
 
@@ -42,7 +43,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 - **Client:** Vanilla HTML + CSS + JavaScript — no framework, no build step. Plain `<script>` files, not ES modules, so `index.html` also works opened from disk
 - **Server (V2):** Node.js + Express + Socket.IO
 - **Content:** CSV files (loaded via `fetch()`) with generated JS fallbacks for offline/`file://` use (`npm run build:content`)
-- **Tests:** Node's built-in test runner (`npm test`, ~365 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
+- **Tests:** Node's built-in test runner (`npm test`, ~390 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
 
 ### Pages
 
@@ -91,7 +92,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `game_editions/shared/actions.csv` | General action cards mixed into every edition (`GENERAL_ACTIONS_DATA`; ids become `g<n>` in the deck) |
 | `game_editions/IDEAS.md` | Ideas for new editions, content targets, how an edition is built |
 | `server.js` | Rooms, authoritative dice, relays (host → phones, phone → host, host → TV); state-ownership rules at the top |
-| `scripts/` | Node-only dev tooling: content build + checker, `commons-image.js` for Wikimedia Commons photos (not served) |
+| `scripts/` | Node-only dev tooling: content build + checker, `commons-image.js` for Wikimedia Commons photos, `review-sheet.js` for a printable question review (not served) |
 | `tools/path-designer.html` | Older standalone path designer (the ✏️ Boards tab replaces it) |
 | `test/` | Automated tests (`npm test`) |
 
@@ -245,7 +246,7 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 | `triventurex_rules_<editionId>` | Rules per edition: `{ preset, changes }` (only what differs from the preset) |
 | `triventurex_asked_<editionId>_<diff>` | Asked question IDs per edition and difficulty (`easy` / `hard`) |
 | `triventurex_asked_<editionId>_actions` | Used action card IDs per edition (general cards are `g<n>`) |
-| `triventurex_cats_<editionId>` | Selected question topic names per edition |
+| `triventurex_cats_<editionId>` | Selected question topics per edition, as "cat › subcat › topic" keys (older saves: plain topic names) |
 | `triventurex_marked_<editionId>` | Questions marked wrong / unclear: `{ [id]: { note, at } }` |
 | `triventurex_custom_boards` | Boards from the ✏️ Boards tab: `{ short, medium, long }` (all editions) |
 | `triventurex_player_identity` | Player name/token/colour on player device (V2) |
@@ -375,4 +376,4 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 | More landmarks | 2026-06-03 | Swab Quest: 6 → 20 landmarks; Football Quest: 6 → 20 stadiums/venues |
 | Code review & hardening (2.1) | 2026-10-16/17 | 18 bugs fixed; one turn pipeline; host/server state ownership; `game.js` split into `js/shared/host/player`; content build + checker; digital action cards; ~200 automated tests |
 | Gameplay & play experience (2.2) | 2026-10-17 | Setup screen with tabs, rules panel + presets, board picker, QR join, answering on phones, players without a phone, presentation mode, TV display, end-screen stats + awards, question explorer + reporting, board designer; ~310 tests — details in `CHANGELOG.md` |
-| World Tour, Animal Safari + shared actions (unreleased) | 2026-10-17/18 | World Tour and Animal Safari editions (220 questions each); World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |
+| World Tour, Animal Safari + shared actions (unreleased) | 2026-10-17/18 | World Tour and Animal Safari editions (220 questions each); Prophets' Stories (in review); topic filter keyed by full path; World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |
