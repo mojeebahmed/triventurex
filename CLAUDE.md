@@ -123,6 +123,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Deed/question labels**: `CONFIG.SPACE_INFO[type].label` drives all modal titles and history icons — editions override via `SPACE_INFO` in config.js (e.g. Football Quest: "Good Play" / "Foul Play")
 - **Space GPU layers**: `transform: translateZ(0)` on each space → crisp at any zoom level
 - **fitBoardInView()** is SYNCHRONOUS (no rAF) — no board-jump bug
+- **Board drawn to the path's bounding box** (`pathBounds` in board.js), not the template's full grid — so fit-to-view centres on the path. `_gridRows/_gridCols` are still saved for old saves but not used for drawing
 - **#board-world** pinned to grid dimensions — no background-loading shift
 - **Modal** is `position:absolute` inside `#board-viewport` — sidebar always accessible
 - **Modal accent colour**: `--modal-accent` CSS var set per space type; coloured border + tinted icon area
@@ -156,7 +157,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Mode transitions**: `dice` → (tap roll) → `rolled` → (space_card) → `card` → (space_card_done) → `activity`
 - **state_update must NOT override rolled/card mode**: `renderGameView()` skips mode change when box is in `rolled-mode` or `card-mode` during a resolving turn
 - **turn_result before space_card_done**: `_finishTurn()` emits `turn_result` first so activity feed updates before card clears
-- **CSS dice**: `renderDie(n, sizeClass)` in `js/shared/dice.js` — dot-based, no images; loaded by both host and phone pages (single copy)
+- **CSS dice**: `renderDie(n, sizeClass)` + `animateDieInto(el, result)` in `js/shared/dice.js` — dot-based, no images; host and phones use the same rolling animation (phones: roller big in the action box, others in a strip above the activity feed; feed entry added after the animation)
 - **GM controls**: adjust score, move player, skip turn, remove player, sit out / rejoin (`player.inactive`, host-owned, synced via `sync_state`); network players section shows connected/disconnected state
 - **GM actions in history**: `_gmAction()` — between turns a GM change gets its own undoable `spaceType:'gm'` history entry; during a turn it folds into that turn
 - **Turn order**: `nextTurnIndex()` (turn.js) skips finished and sitting-out players (falls back to any unfinished player so the game never stalls)

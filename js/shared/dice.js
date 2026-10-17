@@ -31,27 +31,34 @@ function rollDice() {
 }
 
 /**
- * Animate the dice element using CSS dot faces, then settle on the result.
+ * Rolling animation: flash random faces in `el`, then settle on `result`.
+ * Resolves when the final face is shown (~600ms by default). Shared by the
+ * host's dice display and the phone screens so a roll looks the same everywhere.
  */
-function animateDice(result) {
+function animateDieInto(el, result, { sizeClass = '', flashes = 10, intervalMs = 60 } = {}) {
   return new Promise(resolve => {
-    const diceEl  = document.getElementById('dice-display');
-    const resultEl = document.getElementById('dice-result');
-
-    diceEl.classList.add('rolling');
-    resultEl.textContent = '';
-
-    let flashes = 0;
+    if (!el) { resolve(); return; }
+    let shown = 0;
     const interval = setInterval(() => {
-      diceEl.innerHTML = renderDie(Math.floor(Math.random() * 6) + 1);
-      flashes++;
-      if (flashes >= 10) {
+      el.innerHTML = renderDie(Math.floor(Math.random() * 6) + 1, sizeClass);
+      if (++shown >= flashes) {
         clearInterval(interval);
-        diceEl.innerHTML = renderDie(result);
-        diceEl.classList.remove('rolling');
-        resultEl.textContent = result;
+        el.innerHTML = renderDie(result, sizeClass);
         resolve();
       }
-    }, 60);
+    }, intervalMs);
   });
 }
+
+/** Host: animate the sidebar dice display, then show the result number. */
+async function animateDice(result) {
+  const diceEl   = document.getElementById('dice-display');
+  const resultEl = document.getElementById('dice-result');
+  diceEl.classList.add('rolling');
+  resultEl.textContent = '';
+  await animateDieInto(diceEl, result);
+  diceEl.classList.remove('rolling');
+  resultEl.textContent = result;
+}
+
+if (typeof module !== 'undefined') module.exports = { renderDie, rollDice, animateDieInto };

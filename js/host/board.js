@@ -495,17 +495,31 @@ function renderBoard(spaces, players) {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
-  const gridRows = spaces._gridRows ?? (Math.max(...spaces.map(s => s.row)) + 1);
-  const gridCols = spaces._gridCols ?? (Math.max(...spaces.map(s => s.col)) + 1);
-  board.style.gridTemplateRows    = `repeat(${gridRows}, var(--space-size))`;
-  board.style.gridTemplateColumns = `repeat(${gridCols}, var(--space-size))`;
+  // Draw only the rows/columns the path actually uses (its bounding box), not
+  // the template's whole grid — otherwise a path that uses part of a 12×12 grid
+  // sits off to one side, because fitBoardInView fits whatever is drawn (G9).
+  const { minRow, minCol, rows, cols } = pathBounds(spaces);
+  board.style.gridTemplateRows    = `repeat(${rows}, var(--space-size))`;
+  board.style.gridTemplateColumns = `repeat(${cols}, var(--space-size))`;
 
   spaces.forEach(space => {
     const el = createSpaceElement(space, players);
-    el.style.gridRow    = space.row + 1;
-    el.style.gridColumn = space.col + 1;
+    el.style.gridRow    = space.row - minRow + 1;
+    el.style.gridColumn = space.col - minCol + 1;
     board.appendChild(el);
   });
+}
+
+/** Bounding box of the board's spaces in grid cells: first row/col and size. */
+function pathBounds(spaces) {
+  const rowsUsed = spaces.map(s => s.row);
+  const colsUsed = spaces.map(s => s.col);
+  const minRow = Math.min(...rowsUsed), minCol = Math.min(...colsUsed);
+  return {
+    minRow, minCol,
+    rows: Math.max(...rowsUsed) - minRow + 1,
+    cols: Math.max(...colsUsed) - minCol + 1,
+  };
 }
 
 function createSpaceElement(space, players) {

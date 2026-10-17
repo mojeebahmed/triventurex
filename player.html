@@ -321,6 +321,7 @@
       display: inline-flex;
       flex-shrink: 0;
     }
+    .die-face.die-sm { --ds: 30px; }
     .die-face.die-lg { --ds: 80px; }
     .die-face.die-xl { --ds: 110px; }
     .die-dot {
@@ -336,6 +337,19 @@
     .ab-dice-wrap  { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ab-dice-label { font-size: 1.05rem; font-weight: 800; color: var(--green); }
     .ab-dice-hint  { font-size: .78rem; color: var(--text-muted); }
+    /* Rolling animation (same tumble as the host's dice) */
+    .die-rolling { animation: phone-dice-roll .6s ease; }
+    @keyframes phone-dice-roll {
+      0%   { transform: rotate(0deg)   scale(1); }
+      25%  { transform: rotate(90deg)  scale(1.15); }
+      50%  { transform: rotate(180deg) scale(.9); }
+      75%  { transform: rotate(270deg) scale(1.08); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    /* Someone else's roll, above the activity feed */
+    .ab-roll-strip { display: none; align-items: center; gap: 10px; margin: 2px 0 8px;
+                     font-size: .85rem; font-weight: 700; }
+    .ab-roll-strip.visible { display: flex; }
     /* Rolled state — dice result shown before space card */
     .ab-rolled-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
     .ab-rolled-num  { font-size: .85rem; font-weight: 700; color: var(--text-muted); }
@@ -584,6 +598,11 @@
       <!-- Activity mode -->
       <div id="ab-activity" class="ab-mode">
         <div class="ab-activity-head">Game activity</div>
+        <!-- Someone else's roll, animated (G10) -->
+        <div id="ab-roll-strip" class="ab-roll-strip">
+          <span id="ab-roll-die"></span>
+          <span id="ab-roll-text"></span>
+        </div>
         <div id="ab-activity-list" class="ab-activity-list">
           <div class="ab-empty">Waiting for activity...</div>
         </div>

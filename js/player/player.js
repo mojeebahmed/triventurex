@@ -458,18 +458,43 @@ TX_NET.on('game_started', ({ players }) => {
   showView('game-view');
 });
 
-TX_NET.on('roll_result', ({ roll, playerId }) => {
+// Every roll is animated on every phone, roughly in step with the host's dice
+// (G10): the roller sees it big in the action box, everyone else in a small
+// strip above the activity feed. The feed entry comes after the animation so
+// it doesn't give the number away early.
+let _rollAnimToken = 0;
+
+TX_NET.on('roll_result', async ({ roll }) => {
   clearTimeout(_rollTimeout);
   _lastRoll = roll;
-  const name = _lastCurrentPlayerName || 'Someone';
-  _addActivity('🎲', `<strong>${esc(name)}</strong> rolled <strong>${roll}</strong>`);
+  const name  = _lastCurrentPlayerName || 'Someone';
+  const token = ++_rollAnimToken; // a newer roll supersedes this animation
 
   if (_isMyTurn) {
-    // Show rolled mode: die face + number until space_card arrives
-    document.getElementById('ab-rolled-die').innerHTML = renderDie(roll, 'die-lg');
-    document.getElementById('ab-rolled-num').textContent = roll;
+    // Rolled mode: tumbling die, then the result, until the space card arrives
+    const dieEl = document.getElementById('ab-rolled-die');
+    const numEl = document.getElementById('ab-rolled-num');
+    numEl.textContent = 'Rolling…';
     _setActionMode('rolled');
+    dieEl.classList.add('die-rolling');
+    await animateDieInto(dieEl, roll, { sizeClass: 'die-lg' });
+    dieEl.classList.remove('die-rolling');
+    if (token !== _rollAnimToken) return;
+    numEl.textContent = `Rolled ${roll}`;
+    navigator.vibrate?.(60);
+  } else {
+    const strip = document.getElementById('ab-roll-strip');
+    const dieEl = document.getElementById('ab-roll-die');
+    const text  = document.getElementById('ab-roll-text');
+    text.textContent = `🎲 ${name} is rolling…`;
+    strip.classList.add('visible');
+    dieEl.classList.add('die-rolling');
+    await animateDieInto(dieEl, roll, { sizeClass: 'die-sm' });
+    dieEl.classList.remove('die-rolling');
+    if (token !== _rollAnimToken) return;
+    text.textContent = `${name} rolled ${roll}`;
   }
+  _addActivity('🎲', `<strong>${esc(name)}</strong> rolled <strong>${roll}</strong>`);
 });
 
 TX_NET.on('state_update', (data) => {

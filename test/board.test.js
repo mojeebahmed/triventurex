@@ -105,6 +105,28 @@ for (const edition of EDITIONS) {
   });
 }
 
+describe('pathBounds (G9: the board is drawn only as big as its path)', () => {
+  const ctx = editionWorld('football-quest');
+  const templates = vm.runInContext('CONFIG.PATH_TEMPLATES', ctx);
+
+  for (const len of ['short', 'medium', 'long']) {
+    it(`${len}: every template's drawn grid is tight around the path`, () => {
+      for (const template of templates[len]) {
+        ctx.__len = len; ctx.__t = template;
+        const b = vm.runInContext('generateBoard(__len, __t)', ctx);
+        const { minRow, minCol, rows, cols } = ctx.pathBounds(b);
+        const name = template.name;
+        // every space inside the box …
+        assert.ok(b.every(s => s.row >= minRow && s.row < minRow + rows &&
+                               s.col >= minCol && s.col < minCol + cols), `${name}: space outside`);
+        // … and the path touches all four edges (no empty border rows/columns)
+        assert.ok(b.some(s => s.row === minRow) && b.some(s => s.row === minRow + rows - 1), `${name}: empty row`);
+        assert.ok(b.some(s => s.col === minCol) && b.some(s => s.col === minCol + cols - 1), `${name}: empty column`);
+      }
+    });
+  }
+});
+
 describe('_assignDeedsToSlots fallback', () => {
   const ctx = editionWorld(null);
   const card = (id, effects) => ({ id, type: 'good', text: `card ${id}`, effects,
