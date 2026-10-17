@@ -311,7 +311,7 @@ const CONFIG = {
     question_hard:    2,
     action_performer: 1,
     action_guesser:   1,
-    landmark:         5,
+    landmark:         3,   // easy 1 < hard 2 < landmark 3
   },
 
   /**

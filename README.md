@@ -203,7 +203,7 @@ Rules have their own **⚙️ Rules** tab on the setup screen, with side tabs pe
 
 | Section | Rules (default) |
 |---|---|
-| Scoring | Easy/hard question points (1/2) · action performer/guesser (1/1) · finish bonus: Standard 10/7/5…, Small 5/3/2/1 or Off · landmark points when **landing by a roll** (+5), **sent there by a good deed** (0), **sent back there by a bad deed** (0); each can be negative, 0 = just information · allow negative scores (off) |
+| Scoring | Easy/hard question points (1/2) · action performer/guesser (1/1) · finish bonus: Standard 10/7/5…, Small 5/3/2/1 or Off · landmark points when **landing by a roll** (+3), **sent there by a good deed** (0), **sent back there by a bad deed** (0); each can be negative, 0 = just information · allow negative scores (off) |
 | Questions | Difficulty: player chooses / always easy / always hard · auto-start timer (off) and its seconds (30) · avoid repeats: remember across games / reset every game · **players answer on their phone** (on; network games) · **question topics** (category > subcategory > topic) |
 | Action cards | Digital (when the edition has cards) or physical deck; a digital card can always be swapped for a physical one in play · kinds allowed (act / explain / sound) · action timer (90 s) |
 | Board | **Tile mix**: % per tile type, 0 removes it, questions fill the rest; presets Balanced / More questions / More action / Questions only, with a live preview of the tile counts (special tiles capped at 70% in total) · deed effects: varied or always the first · no going backwards (leaves out move-back, back-to-landmark and skip-turn effects) |
@@ -302,7 +302,7 @@ id,text,kind,note
    - **Action**: perform the card (act / explain / hum). Performer and first correct guesser each earn +1.
    - **Good Deed / Good Play**: one effect applied automatically (varies each game)
    - **Bad Deed / Foul Play**: one effect applied automatically (varies each game)
-   - **Landmark / Stadium**: points by the rules (default +5 when landing by a roll; also settable for arriving via a deed)
+   - **Landmark / Stadium**: points by the rules (default +3 when landing by a roll; also settable for arriving via a deed)
    - **Skip**: lose your next turn
 3. To reach the finish you must roll the **exact** number (on by default). Finishing earns a bonus by finishing order (1st +10, 2nd +7, …), however you got there.
 4. The game ends when all players reach the finish. **Winner = most points.** The end screen also shows each player's stats (questions right, actions guessed, average roll, spaces travelled) and fun awards — 🧠 Quiz master, 🍀 Lucky roller, 🐢 Unluckiest roller and more (names set in `CONFIG.AWARDS`, editions can rename them). Then **🔁 Rematch** (same players and settings, new board) or **New game setup**.

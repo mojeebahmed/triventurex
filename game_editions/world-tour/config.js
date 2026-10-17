@@ -179,12 +179,11 @@ window.EDITION_CONFIG = {
     blur:           0,
   },
 
-  // ── Space distribution overrides (optional) ─────────────────────────────────
-  // The edition has many wonders, so they get a slightly bigger share than the default.
+  // ── Space distribution — the standard mix (same as Swab Quest) ──────────────
   SPACE_DISTRIBUTION: {
-    short:  { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.05, skip: 0.05 },
-    medium: { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.07, skip: 0.05 },
-    long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.06 },
+    short:  { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
+    medium: { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
+    long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
   },
 
   // ── Space type overrides ────────────────────────────────────────────────────

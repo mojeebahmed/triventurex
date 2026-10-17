@@ -51,7 +51,7 @@ function defaultRules(config, { hasActionCards = false } = {}) {
       actionPerformer:  sv.action_performer ?? 1,
       actionGuesser:    sv.action_guesser   ?? 1,
       finishBonus:      'standard',
-      landmarkRoll:     sv.landmark ?? 5,
+      landmarkRoll:     sv.landmark ?? 3,
       landmarkGoodDeed: 0,
       landmarkBadDeed:  0,
       negativeScores:   false,
@@ -214,7 +214,7 @@ function landmarkPoints(rules, how) {
   const s = rules?.scoring || {};
   return how === 'good' ? (s.landmarkGoodDeed ?? 0)
        : how === 'bad'  ? (s.landmarkBadDeed  ?? 0)
-       : (s.landmarkRoll ?? 5);
+       : (s.landmarkRoll ?? 3);
 }
 
 /** The tile mix as fractions for generateBoard, or null for the edition default. */

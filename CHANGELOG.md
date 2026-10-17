@@ -13,6 +13,8 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
 
 ### Changed
+- Landing on a landmark now gives **3** points by default (was 5): easy 1 · hard 2 · landmark 3. Applies to every edition; games saved earlier keep their rules.
+- New editions start from Swab Quest's board mix (the template's `SPACE_DISTRIBUTION`: 10% action / good / bad deeds, 8% landmarks, 5% skips; long boards 12% action). World Tour uses it too.
 - `test/board.test.js` now tests every edition in `game_editions/editions.js` instead of a fixed list.
 - ⚙️ Rules tab: the header is a one-line action bar (preset, "✎ N changed", ↺ Reset, 📋 Copy) like the Questions and Boards tabs. The "Rules for …" line is gone (the edition is in the setup header) and the preset's description is its tooltip.
 

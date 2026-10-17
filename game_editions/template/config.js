@@ -42,15 +42,16 @@ window.EDITION_CONFIG = {
     blur:           0,
   },
 
-  // ── Space distribution (optional) ───────────────────────────────────────────
+  // ── Space distribution ──────────────────────────────────────────────────────
   // Ratios for each non-question type. Questions fill whatever space remains.
+  // These are Swab Quest's values — the standard mix for new editions.
   // Can be flat (same for all lengths) or keyed by 'short'/'medium'/'long'.
-  // Omit to use the engine defaults from js/shared/config.js.
-  // SPACE_DISTRIBUTION: {
-  //   short:  { action: 0.10, good_deed: 0.12, bad_deed: 0.12, landmark: 0.06, skip: 0.04 },
-  //   medium: { action: 0.10, good_deed: 0.12, bad_deed: 0.12, landmark: 0.06, skip: 0.04 },
-  //   long:   { action: 0.10, good_deed: 0.12, bad_deed: 0.12, landmark: 0.06, skip: 0.04 },
-  // },
+  // Remove the block to use the engine defaults from js/shared/config.js.
+  SPACE_DISTRIBUTION: {
+    short:  { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
+    medium: { action: 0.10, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
+    long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
+  },
 
   // ── Space type overrides ────────────────────────────────────────────────────
   // Only specify what differs from the engine defaults in js/shared/config.js SPACE_INFO.
