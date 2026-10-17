@@ -174,6 +174,7 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `ZOOM` | Max zoom-in (200%), zoom-out factor |
 | `TIMER` | Default timer duration per space type |
 | `ANIMATION` | Token hop speed, flyout duration, dice overlay |
+| `AWARDS` | End-screen awards: icon, title, text (editions can rename) |
 | `PRESENTATION` | 📺 presentation mode: shortcut key, how much bigger, board fill limit, pointer hide delay |
 | `PATH_TEMPLATES` | Board path shapes per game length |
 
@@ -293,7 +294,7 @@ id,text,kind,note
    - **Landmark / Stadium**: points by the rules (default +5 when landing by a roll; also settable for arriving via a deed)
    - **Skip**: lose your next turn
 3. To reach the finish you must roll the **exact** number (on by default). Finishing earns a bonus by finishing order (1st +10, 2nd +7, …), however you got there.
-4. The game ends when all players reach the finish. **Winner = most points.** Then **🔁 Rematch** (same players and settings, new board) or **New game setup**.
+4. The game ends when all players reach the finish. **Winner = most points.** The end screen also shows each player's stats (questions right, actions guessed, average roll, spaces travelled) and fun awards — 🧠 Quiz master, 🍀 Lucky roller, 🐢 Unluckiest roller and more (names set in `CONFIG.AWARDS`, editions can rename them). Then **🔁 Rematch** (same players and settings, new board) or **New game setup**.
 
 **GM controls** (⚙️ on the game screen): adjust score, move a player, skip their next turn, **sit out / rejoin** (skipped in turn order but keeps their place and score), and remove a network player. Score/move/skip changes appear in the move history and can be undone.
 

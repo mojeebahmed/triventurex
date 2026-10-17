@@ -921,8 +921,10 @@ body {
   background: var(--card);
   border-radius: 20px;
   padding: 36px;
-  max-width: 480px;
+  max-width: 640px;
   width: 92%;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 24px 64px rgba(0,0,0,.35);
 }
@@ -941,6 +943,18 @@ body {
 .final-rank   { font-size: 1.4rem; width: 32px; text-align: center; }
 .final-name   { flex: 1; font-weight: 600; }
 .final-points { font-size: 1.1rem; font-weight: 700; color: var(--green); }
+.final-stats  { font-size: .75rem; font-weight: 500; color: var(--text-muted); margin-top: 2px; }
+
+/* Awards (G13) */
+.awards-title { margin: 22px 0 10px; font-size: .8rem; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); }
+.awards-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.award-card   { background: #FAFAFA; border: 1.5px solid #EEE; border-radius: 14px; padding: 12px 10px; animation: modalIn .3s ease both; }
+.award-card:nth-child(2) { animation-delay: .08s; } .award-card:nth-child(3) { animation-delay: .16s; }
+.award-card:nth-child(4) { animation-delay: .24s; } .award-card:nth-child(n+5) { animation-delay: .32s; }
+.award-icon   { font-size: 1.8rem; line-height: 1.1; }
+.award-title  { font-weight: 800; font-size: .9rem; margin-top: 4px; }
+.award-who    { font-weight: 700; color: var(--green); font-size: .95rem; }
+.award-why    { font-size: .75rem; color: var(--text-muted); }
 
 /* ── Dice overlay — large result shown on the board after rolling ── */
 #dice-overlay {
@@ -1344,7 +1358,7 @@ body {
 /* ── Board Legend ────────────────────────────────────────────── */
 
 #board-legend {
-  position: fixed;
+  position: absolute;
   bottom: 10px;
   left: 10px;
   background: rgba(255,255,255,.94);

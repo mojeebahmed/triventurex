@@ -167,8 +167,8 @@ function closeRoom(gameId, reason) {
 // secrets), plus the lobby list from the server. The last 'game' / 'live' /
 // 'card' / 'timer' message is kept so a display that opens late or refreshes
 // catches up at once.
-const DISPLAY_KINDS = ['game', 'live', 'card', 'timer', 'roll'];
-const DISPLAY_KEPT  = ['game', 'live', 'card', 'timer'];
+const DISPLAY_KINDS = ['game', 'live', 'card', 'timer', 'roll', 'end'];
+const DISPLAY_KEPT  = ['game', 'live', 'card', 'timer', 'end'];
 const displayRoom   = gameId => `display:${gameId}`;
 
 /** Lobby: the joined players, for displays waiting for the game to start. */

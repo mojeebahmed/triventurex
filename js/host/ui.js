@@ -334,8 +334,8 @@ function _showQuestion(diff, player, onDone) {
                 <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
       actions: [
         { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
-          callback: () => { addScore(player, pts); onDone(); } },
-        { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+          callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
+        { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
         { label: '📋 Use physical card instead', class: 'btn btn-secondary',
           callback: () => _showPhysicalCard(diff, player, pts, onDone) },
       ],
@@ -418,6 +418,7 @@ function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
   const letters = ['A', 'B', 'C', 'D'];
   const ptsName = CONFIG.GAME?.pointsName ?? 'pts';
   const right   = letter === q.answer;
+  _noteQuestion(right);
   _markAsked(diff, q.id);
   if (right) addScore(player, pts);
 
@@ -473,11 +474,14 @@ function _showQuestionWithAnswer(q, diff, pts, player, onDone) {
       ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}`,
     actions: [
       { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
-        callback: () => { addScore(player, pts); onDone(); } },
-      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+        callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
+      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
     ],
   });
 }
+
+/** How the turn's question went — kept on the turn for the end-screen stats (G13). */
+function _noteQuestion(right) { if (state.turn) state.turn.result = { question: right }; }
 
 function _showPhysicalCard(diff, player, pts, onDone) {
   showModal({
@@ -487,8 +491,8 @@ function _showPhysicalCard(diff, player, pts, onDone) {
               <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
     actions: [
       { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
-        callback: () => { addScore(player, pts); onDone(); } },
-      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: onDone },
+        callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
+      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
     ],
   });
 }
@@ -805,6 +809,8 @@ function showGuesserModal(players, performer, onDone) {
 function showEndScreen(players) {
   const sorted = getSortedPlayers(players);
   const ranks  = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+  const { stats, awards } = endOfGameSummary(players, state.history);
+  const statsById = new Map(stats.map(s => [s.id, s]));
   document.getElementById('final-scores').innerHTML = sorted.map((p, i) => `
     <div class="final-score-row">
       <div class="final-rank">${ranks[i] || `${i + 1}.`}</div>
@@ -812,10 +818,53 @@ function showEndScreen(players) {
         <div class="token-emoji">${esc(p.token || '●')}</div>
         <div class="token-initial">${esc((p.name || '?').slice(0, 2).toUpperCase())}</div>
       </div>
-      <div class="final-name">${esc(p.name)}</div>
+      <div class="final-name">${esc(p.name)}
+        <div class="final-stats">${esc(statLine(statsById.get(p.id)))}</div>
+      </div>
       <div class="final-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
     </div>`).join('');
+  document.getElementById('end-awards').innerHTML = awardsHtml(awards, players);
   showScreen('end-screen');
+}
+
+// ── End-of-game stats + awards (G13) ──────────────────────────────────────────
+
+/** Stats per player and the awards, from the game history (js/shared/stats.js). */
+function endOfGameSummary(players, history) {
+  const stats  = gameStats(history, players);
+  const labels = {
+    good:     CONFIG.SPACE_INFO.good_deed?.label,
+    bad:      CONFIG.SPACE_INFO.bad_deed?.label,
+    landmark: CONFIG.SPACE_INFO.landmark?.label,
+    points:   CONFIG.GAME?.pointsName,
+  };
+  const awards = gameAwards(stats, CONFIG.AWARDS, { minRolls: CONFIG.AWARD_MIN_ROLLS })
+    .map(a => ({ ...a, text: awardText(a, labels) }));
+  return { stats, awards };
+}
+
+/** "✅ 3/5 questions · 🎬 1/2 actions · 🎲 avg 3.4 · 👣 38 spaces" (empty parts left out). */
+function statLine(s) {
+  if (!s) return '';
+  return [
+    s.questions && `✅ ${s.questionsRight}/${s.questions} questions`,
+    s.actions   && `🎬 ${s.actionsGuessed}/${s.actions} actions`,
+    s.rolls     && `🎲 avg ${s.avgRoll}`,
+    s.spaces    && `👣 ${s.spaces} spaces`,
+  ].filter(Boolean).join(' · ');
+}
+
+/** Award cards: icon, title, who, why. */
+function awardsHtml(awards, players) {
+  if (!awards.length) return '';
+  const name = id => players.find(p => p.id === id)?.name ?? '?';
+  return `<h3 class="awards-title">Awards</h3><div class="awards-grid">` + awards.map(a => `
+    <div class="award-card">
+      <div class="award-icon">${esc(a.icon)}</div>
+      <div class="award-title">${esc(a.title)}</div>
+      <div class="award-who">${esc(a.playerIds.map(name).join(' & '))}</div>
+      <div class="award-why">${esc(a.text)}</div>
+    </div>`).join('') + `</div>`;
 }
 
 // ── Score Flyout ──────────────────────────────────────────────────────────────
@@ -884,7 +933,8 @@ function renderLegend() {
       <span>${info.label}</span>
     </div>`;
   }).join('');
-  document.body.appendChild(legend);
+  // Inside the board area, so it only shows with the board (not on the end screen)
+  document.getElementById('board-viewport').appendChild(legend);
 }
 
 // ── Timer ─────────────────────────────────────────────────────────────────────

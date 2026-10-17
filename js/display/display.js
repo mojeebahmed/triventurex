@@ -75,6 +75,7 @@ function _renderJoinInfo(gameId, joinUrls) {
 
 async function _onGame({ editionId, board, hopMs }) {
   await _useEdition(editionId);
+  _end = null;
   _board = board;
   _hopMs = hopMs ?? _hopMs;
   _players = [];
@@ -121,13 +122,20 @@ function _onLive({ players, currentPlayerIndex, turnPhase, phase }) {
   else if (document.getElementById('d-end').classList.contains('active')) showDisplayScreen('d-game');
 }
 
+let _end = null;   // { lines: {playerId: "✅ 3/5 questions · …"}, awards: [...] } (G13)
+
 function _showEnd(players) {
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
   const medals = ['🥇', '🥈', '🥉'];
   document.getElementById('d-podium').innerHTML = getSortedPlayers(players).map((p, i) => `
     <div class="d-chip"><span class="d-place">${medals[i] ?? i + 1}</span>
       <div class="score-token" style="background:${esc(p.color)}"><div class="token-emoji">${esc(p.token || '●')}</div></div>
-      ${esc(p.name)}<span class="d-pts">${p.score} ${esc(pts)}</span></div>`).join('');
+      <div>${esc(p.name)}${_end?.lines?.[p.id] ? `<div class="d-stats">${esc(_end.lines[p.id])}</div>` : ''}</div>
+      <span class="d-pts">${p.score} ${esc(pts)}</span></div>`).join('');
+  document.getElementById('d-awards').innerHTML = (_end?.awards || []).map(a => `
+    <div class="d-award"><div class="d-award-icon">${esc(a.icon)}</div>
+      <div class="d-award-title">${esc(a.title)}</div><div class="d-award-who">${esc(a.who)}</div>
+      <div class="d-award-why">${esc(a.text)}</div></div>`).join('');
   showDisplayScreen('d-end');
 }
 
@@ -204,6 +212,7 @@ async function _onDisplay({ kind, data } = {}) {
     case 'card':   _onCard(data); break;
     case 'roll':   _onRoll(data); break;          // not awaited: the card may follow
     case 'timer':  _onTimer(data); break;
+    case 'end':    _end = data; if (_players.length) _showEnd(_players); break;
     case 'host':   _message(data.gone ? 'The host disconnected — waiting for them to come back…' : ''); break;
     case 'closed': _message('The game has ended. Thanks for playing!'); break;
   }

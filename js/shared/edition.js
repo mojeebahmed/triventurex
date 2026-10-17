@@ -14,6 +14,11 @@ function mergeEditionConfig(config, T) {
   if (T.SPACE_DISTRIBUTION)  config.EDITION_SPACE_DISTRIBUTION = T.SPACE_DISTRIBUTION;
   if (T.SCORE_VALUES)        Object.assign(config.SCORE_VALUES,     T.SCORE_VALUES);
   if (T.FINISH_BONUS)        config.FINISH_BONUS = [...T.FINISH_BONUS];
+  if (T.AWARDS) {
+    for (const [id, overrides] of Object.entries(T.AWARDS)) {
+      config.AWARDS[id] = { ...config.AWARDS[id], ...overrides };
+    }
+  }
   if (T.SPACE_INFO) {
     for (const [type, overrides] of Object.entries(T.SPACE_INFO)) {
       if (config.SPACE_INFO[type]) Object.assign(config.SPACE_INFO[type], overrides);

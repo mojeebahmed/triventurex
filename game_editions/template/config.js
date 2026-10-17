@@ -72,4 +72,10 @@ window.EDITION_CONFIG = {
     '--gradient-c':  '#1565C0',
   },
 
+  // ── Optional: rename end-screen awards (ids in js/shared/config.js AWARDS) ──
+  // AWARDS: {
+  //   quizMaster: { icon: '🧠', title: 'Quiz master' },
+  //   explorer:   { title: 'Explorer', text: '{n} × {landmark}' },
+  // },
+
 };

@@ -67,6 +67,16 @@
     .d-podium .d-chip { justify-content: flex-start; border-radius: 16px; padding: 10px 22px 10px 10px; }
     .d-podium .d-place { width: 2.4ch; font-size: 1.8rem; }
     .d-podium .d-pts { margin-left: auto; color: var(--green); }
+    .d-podium .d-chip > div:not(.score-token) { text-align: left; }
+    .d-stats { font-size: .9rem; font-weight: 500; color: var(--text-muted); }
+    .d-awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 24px; }
+    .d-award { background: #FAFAFA; border: 2px solid #EEE; border-radius: 18px; padding: 16px 12px; animation: modalIn .35s ease both; }
+    .d-award:nth-child(2) { animation-delay: .1s; } .d-award:nth-child(3) { animation-delay: .2s; } .d-award:nth-child(n+4) { animation-delay: .3s; }
+    .d-award-icon { font-size: 2.6rem; line-height: 1.1; }
+    .d-award-title { font-weight: 900; font-size: 1.15rem; margin-top: 4px; }
+    .d-award-who { font-weight: 800; font-size: 1.25rem; color: var(--green); }
+    .d-award-why { font-size: .95rem; color: var(--text-muted); }
+    #d-end .d-card { max-height: 94vh; overflow-y: auto; }
 
     /* Host gone / game closed */
     #d-msg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 500; }
@@ -158,6 +168,7 @@
       <div class="d-title">🏆 Final scores</div>
       <div class="d-sub" id="d-end-msg"></div>
       <div class="d-podium" id="d-podium"></div>
+      <div class="d-awards" id="d-awards"></div>
     </div>
   </div>
 

@@ -75,7 +75,7 @@ function indexAfterRemoval(currentIndex, removedIndex, newLength) {
 
 /** One row of the move history (also what undo pops). */
 function makeHistoryEntry({ roll = 0, player, spaceType, spaceName = null,
-                            posBefore, scoreBefore, snapshot }) {
+                            posBefore, scoreBefore, snapshot, landedOn = null, result = null }) {
   return {
     roll,
     playerId:    player.id,
@@ -88,6 +88,8 @@ function makeHistoryEntry({ roll = 0, player, spaceType, spaceName = null,
     posAfter:    player.position,
     scoreBefore,
     scoreAfter:  player.score,
+    landedOn,    // the space type the roll landed on (spaceType = where the turn ENDED, after deed moves)
+    result,      // { question: true/false } | { action: true/false } — for the end-screen stats (G13)
     snapshot,    // state BEFORE this entry — restored on undo
   };
 }

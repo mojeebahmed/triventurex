@@ -263,6 +263,17 @@ function _publicHtml(html) {
   return t.innerHTML;
 }
 
+/** Game over: stats line per player + awards (names filled in) for the TV. */
+function _displayEnd() {
+  if (!_isNetworkGame) return;
+  const { stats, awards } = endOfGameSummary(state.players, state.history);
+  const name = id => state.players.find(p => p.id === id)?.name ?? '?';
+  _toDisplay('end', {
+    lines:  Object.fromEntries(stats.map(s => [s.id, statLine(s)])),
+    awards: awards.map(a => ({ icon: a.icon, title: a.title, text: a.text, who: a.playerIds.map(name).join(' & ') })),
+  });
+}
+
 function _displayRoll(roll, player) { _toDisplay('roll', { roll, playerId: player?.id ?? null }); }
 
 function _displayTimer() {

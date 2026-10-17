@@ -232,9 +232,11 @@ async function _playRoll(roll) {
 /** Show the space modal; when the player is done, finish the turn. */
 function _resolveSpace(space, player, token) {
   const done = () => { if (!_isStale(token)) _finishTurn(); };
+  if (state.turn) state.turn.landedOn = space.type;   // end-screen stats (G13)
   if (space.type === 'action') {
     showSpaceModal(space, player, (guessed) => {
       if (_isStale(token)) return;
+      state.turn.result = { action: !!guessed };
       if (guessed) showGuesserModal(state.players, player, done);
       else done();
     });
@@ -285,6 +287,8 @@ function _finishTurn({ outcome = 'space' } = {}) {
     posBefore:   turn.posBefore,
     scoreBefore: turn.scoreBefore,
     snapshot:    turn.snapshot,
+    landedOn:    outcome === 'space' ? (turn.landedOn ?? null) : null,
+    result:      turn.result ?? null,
   }));
   renderHistoryPanel(state.history);
 
@@ -344,7 +348,8 @@ function _endGame() {
   state.turn      = null;
   state.turnPhase = 'roll';
   _syncStateToServer(); // player screens switch to activity mode on phase 'ended'
-  _displayLive();       // the TV shows the final scores (G16)
+  _displayLive();       // the TV shows the final scores (G16)…
+  _displayEnd();        // …with each player's stats and the awards (G13)
   clearSave();
   setTimeout(() => showEndScreen(state.players), 600);
 }

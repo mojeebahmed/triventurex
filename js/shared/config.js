@@ -103,6 +103,27 @@ const CONFIG = {
   },
 
   /**
+   * AWARDS — fun awards on the end screen (G13), worked out from the game's
+   * history by js/shared/stats.js. Editions may rename any of them in their
+   * config.js (AWARDS: { quizMaster: { title: 'Golden boot' } }).
+   * In `text`: {n} = the value, {s} = "s" unless {n} is 1, {good} / {bad} /
+   * {landmark} = the edition's space labels, {points} = its points name.
+   * minRolls – roll awards need at least this many rolls per player.
+   */
+  AWARDS: {
+    quizMaster:    { icon: '🧠', title: 'Quiz master',       text: '{n} question{s} right' },
+    performer:     { icon: '🎭', title: 'Star performer',    text: '{n} action{s} guessed' },
+    goodDeeds:     { icon: '😇', title: 'Do-gooder',         text: '{n} × {good}' },
+    badDeeds:      { icon: '😈', title: 'Trouble magnet',    text: '{n} × {bad}' },
+    explorer:      { icon: '🌍', title: 'Explorer',          text: '{n} × {landmark}' },
+    bigTurn:       { icon: '🚀', title: 'Big moment',        text: '+{n} {points} in one turn' },
+    luckyRoller:   { icon: '🍀', title: 'Lucky roller',      text: 'average roll {n}' },
+    unluckyRoller: { icon: '🐢', title: 'Unluckiest roller', text: 'average roll {n}' },
+    patience:      { icon: '⏳', title: 'Patience award',    text: '{n} turn{s} skipped' },
+  },
+  AWARD_MIN_ROLLS: 3,
+
+  /**
    * PRESENTATION — 📺 presentation mode (G15): full screen for a TV mirrored
    * from the laptop. The GM panel, game log and manual dice are tucked behind ⚙️.
    *
@@ -345,4 +366,5 @@ const _ENGINE_DEFAULTS = {
   SPACE_INFO:       JSON.parse(JSON.stringify(CONFIG.SPACE_INFO)),
   SCORE_VALUES:     JSON.parse(JSON.stringify(CONFIG.SCORE_VALUES)),
   FINISH_BONUS:     [...CONFIG.FINISH_BONUS],
+  AWARDS:           JSON.parse(JSON.stringify(CONFIG.AWARDS)),
 };

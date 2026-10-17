@@ -219,4 +219,13 @@ window.EDITION_CONFIG = {
     '--deed-bad-text':  '#B71C1C',
   },
 
+  // ── End-screen awards (G13) — rename any engine award (js/shared/config.js AWARDS)
+  AWARDS: {
+    quizMaster: { icon: '🧠', title: 'Football brain' },
+    performer:  { icon: '🎭', title: 'Man of the match' },
+    explorer:   { icon: '🏟️', title: 'Groundhopper' },
+    bigTurn:    { icon: '⚽', title: 'Match winner' },
+    badDeeds:   { icon: '🟥', title: 'Red card magnet' },
+  },
+
 };

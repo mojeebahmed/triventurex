@@ -112,6 +112,15 @@ describe('turn pipeline', () => {
     assert.equal(w.run('state.turnPhase'), 'roll');
   });
 
+  it('history records where the roll landed and how it went (G13 stats)', async () => {
+    const w = makeWorld();
+    w.rollWith(3); await w.run('handleRoll()');
+    w.run('state.turn.result = { question: true }');   // what ui.js notes on ✅ Correct
+    w.log.spaces[0].onDone();
+    assert.equal(w.run('state.history[0].landedOn'), 'question');
+    assert.equal(w.run('state.history[0].result.question'), true);
+  });
+
   it('ignores a second roll while a turn is in progress', async () => {
     const w = makeWorld();
     w.rollWith(3); await w.run('handleRoll()'); await w.run('handleRoll()'); await w.run('handleManualRoll(2)');
