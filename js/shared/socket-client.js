@@ -23,7 +23,7 @@ const TX_NET = (() => {
       'game_started', 'roll_result', 'state_update',
       'player_disconnected', 'player_removed', 'error',
       'space_card', 'space_card_done',
-      'rejoined', 'rejoin_failed', 'host_rejoined', 'player_reconnected', 'host_left', 'host_back', 'private_card', 'turn_result',
+      'rejoined', 'rejoin_failed', 'host_rejoined', 'player_reconnected', 'host_left', 'host_back', 'private_card', 'turn_result', 'card_choice',
     ];
     events.forEach(ev => _socket.on(ev, data => _trigger(ev, data)));
     return true;
@@ -46,6 +46,7 @@ const TX_NET = (() => {
   function closeRoom(gameId) { _socket?.emit('close_room', { gameId }); }
   // Host → ONE player's phone (e.g. an action card only the performer may see)
   function sendPrivateCard(gameId, playerId, card) { _socket?.emit('private_card', { gameId, playerId, card }); }
+  function sendCardChoice(gameId, promptId, choice) { _socket?.emit('card_choice', { gameId, promptId, choice }); }
 
   function setGameId(id)   { _gameId = id; }
   function setPlayerId(id) { _playerId = id; }
@@ -58,7 +59,7 @@ const TX_NET = (() => {
     on, connect,
     hostGame, joinGame, startGame, requestRoll, manualRoll, syncState,
     removePlayer, emitSpaceCard, emitSpaceCardDone, emitTurnResult, leaveGame,
-    rejoinGame, hostRejoin, closeRoom, sendPrivateCard,
+    rejoinGame, hostRejoin, closeRoom, sendPrivateCard, sendCardChoice,
     setGameId, setPlayerId, getGameId, getPlayerId,
     isHostMode, isConnected,
   };

@@ -408,13 +408,20 @@
     .ab-card-icon { font-size: 1.8rem; line-height: 1; }
     .ab-card-type { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
     .ab-card-title { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
-    .ab-card-body  { font-size: .85rem; color: var(--text-muted); line-height: 1.5; }
+    .ab-card-body  { font-size: .85rem; color: var(--text-muted); line-height: 1.5; align-self: stretch; }
     .ab-effect { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700; }
     .ab-effect.good { background: #E8F5E9; color: #1B5E20; }
     .ab-effect.bad  { background: #FFEBEE; color: #C62828; }
     .ab-private      { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
     .ab-private-text { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 4px 0; line-height: 1.35; }
     .ab-private-rule { font-size: .78rem; font-style: italic; }
+    .ab-choices      { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; }
+    .ab-choice       { text-align: left; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--border);
+                       background: var(--card); font: inherit; font-size: .95rem; font-weight: 600; color: var(--text); cursor: pointer; }
+    .ab-choice:active   { transform: scale(.98); }
+    .ab-choice:disabled { opacity: .45; cursor: default; }
+    .ab-choice.picked   { opacity: 1; border-color: var(--green); background: rgba(46,125,50,.08); }
+    .ab-choice-sent     { font-size: .78rem; color: var(--text-muted); text-align: center; }
 
     /* Activity mode */
     #ab-activity { align-items: flex-start; justify-content: flex-start; }

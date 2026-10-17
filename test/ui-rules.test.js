@@ -14,8 +14,9 @@ const vm = require('node:vm');
 const ROOT = path.join(__dirname, '..');
 
 /** Sandbox with ui.js and its real helpers; screen output is recorded. */
-function makeUi(ruleChanges = {}) {
-  const store = {}, modals = [], toasts = [], sent = [];
+function makeUi(ruleChanges = {}, { phone = false } = {}) {
+  const store = {}, modals = [], toasts = [], sent = [], asked = [];
+  let cancelled = 0;
   const el = () => ({ textContent: '', innerHTML: '', style: {}, value: '',
                       classList: { add() {}, remove() {}, toggle() {}, contains: () => false } });
   const ctx = {
@@ -39,11 +40,17 @@ function makeUi(ruleChanges = {}) {
     showModal: m => modals.push(m),
     showToast: t => toasts.push(t),
     _sendPrivateCard: (player, card) => { sent.push(card); return false; },
+    // Phone helpers from net-host.js: `phone` = the player is on a reachable phone
+    _sendPhoneCard: (player, card) => { if (phone) sent.push(card); return phone; },
+    _askOnPhone: (player, card, onChoice) => { if (phone) asked.push({ card, onChoice }); return phone; },
+    _cancelPhonePrompt: () => { cancelled++; },
+    _isStale: () => false,
     _onScoreChange: () => {},
   });
   vm.runInContext('setAllowNegativeScores(gameRules().scoring.negativeScores)', ctx);
   const player = vm.runInContext("createPlayer(0, 'Ali', '#111', 'a')", ctx);
-  return { ctx, rules, modals, toasts, sent, player, run: c => vm.runInContext(c, ctx) };
+  return { ctx, rules, modals, toasts, sent, asked, player, run: c => vm.runInContext(c, ctx),
+           get cancelled() { return cancelled; } };
 }
 const last = list => list[list.length - 1];
 
@@ -182,5 +189,84 @@ describe('finish', () => {
     u.player.finishOrder = 1;
     u.ctx.showSpaceModal({ type: 'finish' }, u.player, () => {});
     assert.match(last(u.modals).content, /\+5 .* bonus awarded/);
+  });
+});
+
+describe('answering on the phone (G3)', () => {
+  const MULTI = { id: 7, q: 'Capital of <em>Sweden</em>?', opts: ['Oslo', 'Stockholm', 'Bergen'], answer: 'B',
+                  diff: 'hard', cat: 'c', topic: '', note: 'Since 1634' };
+  function game(changes = {}, phone = true) {
+    const u = makeUi({ scoring: { questionHard: 3 }, ...changes }, { phone });
+    u.ctx.QUESTIONS_DATA = [MULTI, { id: 8, q: 'Name a planet', opts: [], answer: 'Mars', diff: 'easy', cat: 'c', topic: '' }];
+    return u;
+  }
+
+  it('the player chooses the difficulty on the phone', () => {
+    const u = game();
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+    assert.equal(u.asked.length, 1);
+    assert.deepEqual([...u.asked[0].card.choices.map(c => c.id)], ['easy', 'hard']);
+    assert.match(last(u.modals).content, /Waiting for <strong>Ali<\/strong> to choose/);
+    u.asked[0].onChoice('hard');
+    assert.match(last(u.modals).title, /^Hard Question/);
+  });
+
+  it('multiple choice goes to the phone without the answer', () => {
+    const u = game({ questions: { difficulty: 'hard' } });
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+    const card = u.asked[0].card;
+    assert.equal(card.text, 'Capital of Sweden?', 'HTML stripped for the phone');
+    assert.deepEqual([...card.choices.map(c => c.id)], ['A', 'B', 'C']);
+    assert.doesNotMatch(JSON.stringify(card), /Since 1634|"answer"/);
+    assert.match(last(u.modals).content, /Waiting for <strong>Ali<\/strong> to answer/);
+    assert.match(last(u.modals).actions[0].label, /judge here/);
+  });
+
+  it('a right answer scores automatically; both screens show the result', () => {
+    const u = game({ questions: { difficulty: 'hard' } });
+    let done = 0;
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => done++);
+    u.asked[0].onChoice('B');
+    assert.equal(u.player.score, 3);
+    assert.match(last(u.modals).title, /Correct! \+3/);
+    assert.match(last(u.modals).content, /option-correct/);
+    assert.match(last(u.sent).title, /Correct/);
+    assert.equal(done, 0, 'the GM continues');
+    last(u.modals).actions[0].callback();
+    assert.equal(done, 1);
+  });
+
+  it('a wrong answer scores nothing and shows the right one', () => {
+    const u = game({ questions: { difficulty: 'hard' } });
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+    u.asked[0].onChoice('A');
+    assert.equal(u.player.score, 0);
+    assert.match(last(u.modals).content, /option-wrong/);
+    assert.match(last(u.sent).text, /B — Stockholm/);
+  });
+
+  it('the GM can still judge on the host — the phone prompt is cancelled', () => {
+    const u = game({ questions: { difficulty: 'hard' } });
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+    last(u.modals).actions[0].callback();           // Reveal answer (judge here)
+    assert.equal(u.cancelled, 1);
+    assert.match(last(u.modals).actions[0].label, /Correct/);
+  });
+
+  it('open questions are shown on the phone but judged by the GM', () => {
+    const u = game({ questions: { difficulty: 'easy' } });
+    u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+    assert.equal(u.asked.length, 0);
+    assert.equal(last(u.sent).text, 'Name a planet');
+    assert.doesNotMatch(JSON.stringify(last(u.sent)), /Mars/);
+  });
+
+  it('rule off, or no phone: asked on the host as before', () => {
+    for (const u of [game({ questions: { difficulty: 'hard', answerOnPhone: false } }), game({ questions: { difficulty: 'hard' } }, false)]) {
+      u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
+      assert.equal(u.asked.length, 0);
+      assert.doesNotMatch(last(u.modals).content, /Waiting for/);
+      assert.equal(last(u.modals).actions[0].label, '👁 Reveal Answer');
+    }
   });
 });

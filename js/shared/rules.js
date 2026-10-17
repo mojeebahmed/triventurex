@@ -61,6 +61,7 @@ function defaultRules(config, { hasActionCards = false } = {}) {
       timerAuto:    false,
       timerSeconds: config.TIMER?.question ?? 30,
       tracking:     config.RULES?.questionTracking ?? 'session',
+      answerOnPhone: true,        // network games: multiple choice answered + scored on the phone (G3)
     },
     actions: {
       cards:        hasActionCards ? 'digital' : 'physical',
@@ -150,6 +151,7 @@ function normalizeRules(rules, { hasActionCards = false, actionKinds = ['act', '
   q.timerAuto = !!q.timerAuto;
   q.timerSeconds = _clampInt(q.timerSeconds, 5, 600, 30);
   if (!['session', 'game'].includes(q.tracking)) q.tracking = 'session';
+  q.answerOnPhone = q.answerOnPhone !== false;
 
   const a = r.actions;
   if (!hasActionCards || !['digital', 'physical'].includes(a.cards)) a.cards = hasActionCards ? (a.cards === 'physical' ? 'physical' : 'digital') : 'physical';

@@ -305,11 +305,12 @@ id,text,kind,note
 4. The host clicks Start and the game begins. (Joined with the wrong name or badge? Tap *← Leave* in the phone lobby and join again.)
 5. The turn before yours, your phone shows *"You're next — get ready!"*. On your turn it buzzes (where supported) and shows an active **Roll Dice** box (green glow). Tap to roll.
 6. After rolling, your phone shows the die result while the GM resolves the space on the host screen.
-7. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
-8. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
-9. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
-10. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
-11. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
+7. **Questions are answered on your phone**: tap Easy or Hard, then tap A / B / C. The host scores it automatically and both screens show the right answer. Open questions appear on your phone too; say the answer out loud and the GM judges it. (The GM can still answer for you on the host. Rule: *Rules → Questions → Players answer on their phone*.)
+8. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
+9. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
+10. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
+11. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
+12. Clicking **Play again** (or Cancel in the lobby) closes the game for everyone. Finished or abandoned games are cleaned up automatically on the server.
 
 ---
 

@@ -2146,3 +2146,15 @@ body.presenting #modal {
 /* Pointer hides after CONFIG.PRESENTATION.cursorHideMs without moving */
 body.presenting.present-idle,
 body.presenting.present-idle * { cursor: none !important; }
+
+/* ── Answering on the phone (G3) ── */
+.phone-wait {
+  margin: 10px 0 0;
+  font-size: .85rem;
+  color: var(--text-muted);
+  animation: phoneWait 1.6s ease-in-out infinite;
+}
+@keyframes phoneWait { 50% { opacity: .45; } }
+.question-option.option-wrong { background: #FFEBEE; border-color: var(--danger, #C62828); }
+.option-wrong .option-letter  { background: var(--danger, #C62828); }
+.option-picked { margin-left: auto; font-size: .75rem; font-weight: 700; white-space: nowrap; }

@@ -184,16 +184,62 @@ function _syncStateToServer() {
  * Generic payload so other private cards (e.g. answering on the phone) can reuse it.
  */
 function _sendPrivateCard(player, card) {
-  if (!_isNetworkGame || !_networkGameId) return false;
-  if (player.id === state.hostPlayerId || player.disconnected) return false;
   const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: '🎬', label: 'Action', rule: '' };
-  TX_NET.sendPrivateCard(_networkGameId, player.id, {
+  return _sendPhoneCard(player, {
     title: `${kind.icon} ${kind.label}`,
     text:  card.text,
     rule:  kind.rule,
     note:  card.note || '',
   });
+}
+
+/** Can the host reach this player's own phone? */
+const _canReachPhone = player => !!(_isNetworkGame && _networkGameId && player &&
+  player.id !== state.hostPlayerId && !player.disconnected);
+
+/**
+ * Show a card on ONE player's phone: `{ title, text, rule?, note?, hint?,
+ * choices?, promptId? }` (hint replaces "Only you can see this").
+ * Returns false (nothing sent) when the phone can't be reached.
+ */
+function _sendPhoneCard(player, card) {
+  if (!_canReachPhone(player)) return false;
+  TX_NET.sendPrivateCard(_networkGameId, player.id, card);
   return true;
+}
+
+// ── Phone prompts (G3): a card with buttons, answered on the phone ──────────
+// One at a time. The phone sends card_choice { promptId, choice }; the host
+// only accepts the answer to the prompt it is waiting for, from that player.
+let _phonePrompt = null;   // { id, playerId, card, onChoice }
+let _promptSeq   = 0;
+
+/**
+ * Ask `player` to tap one of `card.choices` ([{ id, label }]) on their phone.
+ * `onChoice(id)` runs once, when they do. Returns false when the phone can't
+ * be reached — then the host asks as usual.
+ */
+function _askOnPhone(player, card, onChoice) {
+  if (!_canReachPhone(player)) return false;
+  const id = ++_promptSeq;
+  _phonePrompt = { id, playerId: player.id, card: { ...card, promptId: id }, onChoice };
+  TX_NET.sendPrivateCard(_networkGameId, player.id, _phonePrompt.card);
+  return true;
+}
+
+/** The GM answered on the host instead: ignore a late tap, optionally tell the phone why. */
+function _cancelPhonePrompt(text) {
+  const p = _phonePrompt;
+  _phonePrompt = null;
+  if (p && text) _sendPhoneCard(state.players.find(pl => pl.id === p.playerId), { title: p.card.title, text, hint: '📺 Look at the main screen' });
+}
+
+function _onCardChoice({ playerId, promptId, choice }) {
+  const p = _phonePrompt;
+  if (!p || p.id !== promptId || p.playerId !== playerId) return;   // old, or not who we asked
+  if (!p.card.choices.some(c => c.id === choice)) return;
+  _phonePrompt = null;
+  p.onChoice(choice);
 }
 
 function _emitSpaceCard(space, player) {
@@ -315,6 +361,12 @@ function _initSocketHandlers() {
     if (p) p.disconnected = false;
     updateScoreboard(state.players);
     _renderGMNetworkPlayers(state.players);
+    // Refreshed while asked something: ask again
+    if (p && _phonePrompt?.playerId === playerId) TX_NET.sendPrivateCard(_networkGameId, playerId, _phonePrompt.card);
+  });
+
+  TX_NET.on('card_choice', data => {
+    if (_isNetworkGame) _onCardChoice(data);
   });
 
   TX_NET.on('player_removed', ({ playerId, players }) => {

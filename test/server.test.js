@@ -450,6 +450,27 @@ describe('private cards', () => {
   });
 });
 
+describe('card choices (G3)', () => {
+  it('a phone tap reaches only the host, with the id of the socket that sent it', async () => {
+    const { host, gameId, players } = await setupGame({ phones: 2 });
+    const atHost  = collect(host, 'card_choice');
+    const atPhone = collect(players[1].socket, 'card_choice');
+    players[0].socket.emit('card_choice', { gameId, promptId: 4, choice: 'B', playerId: players[1].id });
+    await settle();
+    assert.equal(atPhone.length, 0);
+    assert.deepEqual(atHost, [{ playerId: players[0].id, promptId: 4, choice: 'B' }]);
+  });
+
+  it('ignores a socket that is not a player in the room', async () => {
+    const { host, gameId } = await setupGame({ phones: 1 });
+    const atHost = collect(host, 'card_choice');
+    const stranger = await connect();
+    stranger.emit('card_choice', { gameId, promptId: 1, choice: 'A' });
+    await settle();
+    assert.equal(atHost.length, 0);
+  });
+});
+
 // ── Room lifecycle (A5) ───────────────────────────────────────────────────────
 
 describe('room lifecycle', () => {

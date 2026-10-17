@@ -273,10 +273,12 @@ function _showQuestionChoice(player, space, onDone) {
   if (easyExhausted) note = `<p class="question-exhausted-note">🟢 Easy questions exhausted — only Hard available!</p>`;
   if (hardExhausted) note = `<p class="question-exhausted-note">🔵 Hard questions exhausted — only Easy available!</p>`;
 
-  const easyBtn = { label: `🟢 Easy  (+${R.scoring.questionEasy} ${pts})`, class: 'btn btn-primary',
-    callback: () => _showQuestion('easy', player, onDone) };
-  const hardBtn = { label: `🔵 Hard  (+${R.scoring.questionHard} ${pts})`, class: 'btn btn-primary btn-blue',
-    callback: () => _showQuestion('hard', player, onDone) };
+  // The GM's button wins over a later tap on the phone
+  const choose = diff => { _cancelPhonePrompt(); _showQuestion(diff, player, onDone); };
+  const easyBtn = { id: 'easy', label: `🟢 Easy  (+${R.scoring.questionEasy} ${pts})`, class: 'btn btn-primary',
+    callback: () => choose('easy') };
+  const hardBtn = { id: 'hard', label: `🔵 Hard  (+${R.scoring.questionHard} ${pts})`, class: 'btn btn-primary btn-blue',
+    callback: () => choose('hard') };
 
   const actions = [];
   if (!easyExhausted) actions.push(easyBtn);
@@ -284,13 +286,28 @@ function _showQuestionChoice(player, space, onDone) {
   // Both exhausted at init time shouldn't happen (pool recycles), but fallback just in case
   if (!actions.length) actions.push(easyBtn, hardBtn);
 
+  // Network game: the player chooses on their phone (G3); the GM can still click
+  const token = state.turn?.token;
+  const onPhone = R.questions.answerOnPhone && _askOnPhone(player, {
+    title: '❓ Question time',
+    text:  `Choose your difficulty — more ${pts} for a harder question.`,
+    hint:  '📱 Tap to choose',
+    choices: actions.map(a => ({ id: a.id, label: a.label })),
+  }, diff => { if (!_isStale(token)) { hideModal(); _showQuestion(diff, player, onDone); } });
+
   showModal({
     icon: '❓',
     title: 'Question Time!',
     content: _playerBadgeHtml(player) +
-      `<p>Choose your difficulty. You score more ${pts} for a harder question!</p>${note}`,
+      `<p>Choose your difficulty. You score more ${pts} for a harder question!</p>${note}` +
+      (onPhone ? _phoneWaitHtml(player, 'to choose') : ''),
     actions,
   });
+}
+
+/** "📱 Waiting for Sara to answer on their phone…" under a host card. */
+function _phoneWaitHtml(player, what) {
+  return `<p class="phone-wait">📱 Waiting for <strong>${esc(player.name)}</strong> ${what} on their phone…</p>`;
 }
 
 function _showQuestion(diff, player, onDone) {
@@ -323,6 +340,24 @@ function _showQuestion(diff, player, onDone) {
     return;
   }
 
+  // Network game (G3): multiple choice is answered + scored on the phone.
+  // Open questions are shown on the phone and judged by the GM as usual.
+  const letters = ['A', 'B', 'C', 'D'];
+  const token   = state.turn?.token;
+  const ptsName = CONFIG.GAME?.pointsName ?? 'pts';
+  const title   = `${diff === 'easy' ? '🟢 Easy' : '🔵 Hard'} question (+${pts} ${ptsName})`;
+  let onPhone = false;
+  if (R.questions.answerOnPhone && q.opts?.length) {
+    onPhone = _askOnPhone(player, {
+      title, text: _plainText(q.q), hint: '📱 Tap your answer',
+      choices: q.opts.map((o, i) => ({ id: letters[i], label: `${letters[i]}  ${_plainText(o)}` })),
+    }, letter => { if (!_isStale(token)) { hideModal(); _showPhoneAnswer(q, diff, pts, player, letter, onDone); } });
+  } else if (R.questions.answerOnPhone) {
+    _sendPhoneCard(player, { title, text: _plainText(q.q), hint: '🗣 Say your answer out loud', note: 'The GM judges your answer.' });
+  }
+  // The GM judges instead: a late tap on the phone is ignored
+  const judgeHere = () => _cancelPhonePrompt('The GM is judging this one — say your answer out loud.');
+
   // Build question HTML
   let optionsHtml = '';
   if (q.opts && q.opts.length) {
@@ -339,6 +374,7 @@ function _showQuestion(diff, player, onDone) {
   const contentHtml = `
     <div class="question-text">${q.q}</div>
     ${optionsHtml}
+    ${onPhone ? _phoneWaitHtml(player, 'to answer') : ''}
     <div id="question-answer-reveal" class="hidden">
       <div class="answer-box">✅ Answer: <strong>${
         q.opts && q.opts.length
@@ -353,14 +389,58 @@ function _showQuestion(diff, player, onDone) {
     title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question  (+${pts} ${CONFIG.GAME?.pointsName ?? 'pts'})`,
     content: contentHtml,
     actions: [
-      { label: '👁 Reveal Answer', class: 'btn btn-secondary',
+      { label: onPhone ? '👁 Reveal answer (judge here)' : '👁 Reveal Answer', class: 'btn btn-secondary',
         callback: () => {
+          judgeHere();
           _markAsked(diff, q.id); // mark as used when the answer is revealed
           _showQuestionWithAnswer(q, diff, pts, player, onDone);
         }},
       { label: '📋 Use physical card', class: 'btn btn-secondary',
-        callback: () => _showPhysicalCard(diff, player, pts, onDone) },
+        callback: () => { judgeHere(); _showPhysicalCard(diff, player, pts, onDone); } },
     ],
+  });
+}
+
+/** Question text for the phone: content may hold a little HTML (<em>); the phone escapes. */
+function _plainText(html) {
+  return String(html ?? '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
+/**
+ * The phone answered a multiple-choice question (G3): score it, show the
+ * result on both screens. The GM only continues (Undo can still take it back).
+ */
+function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
+  const letters = ['A', 'B', 'C', 'D'];
+  const ptsName = CONFIG.GAME?.pointsName ?? 'pts';
+  const right   = letter === q.answer;
+  _markAsked(diff, q.id);
+  if (right) addScore(player, pts);
+
+  const answerLabel = `${q.answer} — ${q.opts[letters.indexOf(q.answer)] ?? q.answer}`;
+  _sendPhoneCard(player, {
+    title: right ? `✅ Correct! +${pts} ${ptsName}` : '❌ Not quite',
+    text:  right ? `${letter} — ${_plainText(q.opts[letters.indexOf(letter)])}` : `The answer was ${_plainText(answerLabel)}`,
+    hint:  `You answered ${letter}`,
+    note:  _plainText(q.note),
+  });
+
+  const optionsHtml = `<div class="question-options">` + q.opts.map((o, i) => {
+    const cls = letters[i] === q.answer ? 'option-correct' : letters[i] === letter ? 'option-wrong' : '';
+    const tag = letters[i] === letter ? `<span class="option-picked">📱 ${esc(player.name)}</span>` : '';
+    return `<div class="question-option ${cls}"><span class="option-letter">${letters[i]}</span><span>${o}</span>${tag}</div>`;
+  }).join('') + `</div>`;
+
+  showModal({
+    icon: right ? '✅' : '❌',
+    title: right ? `Correct! +${pts} ${ptsName}` : 'Not quite!',
+    content: _playerBadgeHtml(player) + `
+      <div class="question-text">${q.q}</div>
+      ${optionsHtml}
+      <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
+      ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}`,
+    actions: [{ label: 'Continue ▶', class: 'btn btn-primary', callback: onDone }],
   });
 }
 

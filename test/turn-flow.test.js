@@ -404,6 +404,32 @@ describe('players and GM', () => {
     assert.equal(w.run('state.players.length'), 2, 'game state untouched in the lobby');
   });
 
+  it('phone prompts: only the asked player, the current prompt and a listed choice count (G3)', () => {
+    const w = makeWorld(); w.network();
+    const got = [];
+    w.ctx.__got = got;
+    assert.equal(w.run(`_askOnPhone(state.players[1], { title: 'Q', choices: [{ id: 'A' }, { id: 'B' }] }, c => __got.push(c))`), true);
+    const sent = w.log.emits.filter(e => e[0] === 'sendPrivateCard');
+    assert.equal(sent.length, 1);
+    const promptId = sent[0][3].promptId;
+    w.handlers.card_choice({ playerId: 0, promptId, choice: 'A' });            // someone else
+    w.handlers.card_choice({ playerId: 1, promptId: promptId + 1, choice: 'A' }); // unknown prompt
+    w.handlers.card_choice({ playerId: 1, promptId, choice: 'Z' });            // not a choice
+    assert.deepEqual(got, []);
+    w.handlers.player_reconnected({ playerId: 1 });                            // refreshed → asked again
+    assert.equal(w.log.emits.filter(e => e[0] === 'sendPrivateCard').length, 2);
+    w.handlers.card_choice({ playerId: 1, promptId, choice: 'B' });
+    w.handlers.card_choice({ playerId: 1, promptId, choice: 'A' });            // second tap ignored
+    assert.deepEqual(got, ['B']);
+  });
+
+  it("phone prompts: never to the host's own player or a disconnected phone", () => {
+    const w = makeWorld(); w.network();
+    w.run('state.hostPlayerId = 0; state.players[1].disconnected = true');
+    assert.equal(w.run(`_askOnPhone(state.players[0], { choices: [] }, () => {})`), false);
+    assert.equal(w.run(`_askOnPhone(state.players[1], { choices: [] }, () => {})`), false);
+  });
+
   it('player_reconnected clears the disconnected marker', async () => {
     const w = makeWorld(); w.network();
     let boards = 0; w.ctx.updateScoreboard = () => boards++;

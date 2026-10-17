@@ -486,6 +486,18 @@ io.on('connection', (socket) => {
     if (target?.socketId) io.to(target.socketId).emit('private_card', card);
   });
 
+  // ── card_choice — a phone tapped a choice on its private card → host only ──
+  // (e.g. a difficulty or a multiple-choice answer, G3). The player id comes
+  // from the socket, never from the message; the host checks it was asked.
+  socket.on('card_choice', ({ gameId, promptId, choice }) => {
+    const room   = rooms.get(gameId);
+    const player = room?.players.find(p => p.socketId === socket.id);
+    if (!player || !room.hostSocketId || player.id === room.hostPlayerId) return;
+    io.to(room.hostSocketId).emit('card_choice', {
+      playerId: player.id, promptId: Number(promptId), choice: String(choice ?? '').slice(0, 20),
+    });
+  });
+
   // ── disconnect ─────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`[disconnect] socket=${socket.id}`);

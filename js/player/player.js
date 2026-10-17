@@ -528,14 +528,25 @@ TX_NET.on('space_card', (data) => {
   }
 });
 
-// A card only this phone receives (the server forwards it to one socket)
-TX_NET.on('private_card', ({ title, text, rule, note } = {}) => {
+// A card only this phone receives (the server forwards it to one socket).
+// With `choices` it's a question for this player (G3): tap one → card_choice
+// to the host, which scores it and sends the result as the next card.
+TX_NET.on('private_card', ({ title, text, rule, note, hint, choices, promptId } = {}) => {
   document.getElementById('ab-card-title').textContent = title || '';
-  document.getElementById('ab-card-body').innerHTML = `
-    <div class="ab-private">🤫 Only you can see this</div>
+  const body = document.getElementById('ab-card-body');
+  body.innerHTML = `
+    <div class="ab-private">${esc(hint || '🤫 Only you can see this')}</div>
     <div class="ab-private-text">${esc(text)}</div>
     ${rule ? `<div class="ab-private-rule">${esc(rule)}</div>` : ''}
-    ${note ? `<div class="ab-private-rule">${esc(note)}</div>` : ''}`;
+    ${note ? `<div class="ab-private-rule">${esc(note)}</div>` : ''}
+    ${choices?.length ? `<div class="ab-choices">${choices.map(c =>
+      `<button type="button" class="ab-choice" data-choice="${esc(c.id)}">${esc(c.label)}</button>`).join('')}</div>` : ''}`;
+  body.querySelectorAll('.ab-choice').forEach(btn => btn.addEventListener('click', () => {
+    body.querySelectorAll('.ab-choice').forEach(b => { b.disabled = true; });
+    btn.classList.add('picked');
+    btn.insertAdjacentHTML('afterend', '<div class="ab-choice-sent">Sent ✓ — look at the main screen</div>');
+    TX_NET.sendCardChoice(_gameId, promptId, btn.dataset.choice);
+  }));
   _setActionMode('card');
 });
 

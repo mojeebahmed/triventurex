@@ -104,6 +104,8 @@ function _rulesSchema() {
           ['choose', 'Player chooses'], ['easy', 'Always easy'], ['hard', 'Always hard'] ] },
       { group: 'Asking', key: 'questions.tracking', type: 'select', label: 'Avoid repeated questions', options: [
           ['session', 'Remember across games'], ['game', 'Reset every game'] ] },
+      { group: 'Phones', key: 'questions.answerOnPhone', type: 'toggle', label: 'Players answer on their phone',
+        hint: 'Games on phones: multiple-choice questions are answered and scored on the phone; open questions are still judged by the GM' },
       { group: 'Timer', key: 'questions.timerAuto',    type: 'toggle', label: 'Start the timer automatically' },
       { group: 'Timer', key: 'questions.timerSeconds', type: 'number', label: 'Time per question', unit: 'seconds' },
     ] },
