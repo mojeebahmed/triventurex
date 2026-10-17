@@ -1,19 +1,19 @@
 # Triventurex
 
-## About the name
+## About the game
 
-**Triventurex** = Trivia + Adventure + X
+Triventurex is a board game for families and groups, played on a laptop or TV with phones as optional controllers. Players take turns rolling the dice and moving along a winding path from start to finish. Every space they land on does something, and the player with the most points at the end wins.
 
-A family/group board game engine where players roll dice, move along a path, and collect points through:
-- **Quiz questions**: Easy (+1 pt) or Hard (+2 pt), chosen by the player. In a network game they're answered on the player's phone.
-- **Action cards**: act it out, explain it without the key words, or hum it. Performer and guesser both earn points. In a network game the card appears only on the performer's phone.
-- **Good/Bad deed cards**: randomly assigned effects (move forward/back, score, skip turn, etc.)
-- **Landmarks**: visual stops with photos and descriptions. Landing on one by a roll gives +5 (all points can be changed in the ⚙️ Rules tab).
+- **Questions**: answer a quiz question. Players pick an easy or a hard one; harder questions are worth more.
+- **Action cards**: act it out, explain it without the key words, or hum it, while the others guess. Both the performer and the first correct guesser score.
+- **Good and bad cards**: a short story with an effect that helps or hinders, such as gaining or losing points, moving forward or back, skipping a turn or rolling again.
+- **Landmarks**: famous places along the way, with a photo and a short description. Reaching one can earn points.
+- **Skip spaces**: miss your next turn.
+- **The finish**: players who arrive earlier earn a bonus, and the game ends when everyone is there.
 
-The name in three parts:
-- **Tri**: three core mechanics, namely quiz questions (knowledge), action cards (performance) and deed cards (moral choices or events). Also a nod to "trivia".
-- **Venture**: the board journey. Players roll, move, and venture toward a destination.
-- **X**: game editions are interchangeable. The same engine runs any content (Islamic, football, science) by swapping the edition folder.
+Each **edition** is its own content pack with its own questions, cards, landmarks, wording and colours. The engine stays the same, so a new topic only needs new content. Points and most rules can be changed per game.
+
+**The name:** *Triventurex* = **Tri**via + Ad**venture** + **X**. *Tri* also stands for the three core mechanics (questions for knowledge, action cards for performance, good and bad cards for luck and choices). *Venture* is the journey along the board, and *X* is the interchangeable edition.
 
 ---
 
