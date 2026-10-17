@@ -1,6 +1,6 @@
 /**
  * rules-panel.js
- * Rules for the next game (setup screen) and the rules panel (G12).
+ * Rules for the next game and the setup screen's Rules tab (G12).
  *
  * gameRules() is what the rest of the host code reads:
  *   during a game → state.rules (copied at start, saved with the game)
@@ -11,8 +11,9 @@
 const LS_RULES_PREFIX = 'triventurex_rules_';   // + editionId → { preset, changes }
 
 let _setupRules = null;   // rules for the next game, for the active edition
-let _rulesDraft = null;   // working copy while the panel is open
-let _rulesRendering = false; // true while the panel is being redrawn
+let _rulesDraft = null;   // what the Rules tab is editing (saved on every change)
+let _rulesRendering = false; // true while the Rules tab is being redrawn
+let _rulesSection = 'scoring'; // which side tab is open
 
 /** The rules in force: the running game's, else the ones set up for the next game. */
 function gameRules() {
@@ -55,6 +56,7 @@ function loadSetupRules() {
   const stored = _loadStoredRules(ed) ?? _rulesFromOldSettings();
   _setupRules = buildRules(CONFIG, stored, _rulesOpts());
   renderRulesSummary();
+  if (!document.getElementById('setup-tab-rules')?.classList.contains('hidden')) renderRulesTab();
 }
 
 // ── Summary line on the setup screen ────────────────────────────────────────
@@ -63,15 +65,13 @@ function _changedCount(rules) {
   return countChanges(diffRules(rules, presetBase(CONFIG, rules.preset, _rulesOpts())));
 }
 
+/** The "N" badge on the Rules tab + the footer summary on the setup screen. */
 function renderRulesSummary() {
-  const text  = document.getElementById('rules-summary-text');
-  const badge = document.getElementById('rules-summary-badge');
-  if (!text || !_setupRules) return;
-  const preset = CONFIG.RULE_PRESETS?.[_setupRules.preset]?.label ?? 'Custom';
-  text.textContent = [preset, ...summarizeRules(_setupRules, CONFIG)].join(' · ');
+  const badge = document.getElementById('rules-tab-badge');
+  if (!_setupRules) return;
   const n = _changedCount(_setupRules);
-  badge.textContent = n ? `${n} changed` : '';
-  badge.classList.toggle('hidden', !n);
+  if (badge) { badge.textContent = n ? String(n) : ''; badge.classList.toggle('hidden', !n); }
+  if (typeof renderSetupSummary === 'function') renderSetupSummary();
 }
 
 // ── The panel ───────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function _rulesSchema() {
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
   const kinds = CONFIG.ACTION_KINDS || {};
   return [
-    { title: '🏆 Scoring', fields: [
+    { id: 'scoring', title: '🏆 Scoring', fields: [
       { key: 'scoring.questionEasy',    type: 'number', label: 'Easy question',  unit: pts },
       { key: 'scoring.questionHard',    type: 'number', label: 'Hard question',  unit: pts },
       { key: 'scoring.actionPerformer', type: 'number', label: 'Action card — performer', unit: pts },
@@ -98,7 +98,7 @@ function _rulesSchema() {
       { key: 'scoring.landmarkBadDeed',  type: 'number', label: 'Landmark — sent back there by a bad deed', unit: pts },
       { key: 'scoring.negativeScores',   type: 'toggle', label: 'Allow negative scores', hint: 'Off: scores never go below 0' },
     ] },
-    { title: '❓ Questions', fields: [
+    { id: 'questions', title: '❓ Questions', fields: [
       { key: 'questions.difficulty', type: 'select', label: 'Difficulty', options: [
           ['choose', 'Player chooses'], ['easy', 'Always easy'], ['hard', 'Always hard'] ] },
       { key: 'questions.timerAuto',    type: 'toggle', label: 'Start the timer automatically' },
@@ -106,7 +106,7 @@ function _rulesSchema() {
       { key: 'questions.tracking',     type: 'select', label: 'Avoid repeated questions', options: [
           ['session', 'Remember across games'], ['game', 'Reset every game'] ] },
     ] },
-    { title: '🎬 Action cards', fields: [
+    { id: 'actions', title: '🎬 Action cards', fields: [
       { key: 'actions.cards', type: 'select', label: 'Cards', options: [
           ['digital', _hasActionCards() ? 'Digital cards' : 'Digital cards (none in this edition)'],
           ['physical', 'Physical deck'] ],
@@ -116,14 +116,14 @@ function _rulesSchema() {
         options: Object.entries(kinds).map(([k, v]) => [k, `${v.icon} ${v.label}`]) },
       { key: 'actions.timerSeconds', type: 'number', label: 'Action timer', unit: 'seconds' },
     ] },
-    { title: '🗺️ Board', fields: [
+    { id: 'board', title: '🗺️ Board', fields: [
       { key: 'board.tileMix', type: 'tilemix', label: 'Tile mix' },
       { key: 'board.deedEffects', type: 'select', label: 'Deed card effects', options: [
           ['varied', 'Varied — a random effect each game'], ['first', "Always the card's first effect"] ] },
       { key: 'board.noBackwards', type: 'toggle', label: 'No going backwards',
         hint: 'Leaves out move-back, back-to-a-landmark and skip-turn deed effects' },
     ] },
-    { title: '⏱ Turn & pace', fields: [
+    { id: 'turns', title: '⏱ Turn & pace', fields: [
       { key: 'turns.exactFinish', type: 'toggle', label: 'Exact finish',
         hint: 'The exact number is needed to land on the finish — overshooting does not move' },
       { key: 'turns.whoStarts', type: 'select', label: 'Who starts', options: [
@@ -140,31 +140,30 @@ function _set(obj, key, value) {
   ks.reduce((o, k) => (o[k] ??= {}), obj)[last] = value;
 }
 
-function openRulesPanel() {
+/** Draw the Rules tab for the current edition (called when the tab is shown). */
+function renderRulesTab() {
   _rulesDraft = _clone(_setupRules || gameRules());
-  _renderRulesPanel();
   document.getElementById('rules-export').classList.add('hidden');
-  document.getElementById('rules-overlay').classList.remove('hidden');
+  _renderRulesPanel();
 }
 
-/** Close without saving (Cancel / click outside). */
-function closeRulesPanel(e) {
-  if (e && e.target !== document.getElementById('rules-overlay')) return;
-  document.getElementById('rules-overlay').classList.add('hidden');
-  _rulesDraft = null;
-}
-
-function saveRulesPanel() {
+/** Save what the Rules tab shows: rules for the next game, stored per edition. */
+function _commitRules() {
+  const preset = _rulesDraft.preset;
   _setupRules = normalizeRules(_rulesDraft, { ..._rulesOpts(), actionKinds: Object.keys(CONFIG.ACTION_KINDS || {}) });
-  _setupRules.preset = _rulesDraft.preset;
+  _setupRules.preset = preset;
   _storeRules(getActiveEditionId(), _setupRules);
   renderRulesSummary();
-  document.getElementById('rules-overlay').classList.add('hidden');
-  _rulesDraft = null;
+}
+
+function showRulesSection(id) {
+  _rulesSection = id;
+  _renderRulesPanel();
 }
 
 function onRulesPresetChange(presetId) {
   _rulesDraft = presetBase(CONFIG, presetId, _rulesOpts());
+  _commitRules();
   _renderRulesPanel();
 }
 
@@ -191,16 +190,29 @@ function _renderRulesPanel() {
   document.getElementById('rules-preset-desc').textContent =
     CONFIG.RULE_PRESETS?.[_rulesDraft.preset]?.description ?? '';
 
+  const edition = (window.TRIVENTUREX_EDITIONS || []).find(e => e.id === getActiveEditionId());
+  document.getElementById('rules-for').textContent =
+    edition ? `Rules for ${edition.icon} ${edition.name} — each edition keeps its own` : '';
+
+  // Side tabs: one per section, plus the question topics
+  const schema = _rulesSchema();
+  const tabs = [...schema.map(sec => [sec.id, sec.title]), ['topics', '🏷️ Topics']];
+  if (!tabs.some(([id]) => id === _rulesSection)) _rulesSection = 'scoring';
+  document.getElementById('rules-nav').innerHTML = tabs.map(([id, title]) =>
+    `<button type="button" class="rules-nav-btn ${id === _rulesSection ? 'active' : ''}" role="tab"
+             onclick="showRulesSection('${id}')">${title}</button>`).join('');
+
   // Redrawing removes the focused input, and the browser then fires a late
   // "change" for it with its old value — ignore events while redrawing.
   _rulesRendering = true;
-  const body = document.getElementById('rules-body');
-  body.innerHTML = _rulesSchema().map(section => `
+  const section = schema.find(sec => sec.id === _rulesSection);
+  document.getElementById('rules-body').innerHTML = section ? `
     <section class="rules-section">
       <h3>${section.title}</h3>
       ${section.fields.map(_rulesFieldHtml).join('')}
-    </section>`).join('');
-  // (Question topics are a static section below #rules-body — category-filter.js)
+    </section>` : '';
+  // The topic tree is static DOM (category-filter.js, saved on its own)
+  document.getElementById('rules-topics').classList.toggle('hidden', _rulesSection !== 'topics');
   _rulesRendering = false;
 
   _updateRulesPreview();
@@ -306,6 +318,7 @@ function _onRulesInput(e) {
   } else if (el.dataset.ruleMix !== undefined) {
     if (el.value === 'custom') return;
     _rulesDraft.board.tileMix = _clone(TILE_MIX_PRESETS[el.value].mix);
+    _commitRules();
     _renderRulesPanel();
     return;
   } else if (el.dataset.tile) {
@@ -314,10 +327,11 @@ function _onRulesInput(e) {
     _rulesDraft.board.tileMix = mix;
     document.querySelector('[data-rule-mix]').value = 'custom';
   }
+  _commitRules();
   _updateRulesPreview();
 }
 
-/** Wire the panel once (called from initSetupScreen). */
+/** Wire the Rules tab once (called from initSetupScreen). */
 function initRulesPanel() {
   const body = document.getElementById('rules-body');
   body.addEventListener('change', _onRulesInput);

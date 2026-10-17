@@ -31,6 +31,7 @@ function _hostNetworkGame() {
     _saveHostPlayerPref(name, color, token);
   }
 
+  _saveGameSettings(gameLength, pathIndex);   // remembered for the next setup (G7)
   _pendingNetworkSetup = { gameLength, pathIndex, isGMOnly, hostPlayer, rules: rulesForNewGame() };
   _lobbyPlayers = hostPlayer ? [hostPlayer] : [];
 

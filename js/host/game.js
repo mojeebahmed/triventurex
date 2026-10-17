@@ -212,10 +212,35 @@ function resetToSetup() {
     phase: 'setup', turnPhase: 'roll', finishCount: 0,
     history: [], turn: null, hostPlayerId: null, rules: null,
   };
+  // Back to setup with last time's choices (G7): all steps collapsed, so the
+  // next game is usually just "Start"
   renderPlayerRows();
-  populatePathSelector('medium');
-  document.querySelector('input[name="gameLength"][value="medium"]').checked = true;
+  _restoreGameSettings();
+  showSetupTab('new');
+  openSetupStep(null);
+  updateSetupValues();
   showScreen('setup-screen');
+}
+
+/**
+ * Rematch (G7): same players, length, board choice and rules — a new board.
+ * In a network game it stays in the same room, so phones don't rejoin.
+ */
+function rematch() {
+  const players = state.players.map(p => {
+    const fresh = createPlayer(p.id, p.name, p.color, p.token);
+    fresh.disconnected = p.disconnected;   // connection state isn't a game result
+    return fresh;
+  });
+  _startNewGame({
+    gameId:       _isNetworkGame ? state.gameId : generateGameId(),
+    players,
+    gameLength:   state.gameLength,
+    pathIndex:    state.pathIndex,
+    hostPlayerId: state.hostPlayerId,
+    rules:        JSON.parse(JSON.stringify(state.rules)),
+  });
+  _syncStateToServer();   // phones: phase 'playing' again, positions back to start
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────────

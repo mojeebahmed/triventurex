@@ -1838,7 +1838,7 @@ body {
   padding: 12px 20px; border-top: 1px solid var(--border);
 }
 .rules-foot-spacer { flex: 1; }
-#rules-panel .settings-row-categories { border: none; padding: 0; }
+#setup-tab-rules .settings-row-categories { border: none; padding: 0; display: block !important; }
 
 /* Landmark card: points awarded by the rules */
 .landmark-points {
@@ -1847,19 +1847,7 @@ body {
 }
 .landmark-points.pos { background: var(--deed-good-bg); color: var(--deed-good-text); }
 .landmark-points.neg { background: var(--deed-bad-bg);  color: var(--deed-bad-text); }
-#rules-panel .settings-select { width: auto; max-width: 320px; flex: 0 1 auto; }
-
-/* ── Setup screen layout (G6): numbered steps ─────────────────── */
-.setup-container { counter-reset: setup-step; }
-.setup-step { counter-increment: setup-step; }
-.setup-step > h2::before {
-  content: counter(setup-step);
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; margin-right: 8px; border-radius: 50%;
-  background: var(--green); color: #fff; font-size: .78rem; font-weight: 800;
-  vertical-align: 2px;
-}
-.setup-section { margin-bottom: 20px; }
+#setup-tab-rules .settings-select { width: auto; max-width: 320px; flex: 0 1 auto; }
 
 /* Compact game-length cards */
 .length-card { padding: 8px 6px 8px; }
@@ -1885,3 +1873,106 @@ body {
 .thumb-start  { fill: var(--green); }
 .thumb-finish { fill: var(--gold); }
 .board-card-name { font-size: .7rem; font-weight: 700; line-height: 1.2; text-align: center; color: var(--text); }
+
+/* ── Setup screen (G6): wider card, tabs, accordion steps, sticky footer ── */
+.setup-container {
+  max-width: 880px;
+  padding: 28px 36px 0;          /* bottom padding comes from the sticky footer */
+  counter-reset: setup-step;
+}
+.setup-tabs {
+  display: flex; gap: 4px; margin: 14px 0 12px;
+  border-bottom: 2px solid var(--border);
+}
+.setup-tab {
+  padding: 9px 18px; border: none; background: none; cursor: pointer;
+  font: inherit; font-weight: 700; color: var(--text-muted);
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.setup-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.setup-tab:hover:not(.active) { color: var(--text); }
+.setup-tab .rules-summary-badge { margin-left: 4px; }
+
+.setup-step {
+  counter-increment: setup-step;
+  border: 1.5px solid var(--border); border-radius: 12px;
+  margin-bottom: 10px; background: var(--card);
+  transition: border-color .15s, box-shadow .15s;
+}
+.setup-step.open { border-color: var(--green); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.step-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 16px; border: none; background: none; cursor: pointer; font: inherit; text-align: left;
+}
+.step-head h2 {
+  margin: 0; padding: 0; border: none; font-size: 1rem; font-weight: 700; white-space: nowrap;
+}
+.step-head h2::before {
+  content: counter(setup-step);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; margin-right: 8px; border-radius: 50%;
+  background: var(--green); color: #fff; font-size: .78rem; font-weight: 800; vertical-align: 1px;
+}
+.step-value {
+  flex: 1; min-width: 0; text-align: right; font-size: .88rem; font-weight: 600; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.setup-step.open .step-value { visibility: hidden; }
+.step-chev { font-size: 1.2rem; color: var(--text-muted); transition: transform .15s; }
+.setup-step.open .step-chev { transform: rotate(90deg); }
+.step-body { display: none; padding: 2px 16px 16px; }
+.setup-step.open .step-body { display: block; }
+.step-note { font-size: .85rem; color: var(--text-muted); margin: 4px 0 10px; }
+
+.setup-footer {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 16px;
+  margin: 14px -36px 0; padding: 14px 36px 18px;
+  background: var(--card); border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 16px rgba(0,0,0,.05);
+}
+.setup-summary { flex: 1; font-size: .86rem; font-weight: 600; line-height: 1.5; }
+.setup-summary-rules { font-weight: 400; color: var(--text-muted); }
+.setup-footer #start-game-btn { width: auto; margin: 0; padding-left: 28px; padding-right: 28px; white-space: nowrap; }
+.link-btn { border: none; background: none; padding: 0; font: inherit; color: var(--green); text-decoration: underline; cursor: pointer; }
+
+/* Mode toggle inside ④ Players */
+#players-section #mp-tabs { margin: 4px 0 12px; }
+
+/* ── Player chips (G6) ────────────────────────────────────────── */
+.player-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.player-chips .player-row-wrapper { margin: 0; }
+.player-chips .player-row {
+  margin: 0; gap: 6px; padding: 3px 10px 3px 3px;
+  border: 1.5px solid var(--border); border-radius: 999px; background: var(--card);
+}
+.player-chips .player-token-setup { width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; cursor: pointer; }
+.player-chips .player-row input[type="text"] {
+  width: 11ch; padding: 4px 2px; border: none; background: transparent; font-weight: 600;
+}
+.player-chips .player-row:focus-within { border-color: var(--green); }
+.player-controls .btn-small { padding: 5px 12px; }
+
+/* ── Rules tab (G12): side tabs ───────────────────────────────── */
+#setup-tab-rules .rules-head { padding: 0 0 10px; border-bottom: none; }
+.rules-for { font-size: .82rem; color: var(--text-muted); margin-bottom: 8px; }
+.rules-layout { display: grid; grid-template-columns: 170px 1fr; gap: 18px; align-items: start; }
+.rules-nav { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; }
+.rules-nav-btn {
+  text-align: left; padding: 9px 12px; border: none; border-radius: 8px;
+  background: none; font: inherit; font-size: .9rem; cursor: pointer; color: var(--text);
+}
+.rules-nav-btn:hover { background: var(--green-light); }
+.rules-nav-btn.active { background: var(--green); color: #fff; font-weight: 700; }
+.rules-content { min-height: 340px; }
+#setup-tab-rules .rules-section { border-bottom: none; padding-top: 0; }
+#setup-tab-rules .rules-section h3 { margin-top: 0; }
+#setup-tab-rules .rules-foot { padding: 12px 0 0; border-top: 1px solid var(--border); margin-top: 12px; }
+@media (max-width: 720px) {
+  .rules-layout { grid-template-columns: 1fr; }
+  .rules-nav { flex-direction: row; flex-wrap: wrap; position: static; }
+}
+
+/* ── End screen: Rematch + new setup (G7) ─────────────────────── */
+.end-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.end-actions .btn { width: auto; }

@@ -132,7 +132,7 @@ function renderEditionPicker(currentId) {
 }
 
 async function onEditionPicked(editionId) {
-  if (editionId === _activeEditionId) return;
+  if (editionId === _activeEditionId) { onSetupChoice('edition-section'); return; }
   const picker = document.getElementById('edition-picker');
   if (picker) picker.style.opacity = '0.5';
   await loadEdition(editionId);
@@ -141,6 +141,7 @@ async function onEditionPicked(editionId) {
   const len = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
   populatePathSelector(len);
   if (picker) picker.style.opacity = '1';
+  onSetupChoice('edition-section');   // heading shows the edition; move on to length
 }
 
 /**

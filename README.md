@@ -180,7 +180,7 @@ Server settings are at the top of `server.js`: `PORT` (env), and `ROOM_TTL`, whi
 
 ## Game rules (in-game)
 
-The setup screen shows a one-line **⚙️ Rules** summary. **Change…** opens the rules panel. Rules are remembered **per edition**, and a running game keeps its own copy (also after a resume).
+Rules have their own **⚙️ Rules** tab on the setup screen, with side tabs per section (Scoring, Questions, Action cards, Board, Turn & pace, Topics). Changes are saved as you make them; **↺ Reset to preset** undoes them. Rules are remembered **per edition**, and a running game keeps its own copy (also after a resume).
 
 **Presets** set many rules at once: *Family* (the standard game), *Kids* (easy questions, no going backwards, more action) and *Quiz night* (questions count double, timer, more question tiles). After changing anything, the summary shows "N changed". **📋 Copy as preset** turns the current rules into a few lines of JSON you can paste into `RULE_PRESETS` in `js/shared/config.js` as a new preset.
 
@@ -279,7 +279,7 @@ id,text,kind,note
 
 ## Gameplay summary
 
-1. On the setup screen: ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players, check the ⚙️ Rules line, then Start.
+1. On the setup screen (*🎲 New game* tab): ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players. Each choice moves on to the next step; collapsed steps show what's chosen, and the footer shows the whole setup next to **Start**. Next time everything is pre-filled with your last choices, so it's usually just Start.
 2. On your turn, roll the dice. Your token hops to a space and its event triggers:
    - **Question**: choose Easy (+1) or Hard (+2), answer, then the GM reveals the answer
    - **Action**: perform the card (act / explain / hum). Performer and first correct guesser each earn +1.
@@ -288,7 +288,7 @@ id,text,kind,note
    - **Landmark / Stadium**: points by the rules (default +5 when landing by a roll; also settable for arriving via a deed)
    - **Skip**: lose your next turn
 3. To reach the finish you must roll the **exact** number (on by default). Finishing earns a bonus by finishing order (1st +10, 2nd +7, …), however you got there.
-4. The game ends when all players reach the finish. **Winner = most points.**
+4. The game ends when all players reach the finish. **Winner = most points.** Then **🔁 Rematch** (same players and settings, new board) or **New game setup**.
 
 **GM controls** (⚙️ on the game screen): adjust score, move a player, skip their next turn, **sit out / rejoin** (skipped in turn order but keeps their place and score), and remove a network player. Score/move/skip changes appear in the move history and can be undone.
 
@@ -296,7 +296,7 @@ id,text,kind,note
 
 ### Network game (V2)
 
-1. The host starts the server, opens `http://localhost:3000`, picks **📡 Host with phones**, chooses edition, length and board, and clicks **Start**.
+1. The host starts the server, opens `http://localhost:3000`, chooses edition, length and board, picks **📱 On phones** in ④ Players, and clicks **Open lobby**.
 2. A 4-digit Game ID is shown on screen (e.g. `4823`).
 3. Players open `http://<host-ip>:3000/player` on their phones, enter the Game ID, and set their name/badge.
 4. The host clicks Start and the game begins.

@@ -350,6 +350,7 @@ io.on('connection', (socket) => {
     if (finishCount !== undefined)        room.finishCount        = finishCount;
     if (phase)                            room.phase              = phase;
     if (phase === 'ended') scheduleRoomExpiry(room, ROOM_TTL.endedMs, 'game ended');
+    else if (phase === 'playing') cancelRoomExpiry(room);   // e.g. a rematch in the same room
 
     // Broadcast the merged state to all clients EXCEPT the host
     socket.to(gameId).emit('state_update', publicState(room));

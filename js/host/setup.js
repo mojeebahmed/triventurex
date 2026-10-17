@@ -71,7 +71,9 @@ function initSetupScreen() {
 
   document.getElementById('start-game-btn').addEventListener('click', startGame);
   document.getElementById('play-again-btn').addEventListener('click', resetToSetup);
-  document.getElementById('gm-only-toggle')?.addEventListener('change', _applyGMOnlyUI);
+  document.getElementById('rematch-btn').addEventListener('click', rematch);
+  initSetupFlow();
+  document.getElementById('gm-only-toggle')?.addEventListener('change', () => { _applyGMOnlyUI(); updateSetupValues(); });
 }
 
 function setMPMode(mode) {
@@ -83,6 +85,8 @@ function setMPMode(mode) {
   // Step ④ shows the local player list or the host's own player
   document.getElementById('local-players-section')?.classList.toggle('hidden', isHost);
   document.getElementById('host-player-section')?.classList.toggle('hidden', !isHost);
+  document.getElementById('start-game-btn').textContent = isHost ? 'Open lobby ▶' : 'Start Game ▶';
+  if (typeof updateSetupValues === 'function') updateSetupValues();
 
   if (isHost) {
     _renderHostPlayerRow();

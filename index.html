@@ -29,21 +29,32 @@
         </div>
       </div>
 
-      <!-- Multiplayer mode tabs (hidden until Socket.IO connects) -->
-      <div id="mp-tabs" class="hidden">
-        <button class="mp-tab active" data-mode="local" onclick="setMPMode('local')">🎮 Play on this screen</button>
-        <button class="mp-tab" data-mode="host" onclick="setMPMode('host')">📡 Host with phones</button>
+      <!-- Two tabs: set up a new game / the rules (G6, G12) -->
+      <div class="setup-tabs" role="tablist">
+        <button type="button" class="setup-tab active" data-tab="new" role="tab">🎲 New game</button>
+        <button type="button" class="setup-tab" data-tab="rules" role="tab">⚙️ Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
       </div>
 
-      <!-- Edition selection (hidden when only one edition is registered) -->
-      <div class="setup-section setup-step" id="edition-section" style="display:none">
-        <h2>Edition</h2>
-        <div id="edition-picker" class="edition-options"></div>
-      </div>
+      <!-- ── Tab 1: New game — one step open at a time; choosing moves on ── -->
+      <div id="setup-tab-new" class="setup-tab-panel">
+        <section class="setup-step" id="edition-section" style="display:none">
+          <button type="button" class="step-head" aria-expanded="false">
+            <h2>Edition</h2>
+            <span class="step-value" id="edition-section-value"></span>
+            <span class="step-chev" aria-hidden="true">›</span>
+          </button>
+          <div class="step-body">
+            <div id="edition-picker" class="edition-options"></div>
+          </div>
+        </section>
 
-      <!-- Game length -->
-      <div class="setup-section setup-step" id="length-section">
-        <h2>Game Length</h2>
+        <section class="setup-step" id="length-section">
+          <button type="button" class="step-head" aria-expanded="false">
+            <h2>Game length</h2>
+            <span class="step-value" id="length-section-value"></span>
+            <span class="step-chev" aria-hidden="true">›</span>
+          </button>
+          <div class="step-body">
         <div class="length-options">
           <label class="length-option">
             <input type="radio" name="gameLength" value="short">
@@ -69,50 +80,98 @@
               <span class="length-desc">60 spaces · 90+ min</span>
             </div>
           </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="setup-step" id="board-section">
+          <button type="button" class="step-head" aria-expanded="false">
+            <h2>Board</h2>
+            <span class="step-value" id="board-section-value"></span>
+            <span class="step-chev" aria-hidden="true">›</span>
+          </button>
+          <div class="step-body">
+            <input type="hidden" id="path-select" value="random">
+            <div id="board-picker" class="board-picker"></div>
+          </div>
+        </section>
+
+        <section class="setup-step" id="players-section">
+          <button type="button" class="step-head" aria-expanded="false">
+            <h2>Players</h2>
+            <span class="step-value" id="players-section-value"></span>
+            <span class="step-chev" aria-hidden="true">›</span>
+          </button>
+          <div class="step-body">
+            <!-- Where players play (shown once the server is reachable) -->
+            <div id="mp-tabs" class="hidden">
+              <button type="button" class="mp-tab active" data-mode="local" onclick="setMPMode('local')">🎮 On this screen</button>
+              <button type="button" class="mp-tab" data-mode="host" onclick="setMPMode('host')">📱 On phones</button>
+            </div>
+
+            <!-- On this screen: the players -->
+            <div id="local-players-section">
+              <div id="players-setup" class="player-chips"></div>
+              <div class="player-controls">
+                <button id="add-player-btn" class="btn btn-secondary btn-small">+ Add</button>
+                <button id="remove-player-btn" class="btn btn-secondary btn-small">− Remove</button>
+                <button id="reset-players-btn" class="btn btn-secondary btn-small" title="Clear saved names and reset to defaults">↺ Reset</button>
+              </div>
+            </div>
+
+            <!-- On phones: the host's own player (players join from their phones) -->
+            <div id="host-player-section" class="hidden">
+              <p class="step-note">Players join from their phones in the lobby. Are you playing too?</p>
+              <div id="gm-only-row">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="gm-only-toggle"> Game Master only — I won't be playing
+                </label>
+              </div>
+              <div id="host-player-setup" class="player-chips"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ── Tab 2: Rules (G12) — side tabs, saved as you change them ── -->
+      <div id="setup-tab-rules" class="setup-tab-panel hidden">
+        <div class="rules-head">
+          <div class="rules-for" id="rules-for"></div>
+          <div class="rules-preset-row">
+            <label for="rules-preset">Preset</label>
+            <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select>
+            <span id="rules-preset-desc" class="rules-hint"></span>
+          </div>
+          <div id="rules-changed" class="rules-changed"></div>
+        </div>
+        <div class="rules-layout">
+          <nav id="rules-nav" class="rules-nav" role="tablist"></nav>
+          <div class="rules-content">
+            <div id="rules-body"></div>
+            <section id="rules-topics" class="rules-section hidden">
+            <div class="settings-row settings-row-categories" id="category-filter-row" style="display:none">
+              <div class="settings-row-text">
+                <span class="settings-row-title">Question Topics</span>
+                <span class="settings-row-desc">Filter by category, subcategory, or topic — only selected topics will be asked</span>
+              </div>
+              <div id="category-checkboxes" class="category-checkboxes"></div>
+            </div>
+            </section>
+            <textarea id="rules-export" class="rules-export hidden" rows="8" readonly></textarea>
+          </div>
+        </div>
+        <div class="rules-foot">
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()">📋 Copy as preset</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()">↺ Reset to preset</button>
         </div>
       </div>
 
-      <!-- Game Settings (collapsible) -->
-      <!-- Board path (G8) — thumbnails drawn by board-picker.js -->
-      <div class="setup-section setup-step" id="board-section">
-        <h2>Board</h2>
-        <input type="hidden" id="path-select" value="random">
-        <div id="board-picker" class="board-picker"></div>
+      <!-- Always visible: the whole setup + Start -->
+      <div class="setup-footer">
+        <div class="setup-summary" id="setup-summary"></div>
+        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game ▶</button>
       </div>
-
-      <!-- Players (local game) -->
-      <div class="setup-section setup-step" id="local-players-section">
-        <h2>Players (2–8)</h2>
-        <div id="players-setup"></div>
-        <div class="player-controls">
-          <button id="add-player-btn" class="btn btn-secondary">+ Add Player</button>
-          <button id="remove-player-btn" class="btn btn-secondary">− Remove Player</button>
-          <button id="reset-players-btn" class="btn btn-secondary" title="Clear saved names and reset to defaults">↺ Reset</button>
-        </div>
-      </div>
-
-      <!-- Host player (network host mode only) -->
-      <div class="setup-section setup-step hidden" id="host-player-section">
-        <h2>Your Player</h2>
-        <div id="gm-only-row">
-          <label class="checkbox-label">
-            <input type="checkbox" id="gm-only-toggle"> Game Master only — I won't be playing
-          </label>
-        </div>
-        <div id="host-player-setup"></div>
-      </div>
-
-      <!-- Rules summary — the full rules live in the rules panel (G12) -->
-      <div class="setup-section rules-summary-row">
-        <div class="rules-summary">
-          <span class="rules-summary-title">⚙️ Rules</span>
-          <span id="rules-summary-text"></span>
-          <span id="rules-summary-badge" class="rules-summary-badge hidden"></span>
-        </div>
-        <button type="button" class="btn btn-secondary btn-small" onclick="openRulesPanel()">Change…</button>
-      </div>
-
-      <button id="start-game-btn" class="btn btn-primary btn-large">Start Game →</button>
 
     </div>
   </div>
@@ -308,7 +367,10 @@
       <h1>🏆 Journey Complete!</h1>
       <p id="end-screen-message">All players have reached the finish!</p>
       <div id="final-scores"></div>
-      <button id="play-again-btn" class="btn btn-primary btn-large">Play Again</button>
+      <div class="end-actions">
+        <button id="rematch-btn" class="btn btn-primary btn-large">🔁 Rematch</button>
+        <button id="play-again-btn" class="btn btn-secondary btn-large">New game setup</button>
+      </div>
     </div>
   </div>
 
@@ -324,45 +386,6 @@
     </div>
   </div>
 
-
-  <!-- ═══════════════════════════════════════════════
-       RULES PANEL (G12)
-  ═══════════════════════════════════════════════ -->
-  <div id="rules-overlay" class="hidden" onclick="closeRulesPanel(event)">
-    <div id="rules-panel" role="dialog" aria-labelledby="rules-title">
-      <div class="rules-head">
-        <h2 id="rules-title">⚙️ Game rules</h2>
-        <div class="rules-preset-row">
-          <label for="rules-preset">Preset</label>
-          <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select>
-          <span id="rules-preset-desc" class="rules-hint"></span>
-        </div>
-        <div id="rules-changed" class="rules-changed"></div>
-      </div>
-      <div class="rules-scroll">
-        <div id="rules-body"></div>
-        <section class="rules-section">
-          <h3>🏷️ Question topics</h3>
-            <!-- Category filter — populated dynamically after edition loads -->
-            <div class="settings-row settings-row-categories" id="category-filter-row" style="display:none">
-              <div class="settings-row-text">
-                <span class="settings-row-title">Question Topics</span>
-                <span class="settings-row-desc">Filter by category, subcategory, or topic — only selected topics will be asked</span>
-              </div>
-              <div id="category-checkboxes" class="category-checkboxes"></div>
-            </div>
-        </section>
-        <textarea id="rules-export" class="rules-export hidden" rows="8" readonly></textarea>
-      </div>
-      <div class="rules-foot">
-        <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()">📋 Copy as preset</button>
-        <button type="button" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()">↺ Reset to preset</button>
-        <span class="rules-foot-spacer"></span>
-        <button type="button" class="btn btn-secondary" onclick="closeRulesPanel()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="saveRulesPanel()">Done</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Edition registry — lists all available editions for the setup picker -->
   <script src="game_editions/editions.js"></script>
@@ -386,6 +409,7 @@
   <script src="js/host/badge-picker.js"></script>
   <script src="js/host/setup.js"></script>
   <script src="js/host/board-picker.js"></script>
+  <script src="js/host/setup-flow.js"></script>
   <script src="js/host/rules-panel.js"></script>
   <script src="js/host/viewport.js"></script>
   <script src="js/host/net-host.js"></script>
