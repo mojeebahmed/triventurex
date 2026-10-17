@@ -135,14 +135,65 @@ Tick the box when merged to `main`. Line numbers refer to commit 214b538 and wil
 - [x] **T4 — Server tests** `test/server.test.js` (24 tests): hosting/joining, roll guard + manual roll (B2), sync_state field preservation, remove/leave turn index (B5), rejoin + host rejoin, disconnects + host_left (B6). Verified: 5 fail against the pre-fix server.
 - [x] **T5 — Host turn-logic tests** for `_nextTurnIndex`, undo-by-id merge, removal handling — write these during A2/A4 once the logic is separated from the DOM.
 
-## Phase 5 — Gameplay (to be expanded)
+## Phase 5 — Gameplay
 
-- [ ] **G1 — Endgame pacing:** exact-finish alternatives (bounce back / within-1 / end N rounds after first finisher / end when all but one finished).
-- [ ] **G2 — Score balance:** finish bonus (10) vs. questions (1–2) — make trivia matter more; per-edition tuning.
-- [ ] **G3 — Answer on phone:** multiple choice on active player's phone, auto-score, answer hidden from host screen; optional "steal" for others.
-- [ ] **G4 — Automatic landmark points** when landing by roll (drop GM award/visual-stop choice).
-- [ ] **G5 — Ideas pool:** streak bonus, wager questions, final round at finish, sound effects.
-- [ ] **G6+ — Mojeeb's own ideas** _(to be added)_
+_Brainstormed 2026-10-17 with Mojeeb. Order: 5a → 5b → 5c. Every setting has a default in code (engine or edition); the rules panel only changes it for one game._
+
+**Decided against**
+- ~~G1 — Endgame pacing~~ — not needed: the GM can move a player or set the dice manually when an endgame drags.
+- ~~G5 — Streaks, wagers, final round, sound effects~~ — dropped. Sound effects moved to *Future ideas* below.
+- G2 (finish bonus) and G4 (landmark points) are now settings inside **G12**.
+
+### 5a. Quick fixes
+- [ ] **G9 — Fit the board to the path, not the whole grid.** Zoom-to-fit measures the full 12×12/13×13 grid incl. empty cells, so paths that use part of it (e.g. short path A: rows 3–11, cols 1–5) sit off to one side. Fit/centre on the bounding box of the path (or drop empty rows/columns when rendering).
+- [ ] **G10 — Dice animation on phones.** Today the roller's phone shows one random static face, then the result; other phones only get a feed line. Show a short rolling animation on all phones, timed with the host's dice overlay (roller big, others small); vibrate on the result.
+
+### 5b. Setup screen & rules
+- [ ] **G6 — Setup screen redesign.** Numbered steps in play order: 1 Edition → 2 Length → 3 Board → 4 Players (board moves out of the settings). A **rules summary line** always visible ("Exact finish · Landmark +5 · Finish 10/7/5…", with an "N changed" badge) opens the rules panel (G12). Resume bar slimmer; the "Join Info" tab removed (its job moves to G11).
+- [ ] **G7 — Quick replay.** "▶ Same as last time" on the setup screen (edition, length, board choice, players, rules → start straight away) and **Rematch** on the end screen (same setup, new board). Today "Play again" resets to Medium.
+- [ ] **G8 — Visual board picker.** Thumbnails drawn from each `PATH_TEMPLATES` entry (boxy, like the path designer — no image files, new paths get one automatically); only the chosen length's paths, 🎲 Random first.
+- [ ] **G12 — Rules panel** (all optional; defaults = today's behaviour). Remembered per edition. Presets set several at once: *Family* (default), *Kids*, *Quiz night*.
+  - **Scoring**
+    - Question points easy/hard: 1/2 (default), 1/3, 2/4
+    - Action points performer/guesser
+    - **Finish bonus (was G2):** Standard 10/7/5/4/3/2/1/1 · Small 5/3/2/1 · Off
+    - **Landmark points (was G4)** — three values, each can be positive, negative or 0 (0 = just information). The award button on the landmark card is removed.
+      - landing on it by a roll (default +5)
+      - arriving via a **good** deed (moved forward to it)
+      - arriving via a **bad** deed (sent back to it)
+      - (deed arrivals today never trigger the landmark at all)
+    - Allow negative scores (today scores stop at 0)
+  - **Questions**
+    - Difficulty: player chooses (default) · always easy · always hard
+    - Question timer: manual (default) or auto-start, with seconds (default 30)
+    - Question tracking, topic filter (existing)
+  - **Action cards**
+    - Digital (default when the edition has actions.csv) or physical deck — and the action card in-game always offers **"Use physical card instead"**, like questions do, so both are available
+    - Kinds allowed: act / explain / sound
+    - Action timer seconds (default 90)
+  - **Board**
+    - **Tile mix:** a percentage per tile type — action, good deed, bad deed, landmark, skip; **0 removes that type**; questions fill the rest. Defaults come from the edition for the chosen length. Presets: Balanced (default) · More questions · More action · Questions only. Guard rails: total of the special tiles capped (~70%) because the "no two identical special tiles in a row" rule turns the surplus into questions; landmarks are also capped by the edition's landmark count — the panel shows the resulting tile counts for the chosen length.
+    - Deed effects: random effect each game (default) · always the card's first effect
+    - Deed effect filter, e.g. *no going backwards* (removes move_back / previous-landmark / skip effects — good for kids); cards with no allowed effect are left out
+  - **Turn & pace**
+    - Exact finish (existing)
+    - Who starts: setup order (default) · random
+    - Animation speed: normal · fast (token hops, dice overlay)
+
+### 5c. Play experience
+- [ ] **G3 — Answer on the phone.** Multiple choice on the active player's phone, scored automatically, answer hidden on the host screen until answered; optional "steal" for others. Reuses the private-card channel from C3.
+- [ ] **G11 — QR code + join address in the host lobby**, so phones join without typing an IP address (vanilla JS → a small QR library copied into the project).
+- [ ] **G15 — Presentation mode** (works offline): one button → full screen, GM panel hidden, large board/scoreboard; a small floating ⚙️ opens GM controls. For playing on a TV mirrored from the laptop.
+- [ ] **G16 — Second-screen display** (`/display`, needs the server): the TV shows board, tokens, scoreboard, dice and the public part of cards; the laptop keeps the host controls. Secrets stay hidden (action cards; question answers until revealed). Needs the host to send the board to the server at game start.
+- [ ] **G17 — Phone-less players in network games.** The host can add players without a phone (rolled for and resolved on the host, action cards via the host-screen toggle). "Play without phones" can then run through the server with zero phones, so G16 works for every game; the current offline mode stays as the simple fallback for opening index.html from disk.
+- [ ] **G18 — "You're next" on phones** + a vibration when it's your turn.
+- [ ] **G13 — End screen stats and awards:** per-player questions right, distance travelled, deeds, plus fun awards ("Quiz master", "Unluckiest roller").
+- [ ] **G14 — 🚩 Report question** button for the GM during play: saves the question id + a note, to fix the content later.
+
+### Future ideas (not planned)
+- Sound effects (dice roll, correct answer, finish fanfare)
+- Team mode
+- Online multiplayer (beyond local Wi-Fi)
 
 ---
 
