@@ -686,11 +686,11 @@ function _showDeedCard(space, player, onDone) {
 
   }
 
-  // Resolve {landmark} placeholder in deed text using the relative target
+  // Resolve {landmark} placeholder in deed text using the relative target (same text as the tile)
   let deedText = card.text || '';
   if (deedText.includes('{landmark}')) {
     const relLm = _resolveRelativeLandmark(card.effect, player.position, card.value);
-    deedText = deedText.replace(/\{landmark\}/g, relLm?.name ?? 'a landmark');
+    deedText = fillLandmarkText(deedText, relLm?.name);
   }
 
   showModal({

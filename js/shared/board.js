@@ -38,6 +38,17 @@ function shuffleArray(arr) {
 }
 
 /**
+ * Fill `{landmark}` in deed text: the landmark the card moves to, or — when
+ * this game's effect for the card isn't a landmark move — "a <landmark label>"
+ * in the edition's own words ("a stadium", "a wonder", "a reserve").
+ * Used for the board tile and the deed card, so both read the same.
+ */
+function fillLandmarkText(text, landmarkName) {
+  const label = (CONFIG.SPACE_INFO?.landmark?.label ?? 'landmark').toLowerCase();
+  return String(text ?? '').replace(/\{landmark\}/g, landmarkName || `a ${label}`);
+}
+
+/**
  * Build the label shown on a deed space on the board.
  * Line 1: the active effect for this game (chosen randomly from the card's effects).
  * Line 2+: the deed text (with no embedded effect description in the text itself).
@@ -63,7 +74,8 @@ function _deedLabel(card) {
     all_players_lose:       `⚡ Everyone −${n} ${pts}`,
     protection:             `🛡️ Next bad deed cancelled`,
   }[card.effect] || '';
-  return effectTag ? `${effectTag}\n${card.text}` : card.text;
+  const text = fillLandmarkText(card.text, lm);
+  return effectTag ? `${effectTag}\n${text}` : text;
 }
 
 /**

@@ -73,6 +73,7 @@ function boardViolations(ctx, b) {
     if (s.type !== 'good_deed' && s.type !== 'bad_deed') continue;
     if (!s.deed) { out.push(`deed space ${s.id} has no card`); continue; }
     if ((s.type === 'good_deed') !== (s.deed.type === 'good')) out.push(`deed type mismatch at ${s.id}`);
+    if ((s.text || '').includes('{landmark}')) out.push(`deed tile ${s.id} shows a raw {landmark} placeholder`);
     const { effect, value } = s.deed;
     const n = Math.max(1, Math.round(value) || 1);
     if (effect === 'move_back' && s.id - n < 1) out.push(`move_back ${n} at ${s.id} reaches the start`);
@@ -249,5 +250,14 @@ describe('_resolveRelativeLandmark (T2)', () => {
   it('returns null when there is no landmark in that direction', () => {
     assert.equal(r('move_to_next_landmark', 5, 1), null);
     assert.equal(r('move_to_prev_landmark', 1, 1), null);
+  });
+});
+
+describe('fillLandmarkText', () => {
+  it('fills {landmark} with the target, or "a <landmark label>" in the edition\'s words', () => {
+    const ctx = editionWorld('world-tour');
+    assert.equal(ctx.fillLandmarkText('Off to {landmark}!', 'Petra — Jordan'), 'Off to Petra — Jordan!');
+    assert.equal(ctx.fillLandmarkText('Back to {landmark}.', null), 'Back to a wonder.');
+    assert.equal(ctx.fillLandmarkText('No placeholder', null), 'No placeholder');
   });
 });
