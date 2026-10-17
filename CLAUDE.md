@@ -25,7 +25,7 @@ Save project files to this project's folder.
 - **Football Quest** — football trivia (second edition)
 - **World Tour** — travel & geography, family-friendly (third edition; outline in `game_editions/world-tour/OUTLINE.md`)
 - **Animal Safari** — animals & wild places, family-friendly (fourth edition; outline in `game_editions/animal-safari/OUTLINE.md`)
-- **Prophets' Stories** — stories of the prophets for families (fifth edition; Ahmadiyya understanding, Qur'an refs with Bismillah = verse 1, no pictures of people, nobody acts a prophet; decisions in `game_editions/prophets-stories/OUTLINE.md`). Questions are being reviewed by knowledgeable people via `REVIEW.md` (`node scripts/review-sheet.js prophets-stories`) — regenerate it after changing questions.csv
+- **Prophets' Stories** — stories of the prophets for families (fifth edition; Ahmadiyya understanding, Qur'an refs with Bismillah = verse 1, no pictures of people, nobody acts a prophet; decisions in `game_editions/prophets-stories/OUTLINE.md`). Questions are being reviewed by a knowledgeable person in the 📚 Questions tab (🚩 marks + notes → 📋 Copy marked list → fix questions.csv by id); `REVIEW.md` (`node scripts/review-sheet.js prophets-stories`) is a printable alternative — regenerate it after changing questions.csv
 
 ## Run (V1 offline)
 Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
