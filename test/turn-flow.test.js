@@ -249,6 +249,86 @@ describe('save / resume', () => {
   });
 });
 
+describe('rules (G12)', () => {
+  /** Rules built from defaults + changes, as the setup screen would hand them over. */
+  const rulesWith = (w, changes) => { w.ctx.__c = changes; return w.run('buildRules(CONFIG, { changes: __c })'); };
+  const start = (w, rules, n = 3) => {
+    w.ctx.__r = rules;
+    w.run(`_startNewGame({ gameId: 'T', gameLength: 'short', pathIndex: 'random', rules: __r,
+      players: [${Array.from({ length: n }, (_, i) => `createPlayer(${i}, 'P${i}', '#000', 'x')`).join(',')}] })`);
+  };
+
+  it('the game keeps its own copy of the rules', () => {
+    const w = makeWorld();
+    start(w, rulesWith(w, { turns: { exactFinish: false } }));
+    assert.equal(w.run('state.rules.turns.exactFinish'), false);
+    assert.equal(w.run('gameRules().turns.exactFinish'), false);
+  });
+
+  it('who starts: random picks any player and announces it', () => {
+    const w = makeWorld();
+    const seen = new Set();
+    for (let i = 0; i < 60; i++) {
+      start(w, rulesWith(w, { turns: { whoStarts: 'random' } }), 3);
+      seen.add(w.run('state.currentPlayerIndex'));
+    }
+    assert.deepEqual([...seen].sort(), [0, 1, 2]);
+    assert.ok(w.log.toasts.some(t => /starts!/.test(t)));
+  });
+
+  it('who starts: setup order always begins with the first player', () => {
+    const w = makeWorld();
+    for (let i = 0; i < 10; i++) { start(w, rulesWith(w, {})); assert.equal(w.run('state.currentPlayerIndex'), 0); }
+  });
+
+  it('finish bonus follows the rules (off → no bonus)', async () => {
+    const w = makeWorld();
+    w.run("state.rules = buildRules(CONFIG, { changes: { scoring: { finishBonus: 'off' } } })");
+    w.run('state.players[0].position = 7');
+    w.rollWith(2); await w.run('handleRoll()');
+    assert.equal(w.run('state.players[0].finishOrder'), 1);
+    assert.equal(w.run('state.players[0].score'), 0);
+  });
+
+  it('negative scores only when the rules allow them', () => {
+    const w = makeWorld();
+    start(w, rulesWith(w, {}), 2);
+    w.run("document.getElementById('gm-player-select').value = '0'; gmAdjustScore(-2)");
+    assert.equal(w.run('state.players[0].score'), 0);
+
+    start(w, rulesWith(w, { scoring: { negativeScores: true } }), 2);
+    w.run("document.getElementById('gm-player-select').value = '0'; gmAdjustScore(-2)");
+    assert.equal(w.run('state.players[0].score'), -2);
+  });
+
+  it('a resumed game keeps its rules (they were lost before G12)', () => {
+    const w = makeWorld();
+    start(w, rulesWith(w, { turns: { exactFinish: false }, scoring: { landmarkRoll: 0 } }));
+    const save = JSON.parse(w.store.triventurex_save);
+    w.run('state.rules = null; state.players = []');
+    w.ctx.__save = save; w.run('_restoreGame(__save)');
+    assert.equal(w.run('state.rules.turns.exactFinish'), false);
+    assert.equal(w.run('state.rules.scoring.landmarkRoll'), 0);
+  });
+
+  it('a save from before G12 resumes with the default rules', () => {
+    const w = makeWorld();
+    start(w, rulesWith(w, {}));
+    const save = JSON.parse(w.store.triventurex_save);
+    delete save.rules;
+    w.ctx.__save = save; w.run('state.rules = null; _restoreGame(__save)');
+    assert.equal(w.run('state.rules.preset'), 'family');
+  });
+
+  it('a network game starts with the rules chosen when hosting', () => {
+    const w = makeWorld(); w.network();
+    w.run(`_pendingNetworkSetup = { gameLength: 'short', pathIndex: 'random',
+             rules: buildRules(CONFIG, { changes: { questions: { difficulty: 'hard' } } }) }`);
+    w.handlers.game_started({ players: [{ id: 0, name: 'A', color: '#111', token: 'a' }, { id: 1, name: 'B', color: '#222', token: 'b' }] });
+    assert.equal(w.run('state.rules.questions.difficulty'), 'hard');
+  });
+});
+
 describe('players and GM', () => {
   it('removing the current player mid-turn cancels their turn', async () => {
     const w = makeWorld(); w.network();

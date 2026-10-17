@@ -88,7 +88,7 @@ async function _showDiceOverlay(result, player) {
   document.getElementById('dice-overlay-name').style.color = player?.color || '';
 
   overlay.classList.add('visible');
-  const holdMs = CONFIG.ANIMATION?.diceOverlayMs ?? 900;
+  const holdMs = (CONFIG.ANIMATION?.diceOverlayMs ?? 900) * animationFactor(gameRules());
   await new Promise(r => setTimeout(r, holdMs));
   overlay.classList.remove('visible');
   await new Promise(r => setTimeout(r, 200)); // fade-out transition
@@ -252,7 +252,7 @@ function _recordFinish(player, { announce = true } = {}) {
   if (!player?.finished || player.finishOrder !== null) return;
   state.finishCount++;
   player.finishOrder = state.finishCount;
-  const bonus = CONFIG.FINISH_BONUS[state.finishCount - 1] ?? 1;
+  const bonus = finishBonusFor(gameRules(), CONFIG, state.finishCount);
   addScore(player, bonus);
   if (announce) {
     const ordinal = ['1st','2nd','3rd'][state.finishCount - 1] || `${state.finishCount}th`;

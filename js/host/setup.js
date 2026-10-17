@@ -38,16 +38,14 @@ function _restoreGameSettings() {
   if (radio) { radio.checked = true; populatePathSelector(s.gameLength); }
   const pathSel = document.getElementById('path-select');
   if (pathSel && s.pathIndex !== undefined) pathSel.value = s.pathIndex;
-  const exactSel = document.getElementById('exact-finish-select');
-  if (exactSel && s.exactFinish !== undefined) exactSel.value = s.exactFinish ? 'on' : 'off';
-  const qtSel = document.getElementById('question-tracking-select');
-  if (qtSel && s.questionTracking) qtSel.value = s.questionTracking;
 }
 
 function initSetupScreen() {
   renderEditionPicker(_activeEditionId);
   renderPlayerRows();
   _restoreGameSettings();
+  initRulesPanel();
+  renderRulesSummary();
 
   document.querySelectorAll('input[name="gameLength"]').forEach(radio => {
     radio.addEventListener('change', () => populatePathSelector(radio.value));

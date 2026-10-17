@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,"> <!-- no favicon: avoids a 404 on every load -->
   <title>Triventurex</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -74,7 +75,7 @@
 
       <!-- Game Settings (collapsible) -->
       <details class="setup-section setup-details">
-        <summary>⚙️ Game Settings</summary>
+        <summary>🗺️ Board layout</summary>
         <div class="setup-details-body">
 
           <div class="settings-row">
@@ -87,39 +88,18 @@
             </select>
           </div>
 
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Exact Finish</span>
-              <span class="settings-row-desc">Player must roll the exact number to land on the finish — overshooting doesn't move</span>
-            </div>
-            <select id="exact-finish-select" class="settings-select">
-              <option value="on" selected>On (default)</option>
-              <option value="off">Off</option>
-            </select>
-          </div>
-
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Question Tracking</span>
-              <span class="settings-row-desc">Avoid repeating questions — track which ones have been asked</span>
-            </div>
-            <select id="question-tracking-select" class="settings-select">
-              <option value="session">Remember across games</option>
-              <option value="game">Reset on every new game</option>
-            </select>
-          </div>
-
-          <!-- Category filter — populated dynamically after edition loads -->
-          <div class="settings-row settings-row-categories" id="category-filter-row" style="display:none">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Question Topics</span>
-              <span class="settings-row-desc">Filter by category, subcategory, or topic — only selected topics will be asked</span>
-            </div>
-            <div id="category-checkboxes" class="category-checkboxes"></div>
-          </div>
-
         </div>
       </details>
+
+      <!-- Rules summary — the full rules live in the rules panel (G12) -->
+      <div class="setup-section rules-summary-row">
+        <div class="rules-summary">
+          <span class="rules-summary-title">⚙️ Rules</span>
+          <span id="rules-summary-text"></span>
+          <span id="rules-summary-badge" class="rules-summary-badge hidden"></span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openRulesPanel()">Change…</button>
+      </div>
 
       <!-- Players (local game) -->
       <div class="setup-section" id="local-players-section">
@@ -361,6 +341,46 @@
     </div>
   </div>
 
+
+  <!-- ═══════════════════════════════════════════════
+       RULES PANEL (G12)
+  ═══════════════════════════════════════════════ -->
+  <div id="rules-overlay" class="hidden" onclick="closeRulesPanel(event)">
+    <div id="rules-panel" role="dialog" aria-labelledby="rules-title">
+      <div class="rules-head">
+        <h2 id="rules-title">⚙️ Game rules</h2>
+        <div class="rules-preset-row">
+          <label for="rules-preset">Preset</label>
+          <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select>
+          <span id="rules-preset-desc" class="rules-hint"></span>
+        </div>
+        <div id="rules-changed" class="rules-changed"></div>
+      </div>
+      <div class="rules-scroll">
+        <div id="rules-body"></div>
+        <section class="rules-section">
+          <h3>🏷️ Question topics</h3>
+            <!-- Category filter — populated dynamically after edition loads -->
+            <div class="settings-row settings-row-categories" id="category-filter-row" style="display:none">
+              <div class="settings-row-text">
+                <span class="settings-row-title">Question Topics</span>
+                <span class="settings-row-desc">Filter by category, subcategory, or topic — only selected topics will be asked</span>
+              </div>
+              <div id="category-checkboxes" class="category-checkboxes"></div>
+            </div>
+        </section>
+        <textarea id="rules-export" class="rules-export hidden" rows="8" readonly></textarea>
+      </div>
+      <div class="rules-foot">
+        <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()">📋 Copy as preset</button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()">↺ Reset to preset</button>
+        <span class="rules-foot-spacer"></span>
+        <button type="button" class="btn btn-secondary" onclick="closeRulesPanel()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveRulesPanel()">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Edition registry — lists all available editions for the setup picker -->
   <script src="game_editions/editions.js"></script>
 
@@ -372,6 +392,7 @@
   <script src="js/host/board.js"></script>
   <script src="js/shared/players.js"></script>
   <script src="js/shared/turn.js"></script>
+  <script src="js/shared/rules.js"></script>
   <script src="js/shared/dice.js"></script>
   <script src="js/host/ui.js"></script>
   <script src="js/shared/socket-client.js"></script>
@@ -381,6 +402,7 @@
   <script src="js/host/category-filter.js"></script>
   <script src="js/host/badge-picker.js"></script>
   <script src="js/host/setup.js"></script>
+  <script src="js/host/rules-panel.js"></script>
   <script src="js/host/viewport.js"></script>
   <script src="js/host/net-host.js"></script>
   <script src="js/host/turn-flow.js"></script>

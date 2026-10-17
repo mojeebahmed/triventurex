@@ -76,6 +76,7 @@ async function loadEdition(editionId) {
   _activeEditionId = editionId;
   _mergeEditionConfig();
   _populateCategoryFilter();
+  loadSetupRules();          // this edition's rules for the next game (G12)
   try { localStorage.setItem('triventurex_edition', editionId); } catch {}
 }
 

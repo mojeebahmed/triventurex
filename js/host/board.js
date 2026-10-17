@@ -295,6 +295,17 @@ function _fixConsecutiveSameDeedsInSpaces(spaces) {
   }
 }
 
+/**
+ * The edition's tile mix for a game length (fractions per type):
+ * per-length edition override > flat edition override > engine default.
+ */
+function editionTileDistribution(gameLength) {
+  const edDist = CONFIG.EDITION_SPACE_DISTRIBUTION;
+  return (edDist && edDist[gameLength]) ? edDist[gameLength]
+       : (edDist && edDist.question != null) ? edDist
+       : CONFIG.SPACE_DISTRIBUTION;
+}
+
 // ── Path building ─────────────────────────────────────────────────────────────
 
 /**
@@ -334,33 +345,29 @@ function buildPathCoords(gameLength, explicitTemplate) {
  *
  * @param {'short'|'medium'|'long'} gameLength
  * @param {Object} [explicitTemplate]
+ * @param {Object} [opts]            per-game rules (G12)
+ * @param {Object} [opts.tileMix]    fractions per tile type, replacing the edition's mix
+ * @param {Object[]} [opts.deeds]    deed cards already filtered by the rules (deedCardsForBoard)
  * @returns {Array<Object>} spaces
  */
-function generateBoard(gameLength, explicitTemplate) {
+function generateBoard(gameLength, explicitTemplate, opts = {}) {
   const { coords: pathCoords, gridRows, gridCols } = buildPathCoords(gameLength, explicitTemplate);
   const totalSpaces = pathCoords.length;
   const middleCount = totalSpaces - 2;
 
-  // ── 1. Base type counts ───────────────────────────────────────
-  // Pick distribution: per-length edition override > flat edition override > engine default
-  const edDist = CONFIG.EDITION_SPACE_DISTRIBUTION;
-  const dist = (edDist && edDist[gameLength]) ? edDist[gameLength]
-             : (edDist && edDist.question != null) ? edDist
-             : CONFIG.SPACE_DISTRIBUTION;
-  // Questions always fill whatever space remains after all other types — the
-  // 'question' key in the distribution object is intentionally ignored here.
-  const counts = {};
-  for (const [t, r] of Object.entries(dist)) {
-    if (t !== 'question') counts[t] = Math.round(r * middleCount);
-  }
-  const nonQ = Object.values(counts).reduce((s, c) => s + c, 0);
-  counts.question = Math.max(0, middleCount - nonQ);
+  // ── 1. Type counts ────────────────────────────────────────────
+  // Questions fill whatever remains; landmark tiles are capped at the number
+  // of landmarks the edition has. tileCounts (rules.js) is the single counting
+  // rule — the rules panel preview uses it too.
+  const counts = tileCounts(opts.tileMix ?? editionTileDistribution(gameLength),
+                            middleCount, CONFIG.LANDMARKS.length);
 
   // ── 2. Select and pre-pick deed cards ────────────────────────
   // Effects are picked NOW (before pool layout) so that landmark constraints
   // are known when we decide where to place each deed on the board.
-  const allGood = shuffleArray([...(window.DEEDS_DATA || []).filter(d => d.type === 'good')]);
-  const allBad  = shuffleArray([...(window.DEEDS_DATA || []).filter(d => d.type === 'bad')]);
+  const deck    = opts.deeds ?? (window.DEEDS_DATA || []);
+  const allGood = shuffleArray(deck.filter(d => d.type === 'good'));
+  const allBad  = shuffleArray(deck.filter(d => d.type === 'bad'));
 
   const prepareDeeds = (cards, count) =>
     cards.slice(0, count).map(card => {
@@ -368,14 +375,10 @@ function generateBoard(gameLength, explicitTemplate) {
       return { ...card, effect: active.effect, value: active.value };
     });
 
-  const selGoodDeeds = prepareDeeds(allGood, counts.good_deed);
-  const selBadDeeds  = prepareDeeds(allBad,  counts.bad_deed);
+  const selGoodDeeds = prepareDeeds(allGood, counts.good_deed ?? 0);
+  const selBadDeeds  = prepareDeeds(allBad,  counts.bad_deed ?? 0);
 
-  // ── 3. Landmark count — cap at available unique landmarks ────
-  counts.landmark = Math.min(CONFIG.LANDMARKS.length, counts.landmark);
-  counts.question = Math.max(0,
-    middleCount - Object.entries(counts).filter(([t]) => t !== 'question').reduce((s, [, c]) => s + c, 0)
-  );
+  // ── 3. (landmark cap is applied inside tileCounts above) ─────
 
   // ── 4. Build type pool ────────────────────────────────────────
   const pool = [];
@@ -664,13 +667,13 @@ function updateBoardTokens(players, animatedPlayerId = null) {
  */
 // Returns true if the move was blocked by the exact-finish rule.
 async function animatePlayerMovement(player, spaces, steps, allPlayers) {
-  const delay = CONFIG.ANIMATION?.tokenHopMs ?? 200;
+  const delay = (CONFIG.ANIMATION?.tokenHopMs ?? 200) * animationFactor(gameRules());
   const maxPos = spaces.length - 1;
   const dir = steps > 0 ? 1 : -1;
   const absSteps = Math.abs(steps);
 
   // Exact-finish: if moving forward and the roll overshoots the finish, block.
-  if (dir === 1 && CONFIG.RULES?.exactFinish && !player.finished) {
+  if (dir === 1 && gameRules().turns.exactFinish && !player.finished) {
     const spacesLeft = maxPos - player.position;
     if (absSteps > spacesLeft) return true; // blocked
   }

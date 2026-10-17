@@ -70,8 +70,12 @@ function movePlayerToPosition(player, spaces, position) {
  * @param {number} amount  positive to add, negative to subtract
  * @returns {Object}
  */
+// Scores stop at 0 unless the game's rules allow negative scores (G12).
+let _scoreFloor = 0;
+function setAllowNegativeScores(allow) { _scoreFloor = allow ? -Infinity : 0; }
+
 function addScore(player, amount) {
-  player.score = Math.max(0, player.score + amount);
+  player.score = Math.max(_scoreFloor, player.score + amount);
   if (amount !== 0 && typeof window._onScoreChange === 'function') {
     window._onScoreChange(player, amount);
   }

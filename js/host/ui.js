@@ -97,33 +97,9 @@ function showSpaceModal(space, player, onDone) {
       _showQuestionChoice(player, space, onDone);
       break;
 
-    case 'action': {
-      timerSet(CONFIG.TIMER.action);
-      const perf  = CONFIG.SCORE_VALUES.action_performer;
-      const guess = CONFIG.SCORE_VALUES.action_guesser;
-      // Digital card from actions.csv. A resumed turn (host refresh) shows the
-      // same card again; editions without action cards keep the physical deck.
-      const card = state.turn?.actionCard ?? _drawActionCard();
-      if (card && state.turn) state.turn.actionCard = card;
-      const onPhone = card ? _sendPrivateCard(player, card) : false;
-      showModal({
-        icon: CONFIG.SPACE_INFO.action?.icon ?? '🎬',
-        title: 'Action Card!',
-        content: _playerBadgeHtml(player) +
-                 (card ? _actionCardHtml(card, player, onPhone)
-                       : `<p>Draw an <em>Action Card</em> and perform it!</p>`) +
-                 `<p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
-                  <small>Use the timer in the sidebar to manage time.</small></p>`,
-        actions: [
-          { label: perf === guess ? `✅ Guessed! (+${perf} each)` : `✅ Guessed! (+${perf})`,
-            class: 'btn btn-primary',
-            callback: () => { addScore(player, CONFIG.SCORE_VALUES.action_performer); onDone(true); } },
-          { label: '⏱ No guess / Time up', class: 'btn btn-secondary',
-            callback: () => onDone(false) },
-        ],
-      });
+    case 'action':
+      _showActionModal(player, onDone);
       break;
-    }
 
     case 'good_deed':
       _showDeedCard(space, player, onDone);
@@ -144,21 +120,21 @@ function showSpaceModal(space, player, onDone) {
       // Edition-neutral: icon/label come from SPACE_INFO.landmark (e.g. 🏟️ Stadium)
       const lmInfo = CONFIG.SPACE_INFO.landmark ?? {};
       const lmName = space.name || lmInfo.label || 'Landmark';
-      const lmPts  = CONFIG.SCORE_VALUES.landmark;
+      // Points come from the rules (0 = just information) — no GM decision needed
+      const lmPts  = landmarkPoints(gameRules(), 'roll');
       const pts    = CONFIG.GAME?.pointsName ?? 'pts';
+      const signed = `${lmPts > 0 ? '+' : ''}${lmPts} ${pts}`;
       showModal({
         icon: lmInfo.icon ?? '🌍',
         title: lmName,
         content: `${imgHtml}${descHtml}
                   <p style="margin-top:8px"><strong>${esc(player.name)}</strong> has arrived at
                   <strong>${lmName}</strong>!</p>
-                  <p style="margin-top:8px;font-size:.85rem;color:#666">
-                  GM: award <strong>${lmPts} ${pts}</strong> or treat as a visual stop.<br>
-                  <em>Note: players sent here by a bad deed card do not receive points.</em></p>`,
+                  ${lmPts ? `<div class="landmark-points ${lmPts > 0 ? 'pos' : 'neg'}">${signed}</div>` : ''}`,
         actions: [
-          { label: `⭐ Award ${lmPts} ${pts}`, class: 'btn btn-primary',
-            callback: () => { addScore(player, CONFIG.SCORE_VALUES.landmark); onDone(); } },
-          { label: 'Visual stop (no points)', class: 'btn btn-secondary', callback: onDone },
+          { label: lmPts > 0 ? `⭐ Collect ${signed}` : lmPts < 0 ? `OK (${signed})` : 'Continue',
+            class: 'btn btn-primary',
+            callback: () => { if (lmPts) addScore(player, lmPts); onDone(); } },
         ],
       });
       break;
@@ -184,7 +160,7 @@ function showSpaceModal(space, player, onDone) {
 
     case 'finish': {
       const order       = player.finishOrder || 1;
-      const bonus       = CONFIG.FINISH_BONUS[order - 1] ?? 1;
+      const bonus       = finishBonusFor(gameRules(), CONFIG, order);
       const ordinal     = ['1st','2nd','3rd','4th','5th','6th','7th','8th'][order - 1] || `${order}th`;
       const finishIcon  = CONFIG.SPACE_INFO.finish?.icon ?? '🏁';
       const celebration = CONFIG.GAME?.finishCelebration ?? 'Well done! 🎉';
@@ -196,7 +172,7 @@ function showSpaceModal(space, player, onDone) {
         content: `${_playerBadgeHtml(player)}
                   <div class="finish-announcement">
                     <div class="finish-ordinal">${ordinal} to arrive!</div>
-                    <div class="finish-bonus-display">+${bonus} ${pts} bonus awarded</div>
+                    ${bonus ? `<div class="finish-bonus-display">+${bonus} ${pts} bonus awarded</div>` : ''}
                   </div>
                   <p style="margin-top:10px;color:#666;font-size:.9rem">${celebration}</p>`,
         actions: [{ label: btnLabel, class: 'btn btn-primary', callback: onDone }],
@@ -274,6 +250,10 @@ function _availablePool(diff) {
 }
 
 function _showQuestionChoice(player, space, onDone) {
+  const R = gameRules();
+  // Rules can fix the difficulty (e.g. always easy for kids) — skip the choice
+  if (R.questions.difficulty !== 'choose') { _showQuestion(R.questions.difficulty, player, onDone); return; }
+
   const { pool: easyPool } = _availablePool('easy');
   const { pool: hardPool } = _availablePool('hard');
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
@@ -292,9 +272,9 @@ function _showQuestionChoice(player, space, onDone) {
   if (easyExhausted) note = `<p class="question-exhausted-note">🟢 Easy questions exhausted — only Hard available!</p>`;
   if (hardExhausted) note = `<p class="question-exhausted-note">🔵 Hard questions exhausted — only Easy available!</p>`;
 
-  const easyBtn = { label: `🟢 Easy  (+${CONFIG.SCORE_VALUES.question_easy} ${pts})`, class: 'btn btn-primary',
+  const easyBtn = { label: `🟢 Easy  (+${R.scoring.questionEasy} ${pts})`, class: 'btn btn-primary',
     callback: () => _showQuestion('easy', player, onDone) };
-  const hardBtn = { label: `🔵 Hard  (+${CONFIG.SCORE_VALUES.question_hard} ${pts})`, class: 'btn btn-primary btn-blue',
+  const hardBtn = { label: `🔵 Hard  (+${R.scoring.questionHard} ${pts})`, class: 'btn btn-primary btn-blue',
     callback: () => _showQuestion('hard', player, onDone) };
 
   const actions = [];
@@ -313,15 +293,15 @@ function _showQuestionChoice(player, space, onDone) {
 }
 
 function _showQuestion(diff, player, onDone) {
-  timerSet(CONFIG.TIMER.question);
+  const R = gameRules();
+  timerSet(R.questions.timerSeconds);
+  if (R.questions.timerAuto) timerStart();
 
   // Pick an unasked question; pool recycles automatically if all exhausted
   const { pool, recycled } = _availablePool(diff);
   if (recycled) showToast(`All ${diff} questions asked — reshuffling!`);
   const q = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-  const pts  = diff === 'easy'
-    ? (CONFIG.SCORE_VALUES.question_easy ?? 1)
-    : (CONFIG.SCORE_VALUES.question_hard ?? 2);
+  const pts  = diff === 'easy' ? R.scoring.questionEasy : R.scoring.questionHard;
 
   if (!q) {
     // No questions loaded — use physical card fallback
@@ -432,12 +412,57 @@ function _showPhysicalCard(diff, player, pts, onDone) {
 // ── Action cards ──────────────────────────────────────────────────────────────
 
 /**
+ * The action space. Uses a digital card when the rules say so and the
+ * edition has cards, otherwise the physical deck; a digital card can always be
+ * swapped for a physical one. A resumed turn (host refresh) shows the same
+ * card again: state.turn.actionCard holds it (null = physical deck).
+ */
+function _showActionModal(player, onDone) {
+  const R = gameRules();
+  timerSet(R.actions.timerSeconds);
+  const perf  = R.scoring.actionPerformer;
+  const guess = R.scoring.actionGuesser;
+
+  let card = state.turn?.actionCard;
+  if (card === undefined) card = R.actions.cards === 'digital' ? _drawActionCard(R.actions.kinds) : null;
+  if (state.turn) state.turn.actionCard = card;
+  const onPhone = card ? _sendPrivateCard(player, card) : false;
+
+  const actions = [
+    { label: perf === guess ? `✅ Guessed! (+${perf} each)` : `✅ Guessed! (+${perf})`,
+      class: 'btn btn-primary',
+      callback: () => { addScore(player, perf); onDone(true); } },
+    { label: '⏱ No guess / Time up', class: 'btn btn-secondary', callback: () => onDone(false) },
+  ];
+  if (card) {
+    actions.push({ label: '📋 Use a physical card instead', class: 'btn btn-secondary',
+      callback: () => {
+        if (state.turn) state.turn.actionCard = null;
+        if (onPhone) _sendPrivateCard(player, { kind: '', text: 'Draw a card from the physical deck instead.', note: '' });
+        _showActionModal(player, onDone);
+      } });
+  }
+
+  showModal({
+    icon: CONFIG.SPACE_INFO.action?.icon ?? '🎬',
+    title: 'Action Card!',
+    content: _playerBadgeHtml(player) +
+             (card ? _actionCardHtml(card, player, onPhone)
+                   : `<p>Draw an <em>Action Card</em> from the deck and perform it!</p>`) +
+             `<p>If guessed: performer <strong>+${perf}</strong>, guesser <strong>+${guess}</strong>.<br>
+              <small>Use the timer in the sidebar to manage time.</small></p>`,
+    actions,
+  });
+}
+
+/**
  * Draw an action card the table hasn't had yet (same no-repeat tracking as
  * questions, under the 'actions' key). Reshuffles when all have been used.
- * Returns null if the edition has no action cards.
+ * `kinds` limits the draw to the allowed kinds (rules). Returns null if the
+ * edition has no (allowed) action cards.
  */
-function _drawActionCard() {
-  const all = window.ACTIONS_DATA || [];
+function _drawActionCard(kinds = null) {
+  const all = (window.ACTIONS_DATA || []).filter(a => !kinds || kinds.includes(a.kind));
   if (!all.length) return null;
   const used = _getAskedIds('actions');
   let pool = all.filter(a => !used.has(a.id));
@@ -597,7 +622,27 @@ function _resolveRelativeLandmark(effect, playerPosition, value) {
   return null;
 }
 
+/** Apply a deed card, then give landmark points if it moved the player onto one. */
 function _applyDeedEffect(card, player) {
+  const before = player.position;
+  _applyDeedEffectOnly(card, player);
+  _landmarkArrival(card, player, before);
+}
+
+/**
+ * A deed moved the player onto a landmark: points by the rules for good /
+ * bad deed arrivals (0 = just information), announced with a small toast.
+ */
+function _landmarkArrival(card, player, before) {
+  const space = window._gameBoard?.[player.position];
+  if (!space || space.type !== 'landmark' || player.position === before) return;
+  const pts = landmarkPoints(gameRules(), card.type === 'good' ? 'good' : 'bad');
+  if (pts) addScore(player, pts);
+  const unit = CONFIG.GAME?.pointsName ?? 'pts';
+  showToast(`📍 ${player.name} arrived at ${space.name}${pts ? ` · ${pts > 0 ? '+' : ''}${pts} ${unit}` : ''}`, 3500);
+}
+
+function _applyDeedEffectOnly(card, player) {
   // game.js exposes state.board for landmark lookup
   switch (card.effect) {
     case 'score_add':
@@ -657,7 +702,7 @@ function _applyDeedEffect(card, player) {
 
 function showGuesserModal(players, performer, onDone) {
   const others = players.filter(p => p.id !== performer.id);
-  const guessPts = CONFIG.SCORE_VALUES.action_guesser;
+  const guessPts = gameRules().scoring.actionGuesser;
   const options = others.map(p => ({
     label: `${p.name} guessed it! (+${guessPts})`,
     class: 'btn btn-secondary',

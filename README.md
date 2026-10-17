@@ -163,6 +163,7 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `SPACE_DISTRIBUTION` | Ratio of each non-question space type (questions fill the remainder) |
 | `SPACE_INFO` | Icon, label, colour per space type |
 | `ACTION_KINDS` | Action card kinds (act / explain / sound): icon, label, rule |
+| `RULE_PRESETS` | Rule presets for the rules panel (Family, Kids, Quiz night) |
 | `PLAYERS` | Default names, colours, tokens; picker palette |
 | `FINISH_BONUS` | Score bonus for finishing order |
 | `SCORE_VALUES` | Points for questions, actions, landmarks (every label in the game reads these) |
@@ -177,22 +178,25 @@ Server settings are at the top of `server.js`: `PORT` (env), and `ROOM_TTL`, whi
 
 ---
 
-## Game Settings (in-game)
+## Game rules (in-game)
 
-Accessible via the collapsible **⚙️ Game Settings** section on the setup screen.
+The setup screen shows a one-line **⚙️ Rules** summary. **Change…** opens the rules panel. Rules are remembered **per edition**, and a running game keeps its own copy (also after a resume).
 
-| Setting | Options | Default |
-|---|---|---|
-| Board Layout | Random or a specific path shape | Random |
-| Exact Finish | On / Off | On |
-| Question Tracking | Remember across games / Reset every game | Remember |
-| Question Topics | 3-level filter: category > subcategory > topic | All selected |
+**Presets** set many rules at once: *Family* (the standard game), *Kids* (easy questions, no going backwards, more action) and *Quiz night* (questions count double, timer, more question tiles). After changing anything, the summary shows "N changed". **📋 Copy as preset** turns the current rules into a few lines of JSON you can paste into `RULE_PRESETS` in `js/shared/config.js` as a new preset.
 
-**Exact Finish:** the player must roll the exact number to land on the finish space. Overshooting does not move the token.
+| Section | Rules (default) |
+|---|---|
+| Scoring | Easy/hard question points (1/2) · action performer/guesser (1/1) · finish bonus: Standard 10/7/5…, Small 5/3/2/1 or Off · landmark points when **landing by a roll** (+5), **sent there by a good deed** (0), **sent back there by a bad deed** (0); each can be negative, 0 = just information · allow negative scores (off) |
+| Questions | Difficulty: player chooses / always easy / always hard · auto-start timer (off) and its seconds (30) · avoid repeats: remember across games / reset every game · **question topics** (category > subcategory > topic) |
+| Action cards | Digital (when the edition has cards) or physical deck; a digital card can always be swapped for a physical one in play · kinds allowed (act / explain / sound) · action timer (90 s) |
+| Board | **Tile mix**: % per tile type, 0 removes it, questions fill the rest; presets Balanced / More questions / More action / Questions only, with a live preview of the tile counts (special tiles capped at 70% in total) · deed effects: varied or always the first · no going backwards (leaves out move-back, back-to-landmark and skip-turn effects) |
+| Turn & pace | Exact finish (on) · who starts: first player or random · animation speed: normal / fast |
 
-**Question Tracking:** with "Remember across games", questions already asked are skipped until every question of that difficulty has been asked, then the pool resets. Each edition keeps its own list. Action cards are tracked the same way.
+**Exact finish:** the player must roll the exact number to land on the finish space. Overshooting does not move the token.
 
-**Question Topics:** questions are organised into three levels, **Category > Subcategory > Topic**. Checking or unchecking a category or subcategory toggles all its children. Parent checkboxes show a dash (−) when partially selected. Only questions whose topic is checked are asked. Selections are saved per edition, and at least one topic must stay checked.
+**Avoid repeated questions:** questions already asked are skipped until every question of that difficulty has been asked, then the pool resets. Each edition keeps its own list. Action cards are tracked the same way.
+
+**Question topics:** questions are organised into three levels, **Category > Subcategory > Topic**. Checking or unchecking a category or subcategory toggles all its children. Parent checkboxes show a dash (−) when partially selected. Only questions whose topic is checked are asked. Selections are saved per edition, and at least one topic must stay checked.
 
 ---
 
@@ -281,7 +285,7 @@ id,text,kind,note
    - **Action**: perform the card (act / explain / hum). Performer and first correct guesser each earn +1.
    - **Good Deed / Good Play**: one effect applied automatically (varies each game)
    - **Bad Deed / Foul Play**: one effect applied automatically (varies each game)
-   - **Landmark / Stadium**: the GM awards 5 pts or treats it as a visual stop
+   - **Landmark / Stadium**: points by the rules (default +5 when landing by a roll; also settable for arriving via a deed)
    - **Skip**: lose your next turn
 3. To reach the finish you must roll the **exact** number (on by default). Finishing earns a bonus by finishing order (1st +10, 2nd +7, …), however you got there.
 4. The game ends when all players reach the finish. **Winner = most points.**

@@ -105,8 +105,7 @@ function _saveGameSettings(gameLength, pathIndex) {
   try {
     localStorage.setItem(LS_GAME_SETTINGS, JSON.stringify({
       gameLength, pathIndex, playerCount: state.players.length,
-      exactFinish:      CONFIG.RULES.exactFinish,
-      questionTracking: CONFIG.RULES.questionTracking,
+      // (rules are stored per edition by rules-panel.js since G12)
     }));
   } catch {}
 }

@@ -110,6 +110,41 @@ const CONFIG = {
     sound:   { icon: '🎵', label: 'Hum or sound', rule: 'Hum or make sounds — no words.' },
   },
 
+  /**
+   * RULE_PRESETS — named rule sets for the rules panel (G12).
+   * A game's rules = defaults (engine + edition) → a preset's `changes` → the
+   * player's own changes. `changes` only lists what differs from the defaults,
+   * using the shape of the rules object in js/shared/rules.js.
+   * To add a preset: set up the rules panel, click "📋 Copy as preset", paste here.
+   */
+  RULE_PRESETS: {
+    family: {
+      label: 'Family',
+      description: 'The standard game',
+      changes: {},
+    },
+    kids: {
+      label: 'Kids',
+      description: 'Easy questions, no going backwards, more action',
+      changes: {
+        questions: { difficulty: 'easy' },
+        board: {
+          noBackwards: true,
+          tileMix: { action: 20, good_deed: 15, bad_deed: 10, landmark: 8, skip: 0 },
+        },
+      },
+    },
+    quiz: {
+      label: 'Quiz night',
+      description: 'Questions count more, with a timer',
+      changes: {
+        scoring:   { questionEasy: 2, questionHard: 4, finishBonus: 'small' },
+        questions: { timerAuto: true, timerSeconds: 30 },
+        board:     { tileMix: { action: 8, good_deed: 8, bad_deed: 8, landmark: 6, skip: 3 } },
+      },
+    },
+  },
+
   // Timer defaults (seconds)
   TIMER: {
     question: 30,

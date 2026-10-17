@@ -21,6 +21,7 @@ let state = {
   // { token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }
   turn:               null,
   hostPlayerId:       null,       // network game: the host's own player (no phone), else null
+  rules:              null,       // this game's rules (G12) — copied at start, saved with the game
 };
 
 window._onScoreChange = (player, amount) => {
@@ -57,6 +58,8 @@ function _restoreGame(save) {
   }
   const { pendingTurn, turn: savedTurn, ...savedState } = save;
   Object.assign(state, savedState);
+  // Saves from before G12 have no rules — they played with the defaults
+  state.rules     = save.rules ?? buildRules(CONFIG, null, { hasActionCards: _hasActionCards() });
   state.board     = board;
   state.history   = state.history || [];
   state.turn      = null;
@@ -104,22 +107,19 @@ function startGame() {
   });
   if (players.length < 2) { alert('Please add at least 2 players.'); return; }
 
-  // Read rule toggles from setup UI
-  CONFIG.RULES.exactFinish        = document.getElementById('exact-finish-select')?.value !== 'off';
-  CONFIG.RULES.questionTracking   = document.getElementById('question-tracking-select')?.value ?? 'session';
-  if (CONFIG.RULES.questionTracking === 'game') resetAskedQuestions();
-
   _savePlayerPrefs(); // reads the setup rows — before state.players is replaced
   _saveGameSettings(gameLength, pathIndex);
-  _startNewGame({ gameId: generateGameId(), players, gameLength, pathIndex });
+  _startNewGame({ gameId: generateGameId(), players, gameLength, pathIndex, rules: rulesForNewGame() });
 }
 
 /** Reset `state` for a brand-new game, show the game screen and save. */
-function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = null }) {
+function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = null, rules }) {
+  if (rules.questions.tracking === 'game') resetAskedQuestions();
+  const first = rules.turns.whoStarts === 'random' ? Math.floor(Math.random() * players.length) : 0;
   Object.assign(state, {
-    gameId, players, gameLength, pathIndex, hostPlayerId,
-    board:              _buildBoard(gameLength, pathIndex),
-    currentPlayerIndex: 0,
+    gameId, players, gameLength, pathIndex, hostPlayerId, rules,
+    board:              _buildBoard(gameLength, pathIndex, rules),
+    currentPlayerIndex: first,
     finishCount:        0,
     phase:              'playing',
     turnPhase:          'roll',
@@ -128,6 +128,7 @@ function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = 
   });
   _enterGameScreen();
   saveGame();
+  if (first !== 0) showToast(`🎲 ${players[first].name} starts!`);
 }
 
 /**
@@ -135,6 +136,7 @@ function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = 
  * network games (game_started) and resumed games.
  */
 function _enterGameScreen() {
+  setAllowNegativeScores(gameRules().scoring.negativeScores);
   showScreen('game-screen');
   renderBoard(state.board, state.players);
   renderLegend();
@@ -147,13 +149,14 @@ function _enterGameScreen() {
   fitBoardInView(); // also applies the board background
 }
 
-function _buildBoard(gameLength, pathIndex) {
-  if (pathIndex === 'random') {
-    return generateBoard(gameLength); // picks random template internally
-  }
-  // Specific template — temporarily override the random pick
-  const template = CONFIG.PATH_TEMPLATES[gameLength][pathIndex];
-  return generateBoard(gameLength, template); // we'll patch generateBoard below
+/** Generate the board for a new game under its rules (tile mix, deed options). */
+function _buildBoard(gameLength, pathIndex, rules) {
+  const template = pathIndex === 'random' ? undefined           // random template
+                 : CONFIG.PATH_TEMPLATES[gameLength][pathIndex]; // chosen path
+  return generateBoard(gameLength, template, {
+    tileMix: tileDistribution(rules),
+    deeds:   deedCardsForBoard(window.DEEDS_DATA || [], rules),
+  });
 }
 
 function _showGameIdBadge() {
@@ -207,7 +210,7 @@ function resetToSetup() {
     gameId: null, players: [], board: [], gameLength: 'medium',
     pathIndex: 'random', currentPlayerIndex: 0,
     phase: 'setup', turnPhase: 'roll', finishCount: 0,
-    history: [], turn: null, hostPlayerId: null,
+    history: [], turn: null, hostPlayerId: null, rules: null,
   };
   renderPlayerRows();
   populatePathSelector('medium');

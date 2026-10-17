@@ -31,11 +31,7 @@ function _hostNetworkGame() {
     _saveHostPlayerPref(name, color, token);
   }
 
-  CONFIG.RULES.exactFinish      = document.getElementById('exact-finish-select')?.value !== 'off';
-  CONFIG.RULES.questionTracking = document.getElementById('question-tracking-select')?.value ?? 'session';
-  if (CONFIG.RULES.questionTracking === 'game') resetAskedQuestions();
-
-  _pendingNetworkSetup = { gameLength, pathIndex, isGMOnly, hostPlayer };
+  _pendingNetworkSetup = { gameLength, pathIndex, isGMOnly, hostPlayer, rules: rulesForNewGame() };
   _lobbyPlayers = hostPlayer ? [hostPlayer] : [];
 
   TX_NET.hostGame({
@@ -218,6 +214,7 @@ function _initSocketHandlers() {
       gameLength: setup.gameLength,
       pathIndex:  setup.pathIndex,
       hostPlayerId: setup.hostPlayer?.id ?? null,   // the host's own player has no phone
+      rules:        setup.rules ?? rulesForNewGame(),
     });
 
     try { localStorage.setItem('tx_net_game', _networkGameId); } catch {}

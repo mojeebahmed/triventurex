@@ -25,7 +25,7 @@ function editionWorld(edition) {
   const ctx = { console, Math, document: { getElementById: () => null } };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/shared/csv.js',
+  for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/shared/csv.js', 'js/shared/rules.js',
                    'js/host/board.js', 'js/host/edition-loader.js', 'js/host/ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
@@ -101,6 +101,60 @@ for (const edition of EDITIONS) {
           assert.equal(seen.size, 0, [...seen].map(([v, c]) => `${c}× ${v}`).join('\n'));
         });
       }
+    }
+  });
+}
+
+// ── Rules variants (G12) ─────────────────────────────────────────────────────
+
+const VARIANTS = {
+  'questions only':      { board: { tileMix: { action: 0, good_deed: 0, bad_deed: 0, landmark: 0, skip: 0 } } },
+  'more action':         { board: { tileMix: { action: 20, good_deed: 15, bad_deed: 10, landmark: 8, skip: 0 } } },
+  'max special tiles':   { board: { tileMix: { action: 14, good_deed: 14, bad_deed: 14, landmark: 14, skip: 14 } } },
+  'no going backwards':  { board: { noBackwards: true } },
+  'first effect only':   { board: { deedEffects: 'first' } },
+};
+
+for (const edition of EDITIONS) {
+  describe(`generateBoard under rules — ${edition}`, () => {
+    const ctx = editionWorld(edition);
+    for (const [name, changes] of Object.entries(VARIANTS)) {
+      it(`${name}: every rule still holds, tile counts match the panel preview`, () => {
+        ctx.__changes = changes;
+        const rules = vm.runInContext('buildRules(CONFIG, { changes: __changes })', ctx);
+        ctx.__rules = rules;
+        const opts = vm.runInContext('({ tileMix: tileDistribution(__rules), deeds: deedCardsForBoard(window.DEEDS_DATA, __rules) })', ctx);
+        ctx.__opts = opts;
+        const originals = new Map(vm.runInContext('window.DEEDS_DATA', ctx).map(d => [d.id, d]));
+        for (const len of ['short', 'medium', 'long']) {
+          for (let k = 0; k < 40; k++) {
+            ctx.__len = len;
+            const b = vm.runInContext('generateBoard(__len, undefined, __opts)', ctx);
+            const problems = boardViolations(ctx, b);
+            assert.deepEqual(problems, [], `${len}: ${problems.join('; ')}`);
+
+            // Tile counts: what the panel previews (tileCounts) is the most a type gets;
+            // the adjacency rule may turn a few special tiles into questions.
+            const middle = b.length - 2;
+            const dist = opts.tileMix ?? vm.runInContext(`editionTileDistribution('${len}')`, ctx);
+            const expected = ctx.tileCounts(dist, middle, vm.runInContext('CONFIG.LANDMARKS.length', ctx));
+            const actual = {};
+            for (const s of b.slice(1, -1)) actual[s.type] = (actual[s.type] || 0) + 1;
+            for (const t of vm.runInContext("TILE_TYPES", ctx)) {
+              assert.ok((actual[t] || 0) <= (expected[t] || 0), `${len}: ${t} ${actual[t]} > preview ${expected[t]}`);
+            }
+
+            const deeds = b.filter(s => s.deed).map(s => s.deed);
+            if (name === 'questions only') assert.ok(b.slice(1, -1).every(s => s.type === 'question'));
+            if (name === 'no going backwards') {
+              for (const d of deeds) assert.ok(!vm.runInContext("BACKWARD_EFFECTS", ctx).has(d.effect), `backward effect ${d.effect}`);
+            }
+            if (name === 'first effect only') {
+              for (const d of deeds) assert.equal(d.effect, originals.get(d.id).effects[0].effect);
+            }
+          }
+        }
+      });
     }
   });
 }
