@@ -393,6 +393,17 @@ describe('players and GM', () => {
     assert.equal(w.run('_sendPrivateCard(state.players[1], __card)'), false, 'disconnected phone');
   });
 
+  it('the host lobby list follows a phone leaving (G21)', async () => {
+    const w = makeWorld(); w.run('_isNetworkGame = false');
+    w.run('_initSocketHandlers()');
+    const two = [{ id: 0, name: 'A', color: '#111', token: 'a' }, { id: 1, name: 'B', color: '#222', token: 'b' }];
+    w.handlers.player_joined({ player: two[1], players: two });
+    assert.equal(w.run('_lobbyPlayers.length'), 2);
+    w.handlers.player_removed({ playerId: 0, players: [two[1]] });
+    assert.deepEqual(w.run('_lobbyPlayers.map(p => p.id)'), [1]);
+    assert.equal(w.run('state.players.length'), 2, 'game state untouched in the lobby');
+  });
+
   it('player_reconnected clears the disconnected marker', async () => {
     const w = makeWorld(); w.network();
     w.handlers.player_disconnected({ playerId: 1 });

@@ -24,6 +24,7 @@ let _myName   = '';
 let _myId     = null;
 let _gameId   = null;
 let _isMyTurn = false;
+let _wasMyTurn = false;   // to buzz only when my turn STARTS (G18)
 let _turnPhase = 'roll';
 let _lastRoll  = null;
 let _lastCurrentPlayerName = '';
@@ -294,6 +295,19 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
   _lastCurrentPlayerName = currentPlayer?.name || '';
   _isMyTurn = currentPlayer?.id === _myId;
 
+  // "You're next" (G18) — the next player who will actually play
+  // (nextTurnIndex skips finished and sitting-out players, like the host)
+  const playing = phase !== 'ended';
+  const nextIdx = nextTurnIndex(playerStates, currentPlayerIndex + 1);
+  const amNext  = playing && !_isMyTurn && playerStates[nextIdx]?.id === _myId;
+  const nextEl  = document.getElementById('ab-next');
+  nextEl.textContent = me.skipNextTurn ? "⏭ You're next — but your turn will be skipped" : "⏭ You're next — get ready!";
+  nextEl.classList.toggle('visible', amNext);
+
+  // A short buzz when my turn starts (phones that support it; iPhones ignore it)
+  if (playing && _isMyTurn && !_wasMyTurn) navigator.vibrate?.([80, 60, 80]);
+  _wasMyTurn = _isMyTurn;
+
   // Set action box mode — never override rolled/card mode mid-resolve
   const box = document.getElementById('action-box');
   const currentMode = box.className.replace('action-box ', '').replace('-mode', '');
@@ -561,7 +575,9 @@ TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
   _addActivity('⚠️', `<strong>${esc(playerName)}</strong> disconnected`);
 });
 
-TX_NET.on('player_removed', ({ playerId }) => {
+TX_NET.on('player_removed', ({ playerId, players }) => {
+  // Someone left the lobby — refresh the list we're showing
+  if (players && document.getElementById('lobby-view').classList.contains('active')) renderLobbyPlayers(players);
   if (playerId === _myId) {
     _clearSession();
     showError('You were removed from the game.');
@@ -584,6 +600,21 @@ function cancelRejoin() {
   _clearSession();
   _pendingRejoin = null;
   document.getElementById('reconnecting-overlay').classList.remove('visible');
+  showView('join-view');
+}
+
+/**
+ * Leave the lobby (G21): the server removes me, the host's list updates, and
+ * I'm back on the join form with the Game ID still filled in — change the
+ * name or badge and join again.
+ */
+function leaveLobby() {
+  const gameId = _gameId;
+  TX_NET.leaveGame(gameId);
+  _clearSession();
+  _myId = null;
+  _gameId = null;
+  document.getElementById('input-game-id').value = gameId || '';
   showView('join-view');
 }
 

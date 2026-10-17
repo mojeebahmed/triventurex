@@ -125,6 +125,21 @@ describe('hosting and joining', () => {
     for (const p of players) assert.ok(p.token);
   });
 
+  it('a phone can leave the lobby and join again with a new badge (G21)', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 2, start: false });
+    const removed = once(host, 'player_removed');
+    players[0].socket.emit('leave_game', { gameId });
+    const r = await removed;
+    assert.equal(r.playerId, players[0].id);
+    assert.deepEqual(r.players.map(p => p.id), [players[1].id]);
+
+    players[0].socket.emit('join_game', { gameId, playerName: 'Again', token: '🦁', color: '#123456' });
+    const joined = await once(players[0].socket, 'joined');
+    const again = room.players.find(p => p.id === joined.playerId);
+    assert.equal(again.token, '🦁');
+    assert.equal(room.players.length, 2);
+  });
+
   it('only lets the host start the game', async () => {
     const { gameId, players, room } = await setupGame({ phones: 2, start: false });
     players[0].socket.emit('start_game', { gameId });

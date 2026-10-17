@@ -348,6 +348,13 @@
       100% { transform: rotate(360deg) scale(1); }
     }
     /* Someone else's roll, above the activity feed */
+    .ab-next {
+      display: none; width: 100%; margin: 0 0 8px; padding: 7px 10px; border-radius: 8px;
+      background: var(--green-light, #E8F5E9); color: var(--green, #2E7D32);
+      font-size: .85rem; font-weight: 800; text-align: center; animation: slide-in .25s ease;
+    }
+    .ab-next.visible { display: block; }
+    .lobby-leave { margin-top: 18px; }
     .ab-roll-strip { display: none; align-items: center; gap: 10px; margin: 2px 0 8px;
                      font-size: .85rem; font-weight: 700; }
     .ab-roll-strip.visible { display: flex; }
@@ -543,6 +550,9 @@
     <div class="lobby-waiting">
       Waiting for host to start<span class="dots"></span>
     </div>
+
+    <!-- Changed your mind / wrong badge? Leave and join again (G21) -->
+    <button class="btn btn-secondary btn-full lobby-leave" onclick="leaveLobby()">← Leave · change name or badge</button>
   </div>
 
   <!-- ═══════════════════════════════
@@ -599,6 +609,8 @@
       <!-- Activity mode -->
       <div id="ab-activity" class="ab-mode">
         <div class="ab-activity-head">Game activity</div>
+        <!-- "You're next" (G18) -->
+        <div id="ab-next" class="ab-next"></div>
         <!-- Someone else's roll, animated (G10) -->
         <div id="ab-roll-strip" class="ab-roll-strip">
           <span id="ab-roll-die"></span>
@@ -656,6 +668,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/shared/utils.js"></script>
   <script src="js/shared/dice.js"></script>
+  <script src="js/shared/turn.js"></script>
   <script src="js/shared/socket-client.js"></script>
   <script src="js/player/player.js"></script>
 </body>

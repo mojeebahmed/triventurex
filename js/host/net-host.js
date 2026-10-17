@@ -108,6 +108,18 @@ function cancelLobby() {
   showScreen('setup-screen');
 }
 
+/** Lobby: player list, Start button (needs 2) and the "N players joined" line. */
+function _updateLobby(players) {
+  _lobbyPlayers = players;
+  _renderLobbyPlayers(players);
+  const btn = document.getElementById('lobby-start-btn');
+  if (btn) btn.disabled = players.length < 2;
+  const statusEl = document.getElementById('lobby-status');
+  if (statusEl) statusEl.textContent = players.length
+    ? `${players.length} player${players.length !== 1 ? 's' : ''} joined`
+    : 'Waiting for players to join...';
+}
+
 function _renderLobbyPlayers(players) {
   const el = document.getElementById('lobby-players');
   if (!el) return;
@@ -238,13 +250,7 @@ function _initSocketHandlers() {
   });
 
   TX_NET.on('player_joined', ({ player, players }) => {
-    _lobbyPlayers = players;
-    _renderLobbyPlayers(players);
-    const btn = document.getElementById('lobby-start-btn');
-    if (btn) btn.disabled = players.length < 2;
-    const statusEl = document.getElementById('lobby-status');
-    if (statusEl) statusEl.textContent =
-      `${players.length} player${players.length !== 1 ? 's' : ''} joined`;
+    _updateLobby(players);
 
     // Mid-game join — add them to the host's game state and sync, so the
     // server stops treating them as "not yet seen by the host"
@@ -309,8 +315,12 @@ function _initSocketHandlers() {
     _renderGMNetworkPlayers(state.players);
   });
 
-  TX_NET.on('player_removed', ({ playerId }) => {
-    if (!_isNetworkGame) return;
+  TX_NET.on('player_removed', ({ playerId, players }) => {
+    // In the lobby: someone left (G21) — the server sends the new list
+    if (!_isNetworkGame) {
+      if (players) _updateLobby(players);
+      return;
+    }
     const idx = state.players.findIndex(p => p.id === playerId);
     if (idx === -1) return;
     const wasCurrent = idx === state.currentPlayerIndex;
