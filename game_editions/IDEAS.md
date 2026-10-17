@@ -63,7 +63,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 
 | # | Edition | Source | Verdict | Notes |
 |---|---|---|---|---|
-| 1 | Animal Safari | Claude + Gemini (*Wild Kingdom*) | ✅ | Huge topic, easy for kids. Keep the ocean out (→ Ocean Deep) |
+| 1 | Animal Safari | Claude + Gemini (*Wild Kingdom*) | ✅ **built** | Huge topic, easy for kids. Keep the ocean out (→ Ocean Deep) |
 | 2 | Space Explorer | Claude + Gemini (*Science & Innovation*, part) | ✅ | Strong journey (Earth → edge of the solar system) |
 | 3 | World Tour | Claude + Gemini (*Global Trekker*) | ✅ **built** | Best landmarks of any idea. A little food is fine (≤10%) |
 | 4 | Dino Quest (Prehistoric) | Claude | ⚠️ → widened | Dinosaurs alone are thin for 200 questions; add fossils, ice age, early life |

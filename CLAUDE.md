@@ -24,6 +24,7 @@ Save project files to this project's folder.
 - **Swab Quest** — Islamic/Ahmadiyya (first edition)
 - **Football Quest** — football trivia (second edition)
 - **World Tour** — travel & geography, family-friendly (third edition; outline in `game_editions/world-tour/OUTLINE.md`)
+- **Animal Safari** — animals & wild places, family-friendly (fourth edition; outline in `game_editions/animal-safari/OUTLINE.md`)
 
 ## Run (V1 offline)
 Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
@@ -132,7 +133,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
   - `move_to_next_landmark N` → N landmarks exist after the slot
   - Fallback: try alternative effect from card's effects array; then swap in an unused card from the deck that fits (`_replacementFromSpares`); least-bad slot only if nothing in the deck fits
   - All of this is checked by a randomized test (`test/board.test.js`, ~3,000 boards per run) — keep it green when touching board.js
-- **Landmark deeds**: `move_to_prev_landmark` / `move_to_next_landmark` with `value=N` (N = 1 → nearest). Names resolved at board-gen time and stored as `resolvedLandmark` on each deed. `{landmark}` in deed text is substituted at modal render time.
+- **Landmark deeds**: `move_to_prev_landmark` / `move_to_next_landmark` with `value=N` (N = 1 → nearest). Names resolved at board-gen time and stored as `resolvedLandmark` on each deed. `{landmark}` in deed text is filled by `fillLandmarkText()` (board.js) on the tile AND in the modal — never show raw text (the board property test checks it).
 - **Variable deed effects**: each card has up to 3 effects in CSV; one chosen at board-gen time via `_pickActiveEffect()`
 - **Exact finish**: rule `turns.exactFinish` (default from `CONFIG.RULES.exactFinish`, on) — player must roll exact number to land on finish; overshooting doesn't move. Rules tab → Turn & pace
 - **Question tracking**: per-edition, per-difficulty localStorage keys (`triventurex_asked_<editionId>_<diff>`). Two modes: `session` (remember across games, default) or `game` (reset each game). When all questions in a difficulty are exhausted, auto-recycles. Questions filtered by selected categories.
@@ -209,11 +210,11 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 ## Current state
 - Version 2.2.0 (2026-10-17) — see `CHANGELOG.md` for what changed in each release (2.1 = code review & hardening, 2.2 = gameplay & play experience). The work-item IDs in commits and the changelog (B1…, A2…, C3…, T1…, G6…) come from the 2026-10 plan: B = bug, A = architecture, C = content, T = tests, G = gameplay
-- 3 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks) + World Tour (220 questions, 56 deed cards, 25 action cards, 26 wonders with Wikimedia Commons photos — credits in `CREDITS.md`)
+- 4 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks) + World Tour (220 questions, 56 deed cards, 25 action cards, 26 wonders) + Animal Safari (220 questions, 56 deed cards, 25 action cards, 26 reserves). Both use Wikimedia Commons photos — credits in each edition's `CREDITS.md`
 - Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
 - Three pages: host (`index.html`), phones (`player.html`), TV (`display.html`)
-- ~320 tests (`npm test`)
+- ~365 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
 - `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)

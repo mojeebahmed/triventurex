@@ -29,6 +29,7 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 | Swab Quest | Sawab | Al-Ka'ba, Mecca | Good Deed / Bad Deed | 20 mosques & Islamic sites | 432 | 26 |
 | Football Quest | Goals | The Final | Good Play / Foul Play | 20 iconic stadiums & venues | 92 | 25 |
 | World Tour | Stamps | Home Again | Smooth Travels / Travel Trouble | 26 world wonders | 220 | 25 |
+| Animal Safari | Paw Prints | Safari Lodge | Wildlife Hero / Safari Mishap | 26 wild places & reserves | 220 | 25 |
 
 Every edition also gets 40 general action cards from `game_editions/shared/actions.csv`.
 
@@ -41,7 +42,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 - **Client:** Vanilla HTML + CSS + JavaScript — no framework, no build step. Plain `<script>` files, not ES modules, so `index.html` also works opened from disk
 - **Server (V2):** Node.js + Express + Socket.IO
 - **Content:** CSV files (loaded via `fetch()`) with generated JS fallbacks for offline/`file://` use (`npm run build:content`)
-- **Tests:** Node's built-in test runner (`npm test`, ~340 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
+- **Tests:** Node's built-in test runner (`npm test`, ~365 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
 
 ### Pages
 
@@ -132,7 +133,7 @@ The board is built fresh each game from the active edition's content and the gam
    - `move_to_next_landmark N` → N landmarks must exist after the slot
    - Fallback: try another effect on the same card; then swap in an unused card from the deck that fits; least-bad slot only if nothing in the deck fits
 4. **Shuffle and de-duplicate** — no two consecutive spaces of the same constrained type
-5. **Resolve landmark names** — `resolvedLandmark` stored on each deed at gen time; `{landmark}` in deed text substituted at modal render time
+5. **Resolve landmark names** — `resolvedLandmark` stored on each deed at gen time; `{landmark}` in deed text is filled by `fillLandmarkText()` on the board tile and in the card modal (the target, or "a <landmark label>" such as "a wonder" when the game's effect isn't a landmark move)
 6. **Assemble + add direction arrows**
 
 These rules are checked by a randomized test (`test/board.test.js`): ~3,000 boards per run across every path template of every edition, including rule variants and that each landmark tile's label matches where the player actually goes.
@@ -349,7 +350,7 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 - **Football Quest subcategories/topics** — currently flat; could add `Clubs / International / History` structure
 
 ### Medium-term
-- **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour is done; Animal Safari is next)
+- **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour and Animal Safari are done)
 - **Team mode** — two teams share a token; questions alternate between team members
 - **Timer penalty** — losing points when the question timer runs out
 - **Mobile layout improvements** — board tiles larger on phones; better touch handling
@@ -374,4 +375,4 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 | More landmarks | 2026-06-03 | Swab Quest: 6 → 20 landmarks; Football Quest: 6 → 20 stadiums/venues |
 | Code review & hardening (2.1) | 2026-10-16/17 | 18 bugs fixed; one turn pipeline; host/server state ownership; `game.js` split into `js/shared/host/player`; content build + checker; digital action cards; ~200 automated tests |
 | Gameplay & play experience (2.2) | 2026-10-17 | Setup screen with tabs, rules panel + presets, board picker, QR join, answering on phones, players without a phone, presentation mode, TV display, end-screen stats + awards, question explorer + reporting, board designer; ~310 tests — details in `CHANGELOG.md` |
-| World Tour + shared actions (unreleased) | 2026-10-17/18 | World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |
+| World Tour, Animal Safari + shared actions (unreleased) | 2026-10-17/18 | World Tour and Animal Safari editions (220 questions each); World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |

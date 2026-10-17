@@ -1,6 +1,6 @@
 # Animal Safari 🦁 — outline (step 1)
 
-Design notes for the Animal Safari edition. Step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md): approve or change this, then step 2 (images) starts.
+Design notes for the Animal Safari edition (step 1 of *How we build an edition* in [../IDEAS.md](../IDEAS.md)). **Status: built.** The final content is in the CSV files and `config.js`; where they differ from this plan, they win (e.g. "Avenue of the Baobabs" for Madagascar, Ngorongoro "almost 20 km across", 113 easy / 107 hard questions).
 
 **Pitch:** an expedition through the world's wild places, from the savannah to the poles, collecting paw prints of the animals you meet.
 **Audience:** ages 5+ for `easy` (the most kid-friendly edition), `hard` should still challenge adults.
@@ -123,9 +123,6 @@ Effects: the usual mix (points, move forward/back, next/previous **reserve**, ex
 
 ---
 
-## Open questions for Mojeeb
+## Decisions
 
-1. Points name *Paw Prints* and finish *Safari Lodge* — OK?
-2. Topic level = where the animal lives (Africa, Asia, … Polar, Ocean, Everywhere) — OK?
-3. Easy questions aimed at ages 5+ (World Tour aimed at 7+) — OK, or the same 7+?
-4. Include pets & farm animals (10 questions) — fun for the youngest players, but not very "safari". Keep?
+All approved as proposed. Questions mix ages 5+ to adults — none is "too easy" or "too hard"; the fun is learning something new (now a rule for every edition, see IDEAS.md).

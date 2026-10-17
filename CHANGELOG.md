@@ -7,10 +7,14 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **Animal Safari** edition 🦁: an expedition through the world's wild places collecting *Paw Prints*. 220 questions (mammals, birds, reptiles/frogs/bugs, habitats, animal superpowers, a little "under the sea"), 56 deed cards (*Wildlife Hero* / *Safari Mishap*), 25 action cards and 26 reserves with photos from Wikimedia Commons (credits in `game_editions/animal-safari/CREDITS.md`).
 - **World Tour** edition 🌍: a trip around the world collecting *Stamps*. 220 questions (capitals, flags & languages, wonders & nature, culture, a little food), 56 deed cards (*Smooth Travels* / *Travel Trouble*), 25 action cards and 26 wonders with photos from Wikimedia Commons (credits in `game_editions/world-tour/CREDITS.md`) on a 1635 world-map board.
 - `scripts/commons-image.js`: finds free-licence photos on Wikimedia Commons, crops/resizes them for an edition and records the credit.
 - **General action cards** (C4): 40 everyday cards in `game_editions/shared/actions.csv` (act / explain / sound) that are mixed into every edition's deck. ⚙️ Rules → Action cards → *Add general cards* (on by default). An edition without its own `actions.csv` now gets digital action cards too.
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
+
+### Fixed
+- Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed
 - Landing on a landmark now gives **3** points by default (was 5): easy 1 · hard 2 · landmark 3. Applies to every edition; games saved earlier keep their rules.
