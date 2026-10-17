@@ -28,6 +28,9 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 |---|---|---|---|---|---|---|
 | Swab Quest | Sawab | Al-Ka'ba, Mecca | Good Deed / Bad Deed | 20 mosques & Islamic sites | 432 | 26 |
 | Football Quest | Goals | The Final | Good Play / Foul Play | 20 iconic stadiums & venues | 92 | 25 |
+| World Tour | Stamps | Home Again | Smooth Travels / Travel Trouble | 26 world wonders | 220 | 25 |
+
+Every edition also gets 40 general action cards from `game_editions/shared/actions.csv`.
 
 ---
 
@@ -38,7 +41,7 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 - **Client:** Vanilla HTML + CSS + JavaScript — no framework, no build step. Plain `<script>` files, not ES modules, so `index.html` also works opened from disk
 - **Server (V2):** Node.js + Express + Socket.IO
 - **Content:** CSV files (loaded via `fetch()`) with generated JS fallbacks for offline/`file://` use (`npm run build:content`)
-- **Tests:** Node's built-in test runner (`npm test`, ~310 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
+- **Tests:** Node's built-in test runner (`npm test`, ~340 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
 
 ### Pages
 
@@ -84,8 +87,10 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 | `game_editions/editions.js` | Edition registry — lists all available editions |
 | `game_editions/<id>/config.js` | Edition config: name, colours, landmarks, background, space / score / award overrides |
 | `game_editions/<id>/*.csv` | Source of truth for questions, deeds, action cards — edit these, then `npm run build:content` |
+| `game_editions/shared/actions.csv` | General action cards mixed into every edition (`GENERAL_ACTIONS_DATA`; ids become `g<n>` in the deck) |
+| `game_editions/IDEAS.md` | Ideas for new editions, content targets, how an edition is built |
 | `server.js` | Rooms, authoritative dice, relays (host → phones, phone → host, host → TV); state-ownership rules at the top |
-| `scripts/` | Node-only dev tooling: content build + checker (not served) |
+| `scripts/` | Node-only dev tooling: content build + checker, `commons-image.js` for Wikimedia Commons photos (not served) |
 | `tools/path-designer.html` | Older standalone path designer (the ✏️ Boards tab replaces it) |
 | `test/` | Automated tests (`npm test`) |
 
@@ -106,7 +111,7 @@ The engine is fully **edition-neutral** — swap a content folder and colour sch
 - `GAME` — name, icon, subtitle, pointsName, finish labels, celebration text
 - `LANDMARKS` — array of `{ name, image, description }` objects (image path relative to `index.html`)
 - `BOARD_BACKGROUND` — image, overlay opacity, blur
-- `SPACE_DISTRIBUTION` — ratios per space type, optionally keyed by `short/medium/long`
+- `SPACE_DISTRIBUTION` — ratios per space type, optionally keyed by `short/medium/long` (the template has Swab Quest's mix as the standard)
 - `SPACE_INFO` — icon, label, colour overrides (e.g. Football Quest: "Good Play" / "Foul Play")
 - `COLORS` — CSS custom properties (`--green`, `--gold`, `--bg`, etc.)
 - `SCORE_VALUES`, `FINISH_BONUS` — optional point overrides (the defaults for the rules)
@@ -144,7 +149,7 @@ Every rule has a default in code (engine or edition). The **⚙️ Rules** tab c
 |---|---|
 | Scoring | Question points easy/hard (1/2) · action performer/guesser (1/1) · finish bonus Standard 10/7/5… / Small 5/3/2/1 / Off · landmark points by roll (+5), via good deed (0), via bad deed (0) · negative scores (off) |
 | Questions | Difficulty: player chooses / always easy / always hard · timer auto-start (off) + seconds (30) · avoid repeats: across games / per game · players answer on their phone (on) · topics |
-| Action cards | Digital or physical deck (a digital card can always be swapped) · kinds: act / explain / sound · timer (90 s) |
+| Action cards | Digital or physical deck (a digital card can always be swapped) · add the general cards (on) · kinds: act / explain / sound · timer (90 s) |
 | Board | Tile mix per type (0 removes it; presets; special tiles capped at 70%) · deed effects varied / first · no going backwards |
 | Turn & pace | Exact finish (on) · who starts: first / random · animation speed: normal / fast |
 
@@ -238,7 +243,7 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 | `triventurex_edition` | Last active edition ID |
 | `triventurex_rules_<editionId>` | Rules per edition: `{ preset, changes }` (only what differs from the preset) |
 | `triventurex_asked_<editionId>_<diff>` | Asked question IDs per edition and difficulty (`easy` / `hard`) |
-| `triventurex_asked_<editionId>_actions` | Used action card IDs per edition |
+| `triventurex_asked_<editionId>_actions` | Used action card IDs per edition (general cards are `g<n>`) |
 | `triventurex_cats_<editionId>` | Selected question topic names per edition |
 | `triventurex_marked_<editionId>` | Questions marked wrong / unclear: `{ [id]: { note, at } }` |
 | `triventurex_custom_boards` | Boards from the ✏️ Boards tab: `{ short, medium, long }` (all editions) |
@@ -293,7 +298,7 @@ Defaults (all of them are rules — see *Gameplay Rules*):
 | Hard question correct | +2 |
 | Action performed | +1 (performer) |
 | Action guessed correctly | +1 (guesser) |
-| Landmark, landing by a roll | +5 (deed arrivals 0 by default) |
+| Landmark, landing by a roll | +3 (deed arrivals 0 by default) |
 | Finish bonus | 10, 7, 5, 4, 3, 2, 1, 1 by finishing order |
 
 Defaults come from `CONFIG.SCORE_VALUES` / `CONFIG.FINISH_BONUS`; editions can override them. Deed card score effects are defined per edition in `deeds.csv`.
@@ -302,8 +307,10 @@ Defaults come from `CONFIG.SCORE_VALUES` / `CONFIG.FINISH_BONUS`; editions can o
 
 ## Adding a New Edition
 
+Check the idea against the content targets in `game_editions/IDEAS.md` first (20+ landmarks, 50+ deeds, 25+ actions, 200+ questions; overlap with other editions is fine up to about 10% of the questions). That file also describes the five steps we follow: outline → images → questions → deeds and actions → check and play.
+
 1. Copy `game_editions/template/` to `game_editions/<your-id>/`
-2. Edit `config.js` — fill in `GAME`, `LANDMARKS`, `COLORS`, `SPACE_INFO` (optionally `AWARDS`)
+2. Edit `config.js` — fill in `GAME`, `LANDMARKS`, `COLORS`, `SPACE_INFO` (optionally `AWARDS`). Landmark photos: `scripts/commons-image.js` (credits go in `CREDITS.md`)
 3. Edit `questions.csv`, `deeds.csv` and (optionally) `actions.csv` — columns: `game_editions/template/README.md`
 4. Run `npm run build:content <your-id>` — checks the content (file:line messages) and produces `questions.js`, `deeds.js`, `actions.js`
 5. Add your edition to `game_editions/editions.js`
@@ -342,7 +349,7 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 - **Football Quest subcategories/topics** — currently flat; could add `Clubs / International / History` structure
 
 ### Medium-term
-- **New editions** — Science Quest, History Quest, Geography Quest — same engine, different content
+- **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour is done; Animal Safari is next)
 - **Team mode** — two teams share a token; questions alternate between team members
 - **Timer penalty** — losing points when the question timer runs out
 - **Mobile layout improvements** — board tiles larger on phones; better touch handling
@@ -367,3 +374,4 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 | More landmarks | 2026-06-03 | Swab Quest: 6 → 20 landmarks; Football Quest: 6 → 20 stadiums/venues |
 | Code review & hardening (2.1) | 2026-10-16/17 | 18 bugs fixed; one turn pipeline; host/server state ownership; `game.js` split into `js/shared/host/player`; content build + checker; digital action cards; ~200 automated tests |
 | Gameplay & play experience (2.2) | 2026-10-17 | Setup screen with tabs, rules panel + presets, board picker, QR join, answering on phones, players without a phone, presentation mode, TV display, end-screen stats + awards, question explorer + reporting, board designer; ~310 tests — details in `CHANGELOG.md` |
+| World Tour + shared actions (unreleased) | 2026-10-17/18 | World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |

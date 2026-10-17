@@ -23,6 +23,9 @@ Each **edition** is its own content pack with its own questions, cards, landmark
 |---|---|---|---|---|---|---|
 | Swab Quest | ✅ Live | Sawab | Al-Ka'ba, Mecca | 432 | 26 | 20 mosques & Islamic sites |
 | Football Quest | ✅ Live | Goals | The Final | 92 | 25 | 20 iconic stadiums & venues |
+| World Tour | ✅ Live | Stamps | Home Again | 220 | 25 | 26 world wonders |
+
+Every edition also gets **40 general action cards** (`game_editions/shared/`), mixed in with its own. Switch them off in ⚙️ Rules → Action cards. Ideas for further editions, and how one is built, are in [`game_editions/IDEAS.md`](game_editions/IDEAS.md).
 
 ---
 
@@ -52,13 +55,15 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~310, a few seconds): server, turn flow, board generation, rules, stats, content
-npm run build:content     # check every edition's CSV content, then regenerate questions.js / deeds.js / actions.js
+npm test                  # all tests (~340, a few seconds): server, turn flow, board generation, rules, stats, content
+npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
+node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
 - **`TRIVENTUREX-DESIGN.md`**: design decisions and how the pieces fit together
+- **`game_editions/IDEAS.md`**: ideas for new editions, content targets per edition, and how an edition is built
 - **`CLAUDE.md`**: detailed architecture rules and invariants (also the brief for AI assistants)
 
 ---
@@ -115,12 +120,14 @@ Triventurex/
 │
 ├── css/styles.css                All styling (colours driven by edition config)
 ├── images/                       Setup screen game-length illustrations
-├── scripts/                      Node-only dev tooling: content build + checker (not served)
+├── scripts/                      Node-only dev tooling: content build + checker, Wikimedia Commons image tool (not served)
 ├── tools/path-designer.html      Older standalone board path designer (the ✏️ Boards tab replaces it)
 ├── test/                         Automated tests (npm test)
 │
 └── game_editions/
     ├── editions.js               ← Edition registry (add new editions here)
+    ├── IDEAS.md                  Edition ideas + how we build an edition (steps, images, credits)
+    ├── shared/                   General action cards mixed into every edition (actions.csv → actions.js)
     │
     ├── template/                 ← Starter edition: copy this for a new edition
     │   ├── README.md             How to make an edition + CSV column guide
@@ -135,7 +142,9 @@ Triventurex/
     │   ├── questions.js, deeds.js, actions.js   …these are generated (npm run build:content)
     │   └── images/               Landmark photos, board backgrounds
     │
-    └── football-quest/           Football trivia edition (same layout)
+    ├── football-quest/           Football trivia edition (same layout)
+    │
+    └── world-tour/               Travel & geography edition (same layout, plus OUTLINE.md and CREDITS.md for its photos)
 ```
 
 ---
@@ -154,8 +163,10 @@ Editions are loaded **dynamically** at startup. The engine never changes when yo
 
 ## Adding a new edition
 
-1. Copy `game_editions/template/` to `game_editions/<your-id>/`.
-2. Edit `config.js`, `questions.csv`, `deeds.csv`, `actions.csv` and add your images (column guide: `game_editions/template/README.md`).
+Pick a theme and check its size against the content targets in [`game_editions/IDEAS.md`](game_editions/IDEAS.md) (20+ landmarks, 50+ deeds, 25+ actions, 200+ questions).
+
+1. Copy `game_editions/template/` to `game_editions/<your-id>/`. The template already has the standard board mix (`SPACE_DISTRIBUTION`).
+2. Edit `config.js`, `questions.csv`, `deeds.csv`, `actions.csv` and add your images (column guide: `game_editions/template/README.md`). Landmark photos from Wikimedia Commons: `node scripts/commons-image.js` finds, crops and credits them (list the credits in `CREDITS.md`).
 3. Run `npm run build:content <your-id>`. It checks the content and reports problems with file and line. Then it generates the JS files.
 4. Add one entry to `game_editions/editions.js`:
    ```javascript
@@ -189,7 +200,7 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `PRESENTATION` | 📺 presentation mode: shortcut key, how much bigger, board fill limit, pointer hide delay |
 | `PATH_TEMPLATES` | Board path shapes per game length |
 
-Editions can override `SPACE_DISTRIBUTION` in their own `config.js`, either as a flat object (same for all game lengths) or keyed by `short`/`medium`/`long`. They can also override `SCORE_VALUES`, `FINISH_BONUS` and `AWARDS`.
+Editions can override `SPACE_DISTRIBUTION` in their own `config.js`, either as a flat object (same for all game lengths) or keyed by `short`/`medium`/`long`. The template ships Swab Quest's mix (10% action / good / bad deeds, 8% landmarks, 5% skips). They can also override `SCORE_VALUES` (defaults: easy 1, hard 2, landmark 3), `FINISH_BONUS` and `AWARDS`.
 
 Server settings are at the top of `server.js`: `PORT` (env), and `ROOM_TTL`, which controls how long a finished or host-less room is kept.
 
@@ -275,7 +286,7 @@ id,text,kind,note
 ```
 - `kind`: `act` (mime: no words, no sounds), `explain` (describe it without the key words) or `sound` (hum or make sounds, no words)
 - `note`: optional extra rule shown with the card
-- Optional file. Without it, action spaces ask players to draw a card from a physical deck.
+- Optional file. These cards are mixed with the **general cards** in `game_editions/shared/actions.csv` (same columns; edit it and run `npm run build:content shared`). With no cards at all, action spaces ask players to draw from a physical deck.
 
 ### Landmarks (`config.js` → `LANDMARKS` array)
 
@@ -290,7 +301,7 @@ id,text,kind,note
 - `image` path is relative to `index.html`
 - `description` appears in the modal when a player lands on the space, and in an info popup when anyone clicks the board tile during play
 - Any number of landmarks can be defined; the engine picks as many as fit on the board
-- Recommended image size: 800×500px minimum; JPG or WebP
+- Recommended image: landscape 4:3, 800×600 JPG (the game crops it wide on cards and square on the board, so keep the subject in the middle). `scripts/commons-image.js` produces this from a Wikimedia Commons photo and records the credit
 
 ---
 
@@ -345,7 +356,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 ## Roadmap
 
 ### V1: Complete ✅
-- Edition-neutral engine (Swab Quest + Football Quest)
+- Edition-neutral engine (Swab Quest, Football Quest, World Tour)
 - Variable deed effects: up to 3 effects per card, one picked at board-gen time
 - Constraint-aware board generation: no move-back near start, no move-forward near finish
 - Relative landmark deeds (`move_to_prev/next_landmark`) with resolved names on board tiles
@@ -379,11 +390,14 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - End-screen stats and awards; 🚩 question reporting + 📚 Questions tab; ✏️ board designer
 - ~310 automated tests — details in `CHANGELOG.md`
 
+### Unreleased (2026-10)
+- **World Tour** edition 🌍; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
+
 ### Future ideas
 - Sound effects (dice roll, correct answer, finish fanfare)
 - *Steal*: others answer when the active player gets a phone question wrong
 - Content review: the draft action cards in both editions, and the Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
-- More editions: same engine, different content (start from `game_editions/template/`)
+- More editions: same engine, different content. Ideas and sizing in `game_editions/IDEAS.md` (next: Animal Safari); start from `game_editions/template/`
 - Football Quest subcategory/topic structure
 - Team mode
 - Online multiplayer (beyond local Wi-Fi)

@@ -10,6 +10,8 @@ Starter folder for a new Triventurex edition.
 4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js` / `actions.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
 5. Add your edition to `game_editions/editions.js`.
 
+`config.js` already has the standard board mix (`SPACE_DISTRIBUTION`, Swab Quest's values). For landmark photos, `node scripts/commons-image.js` finds free-licence photos on Wikimedia Commons and saves them cropped (800×600) with their credit; the whole process, with content targets, is in [`../IDEAS.md`](../IDEAS.md).
+
 `npm run check:content` checks every edition without writing anything. `npm test` runs the same checks.
 
 **Any field that contains a comma must be in "double quotes".** Without them the row's columns shift and the question or deed silently breaks. The checker reports it as `N columns, expected M`.
