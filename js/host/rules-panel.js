@@ -195,12 +195,9 @@ function _renderRulesPanel() {
   const presetSel = document.getElementById('rules-preset');
   presetSel.innerHTML = Object.entries(CONFIG.RULE_PRESETS || {}).map(([id, p]) =>
     `<option value="${esc(id)}" ${id === _rulesDraft.preset ? 'selected' : ''}>${esc(p.label)}</option>`).join('');
-  document.getElementById('rules-preset-desc').textContent =
-    CONFIG.RULE_PRESETS?.[_rulesDraft.preset]?.description ?? '';
-
-  const edition = (window.TRIVENTUREX_EDITIONS || []).find(e => e.id === getActiveEditionId());
-  document.getElementById('rules-for').textContent =
-    edition ? `Rules for ${edition.icon} ${edition.name} — each edition keeps its own` : '';
+  // The preset's description is the select's tooltip (the action bar is one line)
+  const desc = CONFIG.RULE_PRESETS?.[_rulesDraft.preset]?.description;
+  presetSel.title = (desc ? `${desc}. ` : '') + 'Each edition keeps its own rules.';
 
   // Side tabs: one per section, plus the question topics
   const schema = _rulesSchema();
@@ -321,7 +318,10 @@ function _updateRulesPreview() {
       (capped ? `<br><span class="rules-warn">Special tiles are capped at ${MAX_SPECIAL_PERCENT}% in total — values will be scaled down.</span>` : '');
   }
   const n = countChanges(diffRules(_rulesDraft, presetBase(CONFIG, _rulesDraft.preset, _rulesOpts())));
-  document.getElementById('rules-changed').textContent = n ? `${n} changed from this preset` : 'No changes from this preset';
+  const changed = document.getElementById('rules-changed');
+  changed.textContent = n ? `✎ ${n} changed` : '';
+  changed.title = n ? `${n} setting${n === 1 ? '' : 's'} differ from this preset` : '';
+  document.getElementById('rules-reset-btn').disabled = !n;
 }
 
 /** One listener for every control in the panel. */

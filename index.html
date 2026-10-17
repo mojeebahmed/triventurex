@@ -139,13 +139,14 @@
       <!-- ── Tab 2: Rules (G12) — side tabs, saved as you change them ── -->
       <div id="setup-tab-rules" class="setup-tab-panel hidden">
         <div class="rules-head">
-          <div class="rules-for" id="rules-for"></div>
-          <div class="rules-preset-row">
-            <label for="rules-preset">Preset</label>
-            <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select>
-            <span id="rules-preset-desc" class="rules-hint"></span>
-          </div>
-          <div id="rules-changed" class="rules-changed"></div>
+          <label for="rules-preset" class="qx-check">Preset
+            <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select></label>
+          <span id="rules-changed" class="rules-changed"></span>
+          <span class="rules-foot-spacer"></span>
+          <button type="button" id="rules-reset-btn" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()"
+                  title="Undo your changes — back to the preset's settings">↺ Reset to preset</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()"
+                  title="Copy these rules as a RULE_PRESETS entry to paste into config.js">📋 Copy as preset</button>
         </div>
         <div class="rules-layout">
           <nav id="rules-nav" class="rules-nav" role="tablist"></nav>
@@ -162,10 +163,6 @@
             </section>
             <textarea id="rules-export" class="rules-export hidden" rows="8" readonly></textarea>
           </div>
-        </div>
-        <div class="rules-foot">
-          <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()">📋 Copy as preset</button>
-          <button type="button" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()">↺ Reset to preset</button>
         </div>
       </div>
 

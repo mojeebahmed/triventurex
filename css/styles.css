@@ -1821,10 +1821,8 @@ body {
   display: flex; flex-direction: column;
 }
 .rules-head { padding: 16px 20px 10px; border-bottom: 1px solid var(--border); }
-.rules-head h2 { margin: 0 0 10px; font-size: 1.15rem; }
-.rules-preset-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.rules-preset-row label { font-weight: 700; font-size: .85rem; }
-.rules-changed { margin-top: 6px; font-size: .78rem; color: var(--text-muted); }
+.rules-changed { font-size: .78rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+.rules-changed:empty { display: none; }
 .rules-scroll { overflow-y: auto; padding: 4px 20px 12px; }
 .rules-section { padding: 10px 0; border-bottom: 1px solid var(--border); }
 .rules-section:last-of-type { border-bottom: none; }
@@ -1970,8 +1968,6 @@ body {
 .player-controls .btn-small { padding: 5px 12px; }
 
 /* ── Rules tab (G12): side tabs ───────────────────────────────── */
-#setup-tab-rules .rules-head { padding: 0 0 10px; border-bottom: none; }
-.rules-for { font-size: .82rem; color: var(--text-muted); margin-bottom: 8px; }
 .rules-layout { display: grid; grid-template-columns: 170px 1fr; gap: 18px; align-items: start; }
 .rules-nav { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; }
 .rules-nav-btn {
@@ -1983,7 +1979,6 @@ body {
 .rules-content { min-height: 340px; }
 #setup-tab-rules .rules-section { border-bottom: none; padding-top: 0; }
 #setup-tab-rules .rules-section h3 { margin-top: 0; }
-#setup-tab-rules .rules-foot { padding: 12px 0 0; border-top: 1px solid var(--border); margin-top: 12px; }
 @media (max-width: 720px) {
   .rules-layout { grid-template-columns: 1fr; }
   .rules-nav { flex-direction: row; flex-wrap: wrap; position: static; }
@@ -2006,10 +2001,13 @@ body {
 
 /* Rules tab: header | side menu | scrolling settings — clearly separated */
 #setup-tab-rules:not(.hidden) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+/* Header = one-line action bar, like the Questions and Boards tabs */
 #setup-tab-rules .rules-head {
-  flex: none; padding: 12px 16px; margin-bottom: 12px;
+  flex: none; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+  padding: 10px 14px; margin-bottom: 12px;
   background: var(--green-light); border: 1px solid var(--border); border-radius: 10px;
 }
+#setup-tab-rules .rules-head .settings-select { width: auto; }
 #setup-tab-rules .rules-layout {
   flex: 1; min-height: 0;
   grid-template-columns: 180px 1fr; gap: 0;
@@ -2020,7 +2018,6 @@ body {
   background: var(--bg); border-right: 1px solid var(--border);
 }
 #setup-tab-rules .rules-content { min-height: 0; height: 100%; overflow-y: auto; padding: 14px 18px; }
-#setup-tab-rules .rules-foot { flex: none; border-top: none; padding: 10px 0 8px; margin-top: 0; }
 @media (max-width: 720px) {
   #setup-tab-rules .rules-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   #setup-tab-rules .rules-nav { height: auto; border-right: none; border-bottom: 1px solid var(--border); }
