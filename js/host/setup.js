@@ -35,9 +35,9 @@ function _restoreGameSettings() {
   const s = _loadGameSettings();
   if (!s) return;
   const radio = document.querySelector(`input[name="gameLength"][value="${s.gameLength}"]`);
-  if (radio) { radio.checked = true; populatePathSelector(s.gameLength); }
-  const pathSel = document.getElementById('path-select');
-  if (pathSel && s.pathIndex !== undefined) pathSel.value = s.pathIndex;
+  if (!radio) return;
+  radio.checked = true;
+  renderBoardPicker(s.gameLength, s.pathIndex !== undefined ? String(s.pathIndex) : 'random');
 }
 
 function initSetupScreen() {
@@ -46,9 +46,13 @@ function initSetupScreen() {
   _restoreGameSettings();
   initRulesPanel();
   renderRulesSummary();
+  initBoardPicker();
+  // Board thumbnails for the selected length (restored above if saved)
+  renderBoardPicker(document.querySelector('input[name="gameLength"]:checked')?.value || 'medium');
 
   document.querySelectorAll('input[name="gameLength"]').forEach(radio => {
-    radio.addEventListener('change', () => populatePathSelector(radio.value));
+    // A path index means a different path in another length → back to Random
+    radio.addEventListener('change', () => renderBoardPicker(radio.value, 'random'));
   });
 
   document.getElementById('add-player-btn').addEventListener('click', () => {
@@ -75,23 +79,10 @@ function setMPMode(mode) {
   document.querySelectorAll('.mp-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.mode === mode));
   const isHost = mode === 'host';
-  const isJoin = mode === 'join';
 
-  // Toggle which player section is visible
-  document.getElementById('local-players-section')?.classList.toggle('hidden', isHost || isJoin);
+  // Step ④ shows the local player list or the host's own player
+  document.getElementById('local-players-section')?.classList.toggle('hidden', isHost);
   document.getElementById('host-player-section')?.classList.toggle('hidden', !isHost);
-
-  document.getElementById('join-info-panel')?.classList.toggle('hidden', !isJoin);
-  document.getElementById('start-game-btn').style.display = isJoin ? 'none' : '';
-
-  // Hide/show other setup sections in join mode
-  document.querySelectorAll('.setup-section').forEach(el => {
-    if (el.contains(document.getElementById('join-info-panel'))) return;
-    if (el.id === 'edition-section') return;
-    if (el.id === 'local-players-section' || el.id === 'host-player-section') return; // handled above
-    el.style.display = isJoin ? 'none' : '';
-  });
-  document.querySelector('.setup-details')?.style && (document.querySelector('.setup-details').style.display = isJoin ? 'none' : '');
 
   if (isHost) {
     _renderHostPlayerRow();

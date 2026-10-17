@@ -279,7 +279,7 @@ id,text,kind,note
 
 ## Gameplay summary
 
-1. Choose edition, game length and board layout, then Start.
+1. On the setup screen: ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players, check the ⚙️ Rules line, then Start.
 2. On your turn, roll the dice. Your token hops to a space and its event triggers:
    - **Question**: choose Easy (+1) or Hard (+2), answer, then the GM reveals the answer
    - **Action**: perform the card (act / explain / hum). Performer and first correct guesser each earn +1.
@@ -296,7 +296,7 @@ id,text,kind,note
 
 ### Network game (V2)
 
-1. The host starts the server, opens `http://localhost:3000`, selects edition and length, and clicks **Host Network Game**.
+1. The host starts the server, opens `http://localhost:3000`, picks **📡 Host with phones**, chooses edition, length and board, and clicks **Start**.
 2. A 4-digit Game ID is shown on screen (e.g. `4823`).
 3. Players open `http://<host-ip>:3000/player` on their phones, enter the Game ID, and set their name/badge.
 4. The host clicks Start and the game begins.

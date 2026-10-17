@@ -1848,3 +1848,40 @@ body {
 .landmark-points.pos { background: var(--deed-good-bg); color: var(--deed-good-text); }
 .landmark-points.neg { background: var(--deed-bad-bg);  color: var(--deed-bad-text); }
 #rules-panel .settings-select { width: auto; max-width: 320px; flex: 0 1 auto; }
+
+/* ── Setup screen layout (G6): numbered steps ─────────────────── */
+.setup-container { counter-reset: setup-step; }
+.setup-step { counter-increment: setup-step; }
+.setup-step > h2::before {
+  content: counter(setup-step);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; margin-right: 8px; border-radius: 50%;
+  background: var(--green); color: #fff; font-size: .78rem; font-weight: 800;
+  vertical-align: 2px;
+}
+.setup-section { margin-bottom: 20px; }
+
+/* Compact game-length cards */
+.length-card { padding: 8px 6px 8px; }
+.length-image img { width: auto; height: 58px; }
+.length-name { margin: 2px 0 1px; }
+.length-desc { font-size: .76rem; }
+
+/* ── Board picker (G8) ────────────────────────────────────────── */
+.board-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.board-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  width: 76px; padding: 6px 4px 5px;
+  border: 2px solid var(--border); border-radius: var(--radius);
+  background: var(--card); cursor: pointer; font: inherit;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.board-card:hover { transform: translateY(-2px); border-color: var(--green); }
+.board-card.selected { border-color: var(--green); background: var(--green-light); }
+.board-card-art { width: 58px; height: 58px; display: flex; align-items: center; justify-content: center; }
+.board-card-dice { font-size: 2rem; }
+.board-thumb-svg { max-width: 58px; max-height: 58px; }
+.thumb-space  { fill: var(--text-muted); opacity: .45; }
+.thumb-start  { fill: var(--green); }
+.thumb-finish { fill: var(--gold); }
+.board-card-name { font-size: .7rem; font-weight: 700; line-height: 1.2; text-align: center; color: var(--text); }

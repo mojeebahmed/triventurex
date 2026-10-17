@@ -923,13 +923,3 @@ function hideLandmarkInfo() {
   const overlay = document.getElementById('landmark-info-overlay');
   if (overlay) overlay.classList.remove('visible');
 }
-
-// ── Path selector ─────────────────────────────────────────────────────────────
-
-/** Populate the path selector dropdown for a given game length. */
-function populatePathSelector(gameLength) {
-  const sel = document.getElementById('path-select');
-  const templates = CONFIG.PATH_TEMPLATES[gameLength] || [];
-  sel.innerHTML = `<option value="random">🎲 Random (different each game)</option>` +
-    templates.map((t, i) => `<option value="${i}">${t.name || `Path ${i + 1}`}</option>`).join('');
-}

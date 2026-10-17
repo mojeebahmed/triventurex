@@ -132,7 +132,8 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Stale continuations**: every async step / modal callback captures `token` and checks `_isStale(token)`; undo and player removal clear `state.turn`, which cancels everything in flight
 - **Pure turn logic** lives in `js/shared/turn.js` (`nextTurnIndex`, `takeSnapshot`, `restoreFromSnapshot`, `indexAfterRemoval`, `makeHistoryEntry`) — no DOM; unit-tested in `test/turn.test.js`
 - **Badge picker modal**: clicking player badge on setup screen opens a fixed overlay modal; shows live preview with emoji + initials; width = 80% of setup container
-- **Setup screen**: resume prompt is a slim single-line bar; Game Settings is a collapsible `<details>` section with rows: Board Layout, Exact Finish, Question Tracking, Question Categories
+- **Setup screen (G6)**: numbered steps ① Edition → ② Length → ③ Board → ④ Players (CSS counter on `.setup-step`, so hidden steps don't leave gaps), then the rules summary line and Start. Modes: *Play on this screen* / *Host with phones* (the old Join Info tab is gone). Resume prompt is a slim bar
+- **Board picker (G8)**: `js/host/board-picker.js` draws a thumbnail per `PATH_TEMPLATES` entry for the chosen length (+ 🎲 Random); the choice lives in hidden `#path-select` ('random' or index). Changing length resets it to Random
 - **Host player**: separate from local player list; stored in `triventurex_host_player` localStorage; GM-only toggle disables (not hides) the player input
 
 ## Architecture — V2 (don't revert)

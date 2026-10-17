@@ -31,19 +31,18 @@
 
       <!-- Multiplayer mode tabs (hidden until Socket.IO connects) -->
       <div id="mp-tabs" class="hidden">
-        <button class="mp-tab active" data-mode="local" onclick="setMPMode('local')">🎮 Local</button>
-        <button class="mp-tab" data-mode="host" onclick="setMPMode('host')">📡 Host Game</button>
-        <button class="mp-tab" data-mode="join" onclick="setMPMode('join')">📱 Join Info</button>
+        <button class="mp-tab active" data-mode="local" onclick="setMPMode('local')">🎮 Play on this screen</button>
+        <button class="mp-tab" data-mode="host" onclick="setMPMode('host')">📡 Host with phones</button>
       </div>
 
       <!-- Edition selection (hidden when only one edition is registered) -->
-      <div class="setup-section" id="edition-section" style="display:none">
+      <div class="setup-section setup-step" id="edition-section" style="display:none">
         <h2>Edition</h2>
         <div id="edition-picker" class="edition-options"></div>
       </div>
 
       <!-- Game length -->
-      <div class="setup-section">
+      <div class="setup-section setup-step" id="length-section">
         <h2>Game Length</h2>
         <div class="length-options">
           <label class="length-option">
@@ -74,22 +73,34 @@
       </div>
 
       <!-- Game Settings (collapsible) -->
-      <details class="setup-section setup-details">
-        <summary>🗺️ Board layout</summary>
-        <div class="setup-details-body">
+      <!-- Board path (G8) — thumbnails drawn by board-picker.js -->
+      <div class="setup-section setup-step" id="board-section">
+        <h2>Board</h2>
+        <input type="hidden" id="path-select" value="random">
+        <div id="board-picker" class="board-picker"></div>
+      </div>
 
-          <div class="settings-row">
-            <div class="settings-row-text">
-              <span class="settings-row-title">Board Layout</span>
-              <span class="settings-row-desc">The path shape of the board — a new random one is picked each game</span>
-            </div>
-            <select id="path-select" class="settings-select">
-              <option value="random">🎲 Random</option>
-            </select>
-          </div>
-
+      <!-- Players (local game) -->
+      <div class="setup-section setup-step" id="local-players-section">
+        <h2>Players (2–8)</h2>
+        <div id="players-setup"></div>
+        <div class="player-controls">
+          <button id="add-player-btn" class="btn btn-secondary">+ Add Player</button>
+          <button id="remove-player-btn" class="btn btn-secondary">− Remove Player</button>
+          <button id="reset-players-btn" class="btn btn-secondary" title="Clear saved names and reset to defaults">↺ Reset</button>
         </div>
-      </details>
+      </div>
+
+      <!-- Host player (network host mode only) -->
+      <div class="setup-section setup-step hidden" id="host-player-section">
+        <h2>Your Player</h2>
+        <div id="gm-only-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="gm-only-toggle"> Game Master only — I won't be playing
+          </label>
+        </div>
+        <div id="host-player-setup"></div>
+      </div>
 
       <!-- Rules summary — the full rules live in the rules panel (G12) -->
       <div class="setup-section rules-summary-row">
@@ -101,37 +112,9 @@
         <button type="button" class="btn btn-secondary btn-small" onclick="openRulesPanel()">Change…</button>
       </div>
 
-      <!-- Players (local game) -->
-      <div class="setup-section" id="local-players-section">
-        <h2>Players (2–8)</h2>
-        <div id="players-setup"></div>
-        <div class="player-controls">
-          <button id="add-player-btn" class="btn btn-secondary">+ Add Player</button>
-          <button id="remove-player-btn" class="btn btn-secondary">− Remove Player</button>
-          <button id="reset-players-btn" class="btn btn-secondary" title="Clear saved names and reset to defaults">↺ Reset</button>
-        </div>
-      </div>
-
-      <!-- Host player (network host mode only) -->
-      <div class="setup-section hidden" id="host-player-section">
-        <h2>Your Player</h2>
-        <div id="gm-only-row">
-          <label class="checkbox-label">
-            <input type="checkbox" id="gm-only-toggle"> Game Master only — I won't be playing
-          </label>
-        </div>
-        <div id="host-player-setup"></div>
-      </div>
-
       <button id="start-game-btn" class="btn btn-primary btn-large">Start Game →</button>
 
-      <!-- Join info panel (shown when mode=join tab selected) -->
-      <div id="join-info-panel" class="hidden">
-        <p>To join a game, open <strong>player.html</strong> on your device while connected to the same network.</p>
-        <button class="btn btn-secondary" onclick="window.open('player.html','_blank')">Open Player Screen →</button>
-      </div>
 
-    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════
@@ -402,6 +385,7 @@
   <script src="js/host/category-filter.js"></script>
   <script src="js/host/badge-picker.js"></script>
   <script src="js/host/setup.js"></script>
+  <script src="js/host/board-picker.js"></script>
   <script src="js/host/rules-panel.js"></script>
   <script src="js/host/viewport.js"></script>
   <script src="js/host/net-host.js"></script>
