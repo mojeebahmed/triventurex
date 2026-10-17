@@ -26,7 +26,7 @@ Ask these before choosing a theme:
 2. **Too wide?** Do the categories have little to do with each other (e.g. space + inventions + human body)? Would a player who loves one category be bored by the rest? Could each half reach 200 questions on its own? → **split it** into two editions.
 3. **Overlap?** Some overlap with other editions is fine — even duplicate questions (think of each edition as written by someone who doesn't know the others). But a topic that belongs to another edition must stay a small side dish, **at most ~10% of the questions**, so the edition doesn't feel like a different game (e.g. a few food questions in World Tour, a few country questions in Food Around the World).
 4. **Lasting?** Will the answers still be right in 5 years? Avoid content that dates fast (charts, current celebrities, records that keep changing) or note the year in the question.
-5. **Family-friendly?** Can a 7-year-old play the easy questions while adults get challenged by the hard ones?
+5. **Family-friendly?** Is there a good mix from very easy (age 5+) to challenging (adults)? Everyone should learn something new.
 
 Verdicts used below: ✅ right size · ⚠️ thin, needs widening · ✂️ too wide, split · 🔀 merge with another idea. "Overlap" notes below mean *keep it small*, not *leave it out*.
 
@@ -53,7 +53,7 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 ### Avoid
 
 - Facts that change (records, "the current…", number of moons) — or put the year in the question.
-- Content that only works for one age group: `easy` should suit a 7-year-old, `hard` should challenge adults.
+- Narrowing the age range. Questions should span ages 5+ to adults in a good mix — no question is "too easy" or "too hard": the fun is learning something new at any level. `easy` / `hard` just tells players what they are choosing.
 - Letting another edition's topic take over — overlap is fine, but keep it to about 10% of the questions.
 - Reusing or renumbering question ids (asked-question tracking and 🚩 marks are stored by id).
 
