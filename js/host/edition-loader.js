@@ -154,7 +154,7 @@ function _applyBranding() {
   const g = CONFIG.GAME || {};
   const engine   = g.engineName || 'Triventurex';
   const edition  = g.editionName  || '';
-  const icon     = g.editionIcon  || '🎯';
+  const mark     = icon(g.editionIcon || 'appLogo') || esc(g.editionIcon);   // a name or an emoji
   const subtitle = g.subtitle   || '';
 
   document.title = edition ? `${engine} — ${edition}` : engine;
@@ -167,7 +167,7 @@ function _applyBranding() {
   };
 
   set('brand-engine',       engine);
-  set('brand-edition',        edition ? `${icon} ${edition}` : '', true);
+  set('brand-edition',        edition ? `${mark} ${esc(edition)}` : '', true);
   set('brand-subtitle',     subtitle);
   set('end-screen-message', g.endScreenMessage || 'All players have reached the finish!');
 }

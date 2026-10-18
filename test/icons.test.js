@@ -1,65 +1,126 @@
 /**
  * test/icons.test.js
- * js/shared/icons.js (finding emoji and control glyphs) and the bundled icons:
- * every emoji the game uses has its image, the generated data is up to date,
- * and every page loads the icon scripts in the right order.
+ * The icon system (js/shared/icon-registry.js + icons.js): engine code uses
+ * icons only by name, every name exists, every name has its icon bundled, and
+ * the bundled files are up to date. See "Icons" in CLAUDE.md.
  */
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { execFileSync } = require('node:child_process');
-const { glyphKey, findEmoji, controlGlyphs } = require('../js/shared/icons.js');
+const { glyphKey, findEmoji } = require('../js/shared/icons.js');
+const { ICONS, BADGES, PHONE_BADGES } = require('../js/shared/icon-registry.js');
 
 const ROOT = path.join(__dirname, '..');
-const keys = (...g) => new Set(g.map(glyphKey));
+const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+
+/** The registry, icon data and icons.js loaded together, like a page does. */
+function iconWorld() {
+  const ctx = {};
+  vm.createContext(ctx);
+  for (const f of ['js/shared/icon-registry.js', 'js/shared/icons-data.js', 'js/shared/icons.js']) {
+    vm.runInContext(read(f), ctx, { filename: f });
+  }
+  return ctx;
+}
+
+/** Engine files: the four pages and js/ (not the registry, the generated data or third-party code). */
+function engineFiles() {
+  const out = ['index.html', 'player.html', 'display.html', 'academy.html'];
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) {
+    const p = `${d}/${e.name}`;
+    if (e.isDirectory()) { if (e.name !== 'vendor') walk(p); }
+    else if (p.endsWith('.js') && !/icon-registry\.js$|icons-data\.js$/.test(p)) out.push(p);
+  } };
+  walk('js');
+  return out;
+}
+
+/** Source without comments (// …, /* … *\/, <!-- … -->) — icons may be named in comments. */
+function code(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
+    .split('\n').map(l => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n');
+}
 
 describe('finding emoji', () => {
   it('glyphKey: code points without the FE0F variation selector', () => {
     assert.equal(glyphKey('⚙️'), '2699');
-    assert.equal(glyphKey('⚙'), '2699');
     assert.equal(glyphKey('🦁'), '1f981');
     assert.equal(glyphKey('👨‍👩‍👧'), '1f468-200d-1f469-200d-1f467');
   });
 
   it('finds emoji, flags and ZWJ sequences; leaves ©, ®, ™ and digits as text', () => {
     assert.deepEqual(findEmoji('Go 🦁 and 🇸🇪! © ® ™ 42').map(e => e.glyph), ['🦁', '🇸🇪']);
-    assert.deepEqual(findEmoji('⚙️ Rules').map(e => [e.index, e.glyph]), [[0, '⚙️']]);
     assert.deepEqual(findEmoji('A family 👨‍👩‍👧').map(e => e.glyph), ['👨‍👩‍👧']);
   });
 });
 
-describe('control glyphs', () => {
-  const K = keys('↩', '▶', '+', '−', '⚙️', '📋');
+describe('icons by name', () => {
+  const w = iconWorld();
 
-  it('a leading glyph followed by a space, or alone', () => {
-    assert.equal(controlGlyphs('↩ Undo', K).lead.glyph, '↩');
-    assert.equal(controlGlyphs('⚙️ Rules', K).lead.glyph, '⚙️');
-    assert.equal(controlGlyphs('+', K).lead.glyph, '+');
-    assert.equal(controlGlyphs('  📋 Copy', K).lead.end, 4);
+  it('icon(): a line icon is an inline SVG, an emoji is the bundled image', () => {
+    assert.match(w.icon('boardUndo'), /^<span class="tx-icon" aria-hidden="true"><svg /);
+    assert.match(w.icon('tileQuestion'), /<img class="tx-emoji" src="images\/emoji\/2753\.svg" alt="❓"/);
   });
 
-  it('a trailing glyph after a space', () => {
-    assert.equal(controlGlyphs('Start Game ▶', K).trail.glyph, '▶');
-    assert.equal(controlGlyphs('Start Game▶', K).trail, null);
+  it('icon() and iconText() also take an emoji (editions and badges hold emoji)', () => {
+    assert.match(w.icon('🦁'), /images\/emoji\/1f981\.svg/);
+    assert.equal(w.iconText('🦁'), '🦁');
   });
 
-  it('"+1", "−2" and "+30s" stay text', () => {
-    for (const t of ['+1', '−2', '+30s', 'A+B']) {
-      const r = controlGlyphs(t, K);
-      assert.equal(r.lead, null, t);
-      assert.equal(r.trail, null, t);
+  it('iconText(): the emoji for emoji names, nothing for line icons and unknown names', () => {
+    assert.equal(w.iconText('tileSkip'), ICONS.tileSkip.slice(6));
+    assert.equal(w.iconText('boardUndo'), '');
+    assert.equal(w.iconText('noSuchIcon'), '');
+    assert.equal(w.icon('noSuchIcon'), '');
+  });
+});
+
+describe('the registry', () => {
+  const data = vm.runInContext('TX_ICON_DATA', iconWorld());   // a const is not a property of the sandbox
+
+  it('every entry is "<set>:<icon>"', () => {
+    for (const [name, v] of Object.entries(ICONS)) assert.match(v, /^[a-z0-9-]+:.+$/, name);
+  });
+
+  it('every line icon is bundled, and every emoji has its image (keycaps excepted)', () => {
+    for (const [name, v] of Object.entries(ICONS)) {
+      if (v.startsWith('emoji:')) {
+        const g = v.slice(6);
+        if (/⃣/.test(g)) continue;                       // keycaps: no image in the set, device emoji
+        assert.ok(data.emoji.includes(glyphKey(g)), `${name}: no image for ${g}`);
+      } else {
+        assert.ok(data.ui[name], `${name}: line icon not bundled (npm run build:icons)`);
+      }
     }
+    for (const b of [...BADGES, ...PHONE_BADGES]) assert.ok(data.emoji.includes(glyphKey(b)), `badge ${b}`);
   });
 
-  it('only the first / last piece of a control counts', () => {
-    assert.equal(controlGlyphs('↩ Undo', K, { first: false }).lead, null);
-    assert.equal(controlGlyphs('Go ▶', K, { last: false }).trail, null);
+  it('engine code has no raw emoji or icon symbols — use icon(name) / iconText(name)', () => {
+    const bad = [];
+    for (const f of engineFiles()) {
+      code(read(f)).split('\n').forEach((line, i) => {
+        const glyphs = [...findEmoji(line).map(e => e.glyph), ...(line.match(/[⌂✕←→↑↓↺]/g) || [])];
+        if (glyphs.length) bad.push(`${f}:${i + 1} ${glyphs.join(' ')}`);
+      });
+    }
+    assert.deepEqual(bad, [], 'Add a name to js/shared/icon-registry.js and use it:\n' + bad.join('\n'));
   });
 
-  it('glyphs that are not in the table are left for the emoji pass', () => {
-    assert.deepEqual(controlGlyphs('🎉 Alhamdulillah!', K), { lead: null, trail: null });
+  it('every icon name used in the code exists', () => {
+    const used = new Map();
+    for (const f of engineFiles()) {
+      const src = code(read(f));
+      for (const re of [/\bicon(?:Text)?\('([A-Za-z0-9]+)'\)/g, /data-icon(?:-text)?="([A-Za-z0-9]+)"/g,
+                        /\bicon: '([A-Za-z0-9]+)'/g, /_addActivity\('([A-Za-z0-9]+)'/g]) {
+        for (const m of src.matchAll(re)) used.set(m[1], f);
+      }
+    }
+    const missing = [...used].filter(([n]) => !ICONS[n]).map(([n, f]) => `${n} (${f})`);
+    assert.deepEqual(missing, [], 'Unknown icon names — add them to js/shared/icon-registry.js');
   });
 });
 
@@ -69,20 +130,14 @@ describe('bundled icons', () => {
     try { out = execFileSync('node', ['scripts/build-icons.js', '--check'], { cwd: ROOT, encoding: 'utf8' }); }
     catch (e) { assert.fail(e.stdout + e.stderr); }
     assert.match(out, /✓ icons/);
-  });
-
-  it('every control icon in the config exists, and the emoji folder has its licence', () => {
-    const cfg = require('../scripts/icons.config.js');
-    const data = fs.readFileSync(path.join(ROOT, 'js/shared/icons-data.js'), 'utf8');
-    for (const g of Object.keys(cfg.controls)) assert.ok(data.includes(`"${glyphKey(g)}"`), `control ${g}`);
     assert.ok(fs.existsSync(path.join(ROOT, 'images/emoji/LICENSE.txt')));
   });
 
   for (const page of ['index.html', 'player.html', 'display.html', 'academy.html']) {
-    it(`${page} loads icons-data.js before icons.js`, () => {
-      const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
-      const a = html.indexOf('src="js/shared/icons-data.js"'), b = html.indexOf('src="js/shared/icons.js"');
-      assert.ok(a > 0 && b > a, page);
+    it(`${page} loads icon-registry.js, icons-data.js and icons.js, in that order`, () => {
+      const html = read(page);
+      const at = f => html.indexOf(`src="js/shared/${f}"`);
+      assert.ok(at('icon-registry.js') > 0 && at('icon-registry.js') < at('icons-data.js') && at('icons-data.js') < at('icons.js'), page);
     });
   }
 });

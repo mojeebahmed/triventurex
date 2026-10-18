@@ -9,9 +9,9 @@
  */
 
 const LETTERS = ['A', 'B', 'C', 'D'];
-const _diffTag = q => (q.diff === 'hard' ? '🔵 Hard' : '🟢 Easy');
+const _diffTag = q => (q.diff === 'hard' ? `${icon('hard')} Hard` : `${icon('easy')} Easy`);
 const _where = q => esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '));
-const _note = q => (q.note ? `<div class="ac-note">💡 ${q.note}</div>` : '');
+const _note = q => (q.note ? `<div class="ac-note">${icon('note')} ${q.note}</div>` : '');
 const _pts = () => CONFIG.GAME?.pointsName ?? 'points';
 
 /** A question's options as a list (no answer shown). */
@@ -22,10 +22,10 @@ function _optsHtml(q) {
 /** End-of-round summary: score, a few stars, and the questions to look at again. */
 function _summaryHtml(score, total, missed, again = 'Play again') {
   const pct = total ? score / total : 0;
-  const stars = pct >= 0.9 ? '⭐⭐⭐' : pct >= 0.6 ? '⭐⭐' : pct > 0 ? '⭐' : '🌱';
+  const stars = pct >= 0.9 ? icon('star').repeat(3) : pct >= 0.6 ? icon('star').repeat(2) : pct > 0 ? icon('star') : icon('sprout');
   const list = missed.length ? `
     <h3>Look at these again</h3>
-    <ul class="ac-missed">${missed.map(q => `<li><div>${q.q}</div><div class="ac-answer">✅ ${esc(answerText(q))}</div>${_note(q)}</li>`).join('')}</ul>` : '';
+    <ul class="ac-missed">${missed.map(q => `<li><div>${q.q}</div><div class="ac-answer">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}</li>`).join('')}</ul>` : '';
   return `<div class="ac-summary">
       <div class="ac-stars">${stars}</div>
       <h2>${score} / ${total}</h2>
@@ -44,7 +44,7 @@ function _itemHtml(q, { marked, reviewed, review }) {
   const showAll = review || _ex.answers;
   const opts = isMulti(q)
     ? `<ol class="qx-opts">${q.opts.map((o, i) => `<li class="${LETTERS[i] === q.answer ? 'qx-correct' : ''}"><b>${LETTERS[i]}</b> ${o}</li>`).join('')}</ol>` : '';
-  const answer = `<div class="qx-answer">✅ ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
+  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
   const editing = _ex.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${showAll ? 'show-answers' : ''} ${review && reviewed[q.id] ? 'reviewed' : ''}" data-id="${q.id}">
@@ -52,7 +52,7 @@ function _itemHtml(q, { marked, reviewed, review }) {
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${showAll ? 'open' : ''}><summary>Answer</summary>${answer}</details>
-      ${mark && !editing ? `<div class="qx-mark">🚩 ${esc(mark.note || 'Marked')}</div>` : ''}
+      ${mark && !editing ? `<div class="qx-mark">${icon('marked')} ${esc(mark.note || 'Marked')}</div>` : ''}
       ${editing ? `
         <div class="qx-edit">
           <input type="text" class="qx-note-input" maxlength="300" value="${esc(mark?.note || '')}" placeholder="What's wrong? (optional)">
@@ -62,9 +62,9 @@ function _itemHtml(q, { marked, reviewed, review }) {
         <div class="qx-actions">
           ${review ? `<label class="ac-reviewed"><input type="checkbox" data-action="reviewed" ${reviewed[q.id] ? 'checked' : ''}> ✓ Reviewed</label>` : ''}
           ${mark
-            ? `<button type="button" class="link-btn" data-action="edit">✏️ Edit note</button>
+            ? `<button type="button" class="link-btn" data-action="edit">${icon('editNote')} Edit note</button>
                <button type="button" class="link-btn" data-action="unmark">Unmark</button>`
-            : `<button type="button" class="link-btn" data-action="edit">🚩 Mark as wrong / unclear</button>`}
+            : `<button type="button" class="link-btn" data-action="edit">${icon('markQuestion')} Mark as wrong / unclear</button>`}
         </div>`}
     </div>`;
 }
@@ -93,14 +93,14 @@ function _listActions(list, redraw) {
 }
 
 registerMode({
-  id: 'explore', icon: '📚', label: 'Explore', filter: true,
+  id: 'explore', icon: 'modeExplore', label: 'Explore', filter: true,
   hint: 'Browse the questions and answers; mark one that looks wrong',
   render(main, questions) {
     _ex.limit = 40; _ex.editing = null;
     main.innerHTML = `
       <div class="ac-bar">
         <label class="qx-check"><input type="checkbox" id="ac-answers" ${_ex.answers ? 'checked' : ''}> Show answers</label>
-        <label class="qx-check"><input type="checkbox" id="ac-marked" ${_ex.markedOnly ? 'checked' : ''}> 🚩 Marked only</label>
+        <label class="qx-check"><input type="checkbox" id="ac-marked" ${_ex.markedOnly ? 'checked' : ''}> ${icon('marked')} Marked only</label>
         <span class="ac-spacer"></span>
         <span id="ac-count" class="qx-count"></span>
       </div>
@@ -123,14 +123,14 @@ registerMode({
   },
 });
 
-// ── 🃏 Flashcards ───────────────────────────────────────────────────────────────
+// ── Flashcards ───────────────────────────────────────────────────────────────
 
 /** Cards per set: 4×2, 3×3 or one big card. */
 const FLASH_LAYOUTS = [{ n: 8, cols: 4, label: '8 cards (4 × 2)' }, { n: 9, cols: 3, label: '9 cards (3 × 3)' }, { n: 1, cols: 1, label: '1 card' }];
 let _flashSize = 8;
 
 registerMode({
-  id: 'flashcards', icon: '🃏', label: 'Flashcards', filter: true,
+  id: 'flashcards', icon: 'modeFlashcards', label: 'Flashcards', filter: true,
   hint: 'A set of cards: guess each answer, then turn the card over',
   render(main, questions) {
     let sets, s, flipped;
@@ -140,8 +140,8 @@ registerMode({
       return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''}" data-flip="${q.id}" aria-pressed="${open}">
           <div class="ac-card-meta">${_diffTag(q)}${_flashSize === 1 ? ` · ${_where(q)}` : ''}</div>
           <div class="ac-card-q">${q.q}</div>
-          ${open ? `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>${_note(q)}`
-                 : `${_optsHtml(q)}<div class="ac-card-turn">🤔 Tap to see the answer</div>`}
+          ${open ? `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}`
+                 : `${_optsHtml(q)}<div class="ac-card-turn">${icon('thinking')} Tap to see the answer</div>`}
         </button>`;
     };
     const draw = () => {
@@ -150,17 +150,17 @@ registerMode({
       const last = s === sets.length - 1;
       main.innerHTML = `
         <div class="ac-bar">
-          <span class="qx-count">🃏 Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned</span>
+          <span class="qx-count">${icon('flashcards')} Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned</span>
           <span class="ac-spacer"></span>
           <select id="ac-flash-size" class="settings-select" title="How many cards at a time">
             ${FLASH_LAYOUTS.map(l => `<option value="${l.n}" ${l.n === _flashSize ? 'selected' : ''}>${l.label}</option>`).join('')}
           </select>
-          <button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? '🙈 Hide all' : '🔄 Turn all'}</button>
+          <button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? `${icon('hideAll')} Hide all` : `${icon('turnAll')} Turn all`}</button>
         </div>
         <div class="ac-flash-grid" style="--cols:${FLASH_LAYOUTS.find(l => l.n === _flashSize).cols}">${set.map(card).join('')}</div>
         <div class="ac-actions">
-          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>← Previous set</button>
-          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? '🔀 Shuffle and start again' : 'Next set →'}</button>
+          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>${icon('back')} Previous set</button>
+          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? `${icon('shuffle')} Shuffle and start again` : `Next set ${icon('forward')}`}</button>
         </div>`;
       main.querySelector('#ac-flash-size').onchange = e => { _flashSize = Number(e.target.value); start(); };
     };
@@ -180,12 +180,12 @@ registerMode({
   },
 });
 
-// ── ✏️ Practice quiz ────────────────────────────────────────────────────────────
+// ── Practice quiz ────────────────────────────────────────────────────────────
 
 let _quizSize = 10;
 
 registerMode({
-  id: 'quiz', icon: '✏️', label: 'Quiz', filter: true,
+  id: 'quiz', icon: 'modeQuiz', label: 'Quiz', filter: true,
   hint: 'A practice round with your score at the end',
   render(main, questions) {
     let items, i, score, missed, answered;
@@ -204,17 +204,17 @@ registerMode({
       } else if (answered === null) {
         body = `<div class="ac-actions"><button type="button" class="btn btn-primary" data-action="reveal">Show the answer</button></div>`;
       } else if (answered === 'shown') {
-        body = `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>${_note(q)}
+        body = `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}
           <p class="ac-hint">Did you get it right?</p>
-          <div class="ac-actions"><button type="button" class="btn btn-secondary" data-action="selfwrong">❌ Not quite</button>
-          <button type="button" class="btn btn-primary" data-action="selfright">✅ I got it</button></div>`;
+          <div class="ac-actions"><button type="button" class="btn btn-secondary" data-action="selfwrong">${icon('answerWrong')} Not quite</button>
+          <button type="button" class="btn btn-primary" data-action="selfright">${icon('answerRight')} I got it</button></div>`;
       }
       const after = answered !== null && answered !== 'shown'
-        ? `${multi ? '' : `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>`}${_note(q)}
-           <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < items.length ? 'Next question →' : 'See my score'}</button></div>` : '';
+        ? `${multi ? '' : `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>`}${_note(q)}
+           <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < items.length ? `Next question ${icon('forward')}` : 'See my score'}</button></div>` : '';
       main.innerHTML = `
         <div class="ac-bar">
-          <span class="qx-count">Question ${i + 1} of ${items.length} · ✅ ${score}</span><span class="ac-spacer"></span>
+          <span class="qx-count">Question ${i + 1} of ${items.length} · ${icon('resultRight')} ${score}</span><span class="ac-spacer"></span>
           <label class="qx-check">Round <select id="ac-quiz-size" class="settings-select">
             ${[5, 10, 20].map(n => `<option ${n === _quizSize ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         </div>
@@ -249,10 +249,10 @@ registerMode({
   },
 });
 
-// ── 🧩 Match pairs ──────────────────────────────────────────────────────────────
+// ── Match pairs ──────────────────────────────────────────────────────────────
 
 registerMode({
-  id: 'match', icon: '🧩', label: 'Match', filter: true,
+  id: 'match', icon: 'modeMatch', label: 'Match', filter: true,
   hint: 'Tap a question, then its answer',
   render(main, questions) {
     let pairs, answers, pick, done, tries;
@@ -265,7 +265,7 @@ registerMode({
     const draw = () => {
       if (pairs.length < 3) { main.innerHTML = emptyHtml('Not enough questions with short answers to match here.'); return; }
       if (done.size === pairs.length) {
-        main.innerHTML = `<div class="ac-summary"><div class="ac-stars">${tries <= pairs.length + 1 ? '⭐⭐⭐' : tries <= pairs.length * 2 ? '⭐⭐' : '⭐'}</div>
+        main.innerHTML = `<div class="ac-summary"><div class="ac-stars">${icon('star').repeat(tries <= pairs.length + 1 ? 3 : tries <= pairs.length * 2 ? 2 : 1)}</div>
           <h2>All ${pairs.length} matched!</h2><p>In ${tries} tries.</p>
           <button type="button" class="btn btn-primary" data-action="again">New pairs</button></div>`;
         return;
@@ -273,7 +273,7 @@ registerMode({
       const card = (p, side) => `<button type="button" data-content class="ac-match ${done.has(p.id) ? 'done' : ''} ${pick?.side === side && pick.id === p.id ? 'picked' : ''}"
           data-side="${side}" data-id="${p.id}" ${done.has(p.id) ? 'disabled' : ''}>${side === 'q' ? p.question : esc(p.answer)}</button>`;
       main.innerHTML = `
-        <div class="ac-bar"><span class="qx-count">🧩 ${done.size} of ${pairs.length} matched · ${tries} tries</span>
+        <div class="ac-bar"><span class="qx-count">${icon('matchPairs')} ${done.size} of ${pairs.length} matched · ${tries} tries</span>
           <span class="ac-spacer"></span><button type="button" class="btn btn-secondary btn-small" data-action="again">New pairs</button></div>
         <div class="ac-match-grid">
           <div class="ac-match-col"><h3>Questions</h3>${pairs.map(p => card(p, 'q')).join('')}</div>
@@ -301,7 +301,7 @@ registerMode({
 // ── ✔️ True or false ────────────────────────────────────────────────────────────
 
 registerMode({
-  id: 'truefalse', icon: '✔️', label: 'True or false', filter: true,
+  id: 'truefalse', icon: 'modeTrueFalse', label: 'True or false', filter: true,
   hint: 'Is the answer shown right or wrong?',
   render(main, questions) {
     let items, i, score, missed, said;
@@ -312,20 +312,20 @@ registerMode({
       const { q, shown, isTrue } = items[i];
       const right = said !== null && said === isTrue;
       main.innerHTML = `
-        <div class="ac-bar"><span class="qx-count">Statement ${i + 1} of ${items.length} · ✅ ${score}</span></div>
+        <div class="ac-bar"><span class="qx-count">Statement ${i + 1} of ${items.length} · ${icon('resultRight')} ${score}</span></div>
         <div class="ac-panel">
           <div class="ac-card-meta">${_diffTag(q)} · ${_where(q)}</div>
           <div class="ac-card-q">${q.q}</div>
           <div class="ac-statement">Answer: <b>${esc(shown)}</b></div>
           ${said === null ? `
             <div class="ac-actions ac-tf">
-              <button type="button" class="btn ac-true" data-say="1">✅ True</button>
-              <button type="button" class="btn ac-false" data-say="0">❌ False</button>
+              <button type="button" class="btn ac-true" data-say="1">${icon('answerRight')} True</button>
+              <button type="button" class="btn ac-false" data-say="0">${icon('answerWrong')} False</button>
             </div>` : `
-            <div class="ac-feedback ${right ? 'right' : 'wrong'}">${right ? '🎉 Right!' : '🙈 Not this time.'}
+            <div class="ac-feedback ${right ? 'right' : 'wrong'}">${right ? `${icon('celebrate')} Right!` : `${icon('oops')} Not this time.`}
               ${isTrue ? 'That is the answer.' : `The answer is <b>${esc(answerText(q))}</b>.`}</div>
             ${_note(q)}
-            <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < items.length ? 'Next →' : 'See my score'}</button></div>`}
+            <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < items.length ? `Next ${icon('forward')}` : 'See my score'}</button></div>`}
         </div>`;
     };
     main.onclick = e => {
@@ -344,12 +344,12 @@ registerMode({
   },
 });
 
-// ── ⚡ Speed round ──────────────────────────────────────────────────────────────
+// ── Speed round ──────────────────────────────────────────────────────────────
 
 const SPEED_SECONDS = 60;
 
 registerMode({
-  id: 'speed', icon: '⚡', label: 'Speed round', filter: true,
+  id: 'speed', icon: 'modeSpeed', label: 'Speed round', filter: true,
   hint: `As many as you can in ${SPEED_SECONDS} seconds`,
   render(main, questions) {
     let pool, i, score, missed, left, timer = null, flash = '';
@@ -357,7 +357,7 @@ registerMode({
     const intro = () => {
       stop();
       const n = speedPool(questions).length;
-      main.innerHTML = n ? `<div class="ac-summary"><div class="ac-stars">⚡</div><h2>Speed round</h2>
+      main.innerHTML = n ? `<div class="ac-summary"><div class="ac-stars">${icon('speed')}</div><h2>Speed round</h2>
           <p>Answer as many questions as you can in ${SPEED_SECONDS} seconds.</p>
           <button type="button" class="btn btn-primary" data-action="go">Start!</button></div>`
         : emptyHtml('The speed round needs multiple-choice questions.');
@@ -372,8 +372,8 @@ registerMode({
       if (i >= pool.length) { finish(); return; }
       const q = pool[i];
       main.innerHTML = `
-        <div class="ac-bar"><span class="ac-timer ${left <= 10 ? 'low' : ''}">⏱ ${left}s</span>
-          <span class="qx-count">✅ ${score} · ${flash}</span></div>
+        <div class="ac-bar"><span class="ac-timer ${left <= 10 ? 'low' : ''}">${icon('timer')} ${left}s</span>
+          <span class="qx-count">${icon('resultRight')} ${score} · ${flash}</span></div>
         <div class="ac-speed-track"><div style="width:${(left / SPEED_SECONDS) * 100}%"></div></div>
         <div class="ac-panel">
           <div class="ac-card-q">${q.q}</div>
@@ -386,8 +386,8 @@ registerMode({
       const c = e.target.closest('[data-choice]');
       if (!c || !timer) return;
       const q = pool[i];
-      if (Number(c.dataset.choice) === correctIndex(q)) { score++; flash = '🎉 Right!'; }
-      else { missed.push(q); flash = '🙈 Missed one'; }
+      if (Number(c.dataset.choice) === correctIndex(q)) { score++; flash = `${icon('celebrate')} Right!`; }
+      else { missed.push(q); flash = `${icon('oops')} Missed one`; }
       i++;
       draw();
     };
@@ -396,10 +396,10 @@ registerMode({
   },
 });
 
-// ── 🗺️ Places ──────────────────────────────────────────────────────────────────
+// ── Places ──────────────────────────────────────────────────────────────────
 
 registerMode({
-  id: 'places', icon: '🗺️', label: 'Places', filter: false,
+  id: 'places', icon: 'modePlaces', label: 'Places', filter: false,
   hint: 'The landmarks of this edition — and a "Where am I?" game',
   render(main) {
     const lms = CONFIG.LANDMARKS || [];
@@ -408,8 +408,8 @@ registerMode({
     const gallery = () => {
       round = null;
       main.innerHTML = lms.length ? `
-        <div class="ac-bar"><span class="qx-count">🗺️ ${lms.length} × ${esc(label)}</span><span class="ac-spacer"></span>
-          <button type="button" class="btn btn-primary btn-small" data-action="where">🧭 Where am I?</button></div>
+        <div class="ac-bar"><span class="qx-count">${icon('places')} ${lms.length} × ${esc(label)}</span><span class="ac-spacer"></span>
+          <button type="button" class="btn btn-primary btn-small" data-action="where">${icon('whereAmI')} Where am I?</button></div>
         <div class="ac-places">${lms.map(l => `
           <details class="ac-place">
             <summary>${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : ''}<span>${esc(l.name)}</span></summary>
@@ -427,7 +427,7 @@ registerMode({
       }
       const r = round[i];
       main.innerHTML = `
-        <div class="ac-bar"><span class="qx-count">🧭 Where am I? ${i + 1} of ${round.length} · ✅ ${score}</span><span class="ac-spacer"></span>
+        <div class="ac-bar"><span class="qx-count">${icon('compass')} Where am I? ${i + 1} of ${round.length} · ${icon('resultRight')} ${score}</span><span class="ac-spacer"></span>
           <button type="button" class="btn btn-secondary btn-small" data-action="gallery">Back to the places</button></div>
         <div class="ac-panel">
           <img class="ac-where-img" src="${esc(r.landmark.image)}" alt="Which place is this?">
@@ -436,7 +436,7 @@ registerMode({
             return `<button type="button" data-content class="ac-choice ${cls}" data-choice="${k}" ${said !== null ? 'disabled' : ''}>${esc(name)}</button>`;
           }).join('')}</div>
           ${said !== null ? `<div class="ac-note">${esc(r.landmark.description || '')}</div>
-            <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < round.length ? 'Next →' : 'See my score'}</button></div>` : ''}
+            <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < round.length ? `Next ${icon('forward')}` : 'See my score'}</button></div>` : ''}
         </div>`;
     };
     main.onclick = e => {
@@ -456,7 +456,7 @@ registerMode({
   },
 });
 
-// ── 🖨️ Print cards ─────────────────────────────────────────────────────────────
+// ── Print cards ─────────────────────────────────────────────────────────────
 
 const PRINT_MAX = 300;
 let _printStyle = 'duplex';   // 'duplex' = questions on one side, answers on the back | 'fold' = fold-over cards
@@ -465,7 +465,7 @@ let _printStyle = 'duplex';   // 'duplex' = questions on one side, answers on th
 function _printFront(q) {
   if (!q) return `<div class="ac-print-card empty"></div>`;
   return `<div class="ac-qcard ac-print-card ac-print-front fs-${textSize(q)}">
-      <div class="ac-card-meta">${esc(CONFIG.GAME?.editionIcon ?? '')} ${esc(CONFIG.GAME?.editionName ?? '')} · ${_diffTag(q)} · #${q.id}</div>
+      <div class="ac-card-meta">${icon(CONFIG.GAME?.editionIcon) || esc(CONFIG.GAME?.editionIcon ?? '')} ${esc(CONFIG.GAME?.editionName ?? '')} · ${_diffTag(q)} · #${q.id}</div>
       <div class="ac-card-q">${q.q}</div>${_optsHtml(q)}
     </div>`;
 }
@@ -475,13 +475,13 @@ function _printBack(q) {
   if (!q) return `<div class="ac-print-card empty"></div>`;
   return `<div class="ac-qcard ac-print-card ac-print-back">
       <div class="ac-card-meta">#${q.id} · ${q.q}</div>
-      <div class="ac-card-a">✅ ${esc(answerText(q))}</div>
+      <div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>
       ${q.note ? `<div class="ac-print-note">${q.note}</div>` : ''}
     </div>`;
 }
 
 registerMode({
-  id: 'print', icon: '🖨️', label: 'Print cards', filter: true,
+  id: 'print', icon: 'modePrint', label: 'Print cards', filter: true,
   hint: 'Print the chosen questions as cards to cut out',
   render(main, questions) {
     const cards = questions.slice(0, PRINT_MAX);
@@ -501,13 +501,13 @@ registerMode({
       }
       main.innerHTML = `
         <div class="ac-bar ac-no-print">
-          <span class="qx-count">🖨️ ${cards.length} card${cards.length === 1 ? '' : 's'}${questions.length > PRINT_MAX ? ` (the first ${PRINT_MAX} — choose a topic to print the rest)` : ''}</span>
+          <span class="qx-count">${icon('printCards')} ${cards.length} card${cards.length === 1 ? '' : 's'}${questions.length > PRINT_MAX ? ` (the first ${PRINT_MAX} — choose a topic to print the rest)` : ''}</span>
           <span class="ac-spacer"></span>
           <select id="ac-print-style" class="settings-select">
             <option value="duplex" ${_printStyle === 'duplex' ? 'selected' : ''}>Double-sided: answers on the back</option>
             <option value="fold" ${_printStyle === 'fold' ? 'selected' : ''}>Fold-over cards</option>
           </select>
-          <button type="button" class="btn btn-primary btn-small" data-action="print" ${cards.length ? '' : 'disabled'}>🖨️ Print</button>
+          <button type="button" class="btn btn-primary btn-small" data-action="print" ${cards.length ? '' : 'disabled'}>${icon('print')} Print</button>
         </div>
         <p class="ac-hint ac-no-print">${_printStyle === 'duplex'
           ? 'Print on <b>both sides</b>, flipping on the <b>long edge</b>, at 100% scale (no "fit to page"). Each answer lands right behind its question — cut along the card lines.'
@@ -526,17 +526,17 @@ registerMode({
 const _rv = { show: 'all' };   // 'all' | 'todo' | 'marked'
 
 registerMode({
-  id: 'review', icon: '🔍', label: 'Review', filter: true,
+  id: 'review', icon: 'modeReview', label: 'Review', filter: true,
   hint: 'Check every question: tick it as reviewed or mark it with a note',
   render(main, questions) {
     _ex.limit = 40; _ex.editing = null;
     main.innerHTML = `
       <div class="ac-bar">
         <select id="ac-rv-show" class="settings-select">
-          <option value="all">All questions</option><option value="todo">Not reviewed yet</option><option value="marked">🚩 Marked</option>
+          <option value="all">All questions</option><option value="todo">Not reviewed yet</option><option value="marked">${iconText('marked')} Marked</option>
         </select>
         <span class="ac-spacer"></span>
-        <button type="button" class="btn btn-secondary btn-small" data-rv="copy">📋 Copy report</button>
+        <button type="button" class="btn btn-secondary btn-small" data-rv="copy">${icon('copy')} Copy report</button>
         <button type="button" class="btn btn-secondary btn-small" data-rv="clear">Clear ticks</button>
       </div>
       <div id="ac-rv-progress" class="ac-progress"></div>
@@ -548,13 +548,13 @@ registerMode({
       const s = reviewStats(acQuestions(), reviewed, marked);
       main.querySelector('#ac-rv-progress').innerHTML = `
         <div class="ac-progress-bar"><div style="width:${s.total ? (s.reviewed / s.total) * 100 : 0}%"></div></div>
-        <span>✓ ${s.reviewed} of ${s.total} reviewed · 🚩 ${s.marked} marked · ${s.left} to go</span>`;
+        <span>✓ ${s.reviewed} of ${s.total} reviewed · ${icon('marked')} ${s.marked} marked · ${s.left} to go</span>`;
       const shownQs = questions.filter(q => _rv.show === 'all' || (_rv.show === 'todo' ? !reviewed[q.id] : marked[q.id]));
       const page = shownQs.slice(0, _ex.limit);
       list.innerHTML = page.length
         ? page.map(q => _itemHtml(q, { marked, reviewed, review: true })).join('') +
           (page.length < shownQs.length ? `<button type="button" class="btn btn-secondary btn-small" data-action="more">Show more</button>` : '')
-        : emptyHtml(_rv.show === 'todo' ? '🎉 Everything here is reviewed.' : 'No questions match.');
+        : emptyHtml(_rv.show === 'todo' ? `${icon('celebrate')} Everything here is reviewed.` : 'No questions match.');
     };
     main.querySelector('#ac-rv-show').onchange = e => { _rv.show = e.target.value; _ex.limit = 40; draw(); };
     main.querySelector('[data-rv="copy"]').onclick = () => {

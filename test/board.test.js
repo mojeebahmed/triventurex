@@ -31,7 +31,7 @@ function editionWorld(edition) {
   const ctx = { console, Math, document: { getElementById: () => null } };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/shared/csv.js', 'js/shared/rules.js',
+  for (const f of ['js/shared/utils.js', 'js/shared/icon-registry.js', 'js/shared/icons.js', 'js/shared/config.js', 'js/shared/csv.js', 'js/shared/rules.js',
                    'js/shared/board.js', 'js/shared/edition.js', 'js/host/edition-loader.js', 'js/host/ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }

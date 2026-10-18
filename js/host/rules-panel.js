@@ -87,7 +87,7 @@ function _rulesSchema() {
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
   const kinds = CONFIG.ACTION_KINDS || {};
   return [
-    { id: 'scoring', title: '🏆 Scoring', fields: [
+    { id: 'scoring', icon: 'rulesScoring', title: 'Scoring', fields: [
       { group: 'Questions', key: 'scoring.questionEasy', type: 'number', label: 'Easy question', unit: pts },
       { group: 'Questions', key: 'scoring.questionHard', type: 'number', label: 'Hard question', unit: pts },
       { group: 'Action cards', key: 'scoring.actionPerformer', type: 'number', label: 'Performer', unit: pts },
@@ -102,7 +102,7 @@ function _rulesSchema() {
       { group: 'Finishing', key: 'scoring.negativeScores', type: 'toggle', label: 'Allow negative scores',
         hint: 'Off: scores never go below 0' },
     ] },
-    { id: 'questions', title: '❓ Questions', fields: [
+    { id: 'questions', icon: 'rulesQuestions', title: 'Questions', fields: [
       { group: 'Asking', key: 'questions.difficulty', type: 'select', label: 'Difficulty', options: [
           ['choose', 'Player chooses'], ['easy', 'Always easy'], ['hard', 'Always hard'] ] },
       { group: 'Asking', key: 'questions.tracking', type: 'select', label: 'Avoid repeated questions', options: [
@@ -112,7 +112,7 @@ function _rulesSchema() {
       { group: 'Timer', key: 'questions.timerAuto',    type: 'toggle', label: 'Start the timer automatically' },
       { group: 'Timer', key: 'questions.timerSeconds', type: 'number', label: 'Time per question', unit: 'seconds' },
     ] },
-    { id: 'actions', title: '🎬 Action cards', fields: [
+    { id: 'actions', icon: 'rulesActions', title: 'Action cards', fields: [
       { group: 'Cards', key: 'actions.cards', type: 'select', label: 'Cards', options: [
           ['digital', _hasActionCards() ? 'Digital cards' : 'Digital (none in this edition)'],
           ['physical', 'Physical deck'] ],
@@ -121,17 +121,17 @@ function _rulesSchema() {
       { group: 'Cards', key: 'actions.general', type: 'toggle', label: 'Add general cards',
         hint: `${_generalActionCount()} everyday cards that suit any edition, mixed in with this edition's ${_editionActionCount()}` },
       { group: 'Cards', key: 'actions.kinds', type: 'kinds', label: 'Kinds allowed',
-        options: Object.entries(kinds).map(([k, v]) => [k, `${v.icon} ${v.label}`]) },
+        options: Object.entries(kinds).map(([k, v]) => [k, `${iconText(v.icon)} ${v.label}`]) },
       { group: 'Timer', key: 'actions.timerSeconds', type: 'number', label: 'Time per action', unit: 'seconds' },
     ] },
-    { id: 'board', title: '🗺️ Board', fields: [
+    { id: 'board', icon: 'rulesBoard', title: 'Board', fields: [
       { group: 'Tile mix', key: 'board.tileMix', type: 'tilemix', label: 'Tile mix' },
       { group: 'Deed cards', key: 'board.deedEffects', type: 'select', label: 'Effects', options: [
           ['varied', 'Varied — random each game'], ['first', "Always the card's first effect"] ] },
       { group: 'Deed cards', key: 'board.noBackwards', type: 'toggle', label: 'No going backwards',
         hint: 'Leaves out move-back, back-to-a-landmark and skip-turn effects' },
     ] },
-    { id: 'turns', title: '⏱ Turn & pace', fields: [
+    { id: 'turns', icon: 'rulesTurns', title: 'Turn & pace', fields: [
       { group: 'Turns', key: 'turns.exactFinish', type: 'toggle', label: 'Exact finish',
         hint: 'The exact number is needed to land on the finish — overshooting does not move' },
       { group: 'Turns', key: 'turns.whoStarts', type: 'select', label: 'Who starts', options: [
@@ -201,11 +201,11 @@ function _renderRulesPanel() {
 
   // Side tabs: one per section, plus the question topics
   const schema = _rulesSchema();
-  const tabs = [...schema.map(sec => [sec.id, sec.title]), ['topics', '🏷️ Topics']];
+  const tabs = [...schema.map(sec => [sec.id, sec.title, sec.icon]), ['topics', 'Topics', 'rulesTopics']];
   if (!tabs.some(([id]) => id === _rulesSection)) _rulesSection = 'scoring';
-  document.getElementById('rules-nav').innerHTML = tabs.map(([id, title]) =>
+  document.getElementById('rules-nav').innerHTML = tabs.map(([id, title, ic]) =>
     `<button type="button" class="rules-nav-btn ${id === _rulesSection ? 'active' : ''}" role="tab"
-             onclick="showRulesSection('${id}')">${title}</button>`).join('');
+             onclick="showRulesSection('${id}')">${icon(ic)} ${title}</button>`).join('');
 
   // Redrawing removes the focused input, and the browser then fires a late
   // "change" for it with its old value — ignore events while redrawing.
@@ -213,7 +213,7 @@ function _renderRulesPanel() {
   const section = schema.find(sec => sec.id === _rulesSection);
   document.getElementById('rules-body').innerHTML = section ? `
     <section class="rules-section">
-      <h3>${section.title}</h3>
+      <h3>${icon(section.icon)} ${section.title}</h3>
       ${_groupedFieldsHtml(section.fields)}
     </section>` : '';
   // The topic tree is static DOM (category-filter.js, saved on its own)

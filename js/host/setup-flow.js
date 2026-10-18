@@ -49,15 +49,15 @@ function _lengthChoice() {
 }
 function _boardChoice() {
   const v = document.getElementById('path-select')?.value ?? 'random';
-  if (v === 'random') return '🎲 Random';
+  if (v === 'random') return `${iconText('boardRandom')} Random`;
   const len = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
   const t = CONFIG.PATH_TEMPLATES[len]?.[Number(v)];
-  return t ? _pathLabel(t) : '🎲 Random';
+  return t ? _pathLabel(t) : `${iconText('boardRandom')} Random`;
 }
 function _playersChoice() {
   if (_mpMode === 'host') {
     const gm = document.getElementById('gm-only-toggle')?.checked;
-    return gm ? '📱 On phones · you are the GM' : '📱 On phones · you play too';
+    return `${iconText('phone')} On phones · ${gm ? 'you are the GM' : 'you play too'}`;
   }
   const names = state.players.map((p, i) => p.nameInput?.value.trim() || CONFIG.PLAYERS.defaults[i]?.name || `Player ${i + 1}`);
   const list = names.length > 3 ? `${names.slice(0, 3).join(', ')} +${names.length - 3}` : names.join(', ');
@@ -81,7 +81,7 @@ function renderSetupSummary() {
   const preset = CONFIG.RULE_PRESETS?.[_setupRules.preset]?.label ?? 'Custom';
   const changed = _changedCount(_setupRules);
   const parts = [_editionChoice(), _lengthChoice(), _boardChoice(),
-                 _mpMode === 'host' ? '📱 On phones' : `${state.players.length} players`]
+                 _mpMode === 'host' ? `${iconText('phone')} On phones` : `${state.players.length} players`]
     .filter(Boolean);
   el.innerHTML = `${esc(parts.join(' · '))}<br>
     <span class="setup-summary-rules">Rules: <strong>${esc(preset)}</strong>${changed ? ` (${changed} changed)` : ''}

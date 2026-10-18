@@ -6,7 +6,7 @@
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TOKENS = ['🌟','⚡','🔥','💎','🏆','🎯','🚀','🌙','🍀','🎲','🎸','🏅','🦁','🐉','🌊','🌺'];
+const TOKENS = PHONE_BADGES;   // js/shared/icon-registry.js
 const COLORS = [
   '#E53935','#8E24AA','#1E88E5','#00897B',
   '#43A047','#FB8C00','#F4511E','#6D4C41',
@@ -35,8 +35,8 @@ let _rollTimeout   = null;
 
 const _activityLog = [];
 
-function _addActivity(icon, html) {
-  _activityLog.push({ icon, html });
+function _addActivity(iconName, html) {   // iconName: a name in js/shared/icon-registry.js (or an emoji)
+  _activityLog.push({ icon: iconName, html });
   if (_activityLog.length > 10) _activityLog.splice(0, _activityLog.length - 5);
   _renderActivityList();
 }
@@ -50,7 +50,7 @@ function _renderActivityList() {
     return;
   }
   list.innerHTML = entries.map(e =>
-    `<div class="ab-entry"><span class="ab-entry-icon">${e.icon}</span><span class="ab-entry-text">${e.html}</span></div>`
+    `<div class="ab-entry"><span class="ab-entry-icon">${icon(e.icon) || esc(e.icon)}</span><span class="ab-entry-text">${e.html}</span></div>`
   ).join('');
 }
 
@@ -89,7 +89,7 @@ function playerRoll() {
 
 function _showCardMode({ spaceType, spaceName, playerName, deedText, deedEffect, deedValue, deedLandmark }) {
   const meta = SPACE_META[spaceType] || { icon: '•', label: spaceType };
-  document.getElementById('ab-card-icon').textContent = meta.icon;
+  document.getElementById('ab-card-icon').innerHTML = icon(meta.icon) || esc(meta.icon);
   document.getElementById('ab-card-type').textContent = meta.label;
   document.getElementById('ab-card-title').textContent = spaceName || (playerName ? `${playerName} landed here` : '');
 
@@ -102,7 +102,7 @@ function _showCardMode({ spaceType, spaceName, playerName, deedText, deedEffect,
   } else if (spaceType === 'skip') {
     body = 'This player will skip their next turn.';
   } else if (spaceType === 'finish') {
-    body = '🎉 Reached the finish!';
+    body = `${icon('celebrate')} Reached the finish!`;
   } else if (deedText) {
     body = `<em>${deedText}</em>`;
     if (deedEffect) {
@@ -250,13 +250,13 @@ function showError(msg) {
 // ── Space metadata ────────────────────────────────────────────────────────────
 
 const SPACE_META = {
-  question:  { icon: '❓', label: 'Question'   },
-  action:    { icon: '🎬', label: 'Action'     },
-  good_deed: { icon: '✅', label: 'Good Deed'  },
-  bad_deed:  { icon: '❌', label: 'Bad Deed'   },
-  landmark:  { icon: '🌍', label: 'Landmark'   },
-  skip:      { icon: '⏭', label: 'Skip Turn'  },
-  finish:    { icon: '🏁', label: 'Finish!'    },
+  question:  { icon: 'tileQuestion', label: 'Question'   },
+  action:    { icon: 'tileAction',   label: 'Action'     },
+  good_deed: { icon: 'tileGoodDeed', label: 'Good Deed'  },
+  bad_deed:  { icon: 'tileBadDeed',  label: 'Bad Deed'   },
+  landmark:  { icon: 'tileLandmark', label: 'Landmark'   },
+  skip:      { icon: 'tileSkip',     label: 'Skip Turn'  },
+  finish:    { icon: 'tileFinish',   label: 'Finish!'    },
 };
 
 const EFFECT_LABELS = {
@@ -302,7 +302,7 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
   const nextIdx = nextTurnIndex(playerStates, currentPlayerIndex + 1);
   const amNext  = playing && !_isMyTurn && playerStates[nextIdx]?.id === _myId;
   const nextEl  = document.getElementById('ab-next');
-  nextEl.textContent = me.skipNextTurn ? "⏭ You're next — but your turn will be skipped" : "⏭ You're next — get ready!";
+  nextEl.innerHTML = `${icon('tileSkip')} ${me.skipNextTurn ? "You're next — but your turn will be skipped" : "You're next — get ready!"}`;
   nextEl.classList.toggle('visible', amNext);
 
   // A short buzz when my turn starts (phones that support it; iPhones ignore it)
@@ -338,7 +338,7 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
           <span class="badge-emoji">${esc(p.token)}</span>
           <span class="badge-initials">${esc(_initials(p.name))}</span>
         </div>
-        <span class="other-name">${esc(p.name)}${p.finished ? ' ✅' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
+        <span class="other-name">${esc(p.name)}${p.finished ? ' ' + icon('finished') : ''}${p.disconnected ? ' ' + icon('disconnected') : ''}${p.inactive ? ' ' + icon('sittingOut') : ''}</span>
         <span class="other-pos">pos ${p.position ?? 0}</span>
         <span class="other-score">${p.score ?? 0} pts</span>
         <div class="other-active-indicator ${isActive ? '' : 'inactive'}"></div>
@@ -446,7 +446,7 @@ TX_NET.on('rejoin_failed', () => {
 });
 
 TX_NET.on('player_reconnected', ({ playerId, playerName }) => {
-  _addActivity('🔄', `<strong>${esc(playerName)}</strong> reconnected`);
+  _addActivity('reconnecting', `<strong>${esc(playerName)}</strong> reconnected`);
 });
 
 TX_NET.on('player_joined', ({ players }) => {
@@ -501,7 +501,7 @@ TX_NET.on('roll_result', async ({ roll }) => {
     const strip = document.getElementById('ab-roll-strip');
     const dieEl = document.getElementById('ab-roll-die');
     const text  = document.getElementById('ab-roll-text');
-    text.textContent = `🎲 ${name} is rolling…`;
+    text.innerHTML = `${icon('rolled')} ${esc(name)} is rolling…`;
     strip.classList.add('visible');
     dieEl.classList.add('die-rolling');
     await animateDieInto(dieEl, roll, { sizeClass: 'die-sm' });
@@ -509,7 +509,7 @@ TX_NET.on('roll_result', async ({ roll }) => {
     if (token !== _rollAnimToken) return;
     text.textContent = `${name} rolled ${roll}`;
   }
-  _addActivity('🎲', `<strong>${esc(name)}</strong> rolled <strong>${roll}</strong>`);
+  _addActivity('rolled', `<strong>${esc(name)}</strong> rolled <strong>${roll}</strong>`);
 });
 
 TX_NET.on('state_update', (data) => {
@@ -536,7 +536,7 @@ TX_NET.on('private_card', ({ title, text, rule, note, hint, choices, promptId } 
   document.getElementById('ab-card-title').textContent = title || '';
   const body = document.getElementById('ab-card-body');
   body.innerHTML = `
-    <div class="ab-private">${esc(hint || '🤫 Only you can see this')}</div>
+    <div class="ab-private">${hint ? esc(hint) : `${icon('secret')} Only you can see this`}</div>
     <div class="ab-private-text">${esc(text)}</div>
     ${rule ? `<div class="ab-private-rule">${esc(rule)}</div>` : ''}
     ${note ? `<div class="ab-private-rule">${esc(note)}</div>` : ''}
@@ -560,7 +560,7 @@ TX_NET.on('space_card_done', () => {
 TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) => {
   const name = playerName || 'Someone';
   if (spaceType === 'skip_turn') {
-    _addActivity('⏭', `<strong>${esc(name)}</strong>'s turn was skipped`);
+    _addActivity('tileSkip', `<strong>${esc(name)}</strong>'s turn was skipped`);
     return;
   }
   let parts = [];
@@ -569,7 +569,7 @@ TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) =>
   if (spaceType === 'skip_turn') parts.push('skip next turn');
   if (spaceType === 'finish')    parts.push('reached the finish!');
   const summary = parts.length ? parts.join(', ') : 'no change';
-  _addActivity('📊', `<strong>${esc(name)}</strong>: ${summary}`);
+  _addActivity('stats', `<strong>${esc(name)}</strong>: ${summary}`);
 });
 
 TX_NET.on('host_left', ({ msg } = {}) => {
@@ -584,7 +584,7 @@ TX_NET.on('host_back', () => {
 
 TX_NET.on('player_disconnected', ({ playerId, playerName }) => {
   console.log(`[player] ${playerName} disconnected`);
-  _addActivity('⚠️', `<strong>${esc(playerName)}</strong> disconnected`);
+  _addActivity('disconnected', `<strong>${esc(playerName)}</strong> disconnected`);
 });
 
 // The host changed someone's badge in the lobby

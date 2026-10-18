@@ -36,7 +36,7 @@ function updateScoreboard(players) {
       <div class="score-name">${esc(p.name)}</div>
       <div>
         <div class="score-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
-        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}${p.disconnected ? ' <span title="Phone disconnected">⚠️</span>' : ''}</div>
+        <div class="score-position">Space ${p.position}${p.finished ? ' ' + icon('finished') : ''}${p.inactive ? ' ' + icon('sittingOut') : ''}${p.disconnected ? ` <span title="Phone disconnected">${icon('disconnected')}</span>` : ''}</div>
       </div>
     </div>
   `).join('');
@@ -49,24 +49,24 @@ function updateGMPlayerSelect(players) {
   const sel = document.getElementById('gm-player-select');
   const selected = sel.value; // keep the GM's choice across refreshes
   sel.innerHTML = players.map(p =>
-    `<option value="${p.id}">${esc(p.name)}${p.inactive ? ' 💤' : ''}</option>`).join('');
+    `<option value="${p.id}">${esc(p.name)}${p.inactive ? ' ' + iconText('sittingOut') : ''}</option>`).join('');
   if (players.some(p => String(p.id) === selected)) sel.value = selected;
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-function showModal({ icon, title, content, actions }) {
-  if (typeof _displayCard === 'function') _displayCard({ icon, title, content });   // TV display (G16)
-  document.getElementById('modal-icon').textContent = icon;
+function showModal({ icon: modalIcon, title, content, actions }) {
+  if (typeof _displayCard === 'function') _displayCard({ icon: modalIcon, title, content });   // TV display (G16)
+  document.getElementById('modal-icon').innerHTML = icon(modalIcon) || esc(modalIcon ?? '');
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-content').innerHTML = content;
 
   const actionsEl = document.getElementById('modal-actions');
   actionsEl.innerHTML = '';
-  actions.forEach(({ label, class: cls, callback }) => {
+  actions.forEach(({ label, icon: before, iconAfter: after, class: cls, callback }) => {
     const btn = document.createElement('button');
     btn.className = cls || 'btn btn-primary';
-    btn.textContent = label;
+    btn.innerHTML = `${before ? icon(before) + ' ' : ''}${esc(label)}${after ? ' ' + icon(after) : ''}`;
     btn.addEventListener('click', () => { hideModal(); callback(); });
     actionsEl.appendChild(btn);
   });
@@ -129,15 +129,15 @@ function showSpaceModal(space, player, onDone) {
       const pts    = CONFIG.GAME?.pointsName ?? 'pts';
       const signed = `${lmPts > 0 ? '+' : ''}${lmPts} ${pts}`;
       showModal({
-        icon: lmInfo.icon ?? '🌍',
+        icon: lmInfo.icon ?? 'tileLandmark',
         title: lmName,
         content: `${imgHtml}${descHtml}
                   <p style="margin-top:8px"><strong>${esc(player.name)}</strong> has arrived at
                   <strong>${lmName}</strong>!</p>
                   ${lmPts ? `<div class="landmark-points ${lmPts > 0 ? 'pos' : 'neg'}">${signed}</div>` : ''}`,
         actions: [
-          { label: lmPts > 0 ? `⭐ Collect ${signed}` : lmPts < 0 ? `OK (${signed})` : 'Continue',
-            class: 'btn btn-primary',
+          { label: lmPts > 0 ? `Collect ${signed}` : lmPts < 0 ? `OK (${signed})` : 'Continue',
+            icon: lmPts > 0 ? 'landmarkCollect' : null, class: 'btn btn-primary',
             callback: () => { if (lmPts) addScore(player, lmPts); onDone(); } },
         ],
       });
@@ -146,7 +146,7 @@ function showSpaceModal(space, player, onDone) {
 
     case 'skip':
       showModal({
-        icon: '⏭',
+        icon: 'tileSkip',
         title: 'Skip a Turn',
         content: `<strong>${esc(player.name)}</strong> must skip their next turn.`,
         actions: [{ label: 'OK', class: 'btn btn-primary',
@@ -156,8 +156,8 @@ function showSpaceModal(space, player, onDone) {
 
     case 'start':
       showModal({
-        icon: '🚩', title: 'Start',
-        content: 'The journey begins! May the best adventurer win! 🏁',
+        icon: 'tileStart', title: 'Start',
+        content: `The journey begins! May the best adventurer win! ${icon('tileFinish')}`,
         actions: [{ label: "Let's go!", class: 'btn btn-primary', callback: onDone }],
       });
       break;
@@ -166,9 +166,9 @@ function showSpaceModal(space, player, onDone) {
       const order       = player.finishOrder || 1;
       const bonus       = finishBonusFor(gameRules(), CONFIG, order);
       const ordinal     = ['1st','2nd','3rd','4th','5th','6th','7th','8th'][order - 1] || `${order}th`;
-      const finishIcon  = CONFIG.SPACE_INFO.finish?.icon ?? '🏁';
-      const celebration = CONFIG.GAME?.finishCelebration ?? 'Well done! 🎉';
-      const btnLabel    = CONFIG.GAME?.finishButtonLabel  ?? '🎉 Celebrate!';
+      const finishIcon  = CONFIG.SPACE_INFO.finish?.icon ?? 'tileFinish';
+      const celebration = CONFIG.GAME?.finishCelebration ?? 'Well done!';
+      const btnLabel    = CONFIG.GAME?.finishButtonLabel  ?? 'Celebrate!';
       const pts         = CONFIG.GAME?.pointsName ?? 'pts';
       showModal({
         icon: finishIcon,
@@ -179,7 +179,8 @@ function showSpaceModal(space, player, onDone) {
                     ${bonus ? `<div class="finish-bonus-display">+${bonus} ${pts} bonus awarded</div>` : ''}
                   </div>
                   <p style="margin-top:10px;color:#666;font-size:.9rem">${celebration}</p>`,
-        actions: [{ label: btnLabel, class: 'btn btn-primary', callback: onDone }],
+        // an edition's label usually brings its own emoji; the engine default gets one
+        actions: [{ label: btnLabel, icon: findEmoji(btnLabel).length ? null : 'celebrate', class: 'btn btn-primary', callback: onDone }],
       });
       break;
     }
@@ -273,14 +274,14 @@ function _showQuestionChoice(player, space, onDone) {
   const hardExhausted = allHard.length > 0 && hardPool.length === 0;
 
   let note = '';
-  if (easyExhausted) note = `<p class="question-exhausted-note">🟢 Easy questions exhausted — only Hard available!</p>`;
-  if (hardExhausted) note = `<p class="question-exhausted-note">🔵 Hard questions exhausted — only Easy available!</p>`;
+  if (easyExhausted) note = `<p class="question-exhausted-note">${icon('easy')} Easy questions exhausted — only Hard available!</p>`;
+  if (hardExhausted) note = `<p class="question-exhausted-note">${icon('hard')} Hard questions exhausted — only Easy available!</p>`;
 
   // The GM's button wins over a later tap on the phone
   const choose = diff => { _cancelPhonePrompt(); _showQuestion(diff, player, onDone); };
-  const easyBtn = { id: 'easy', label: `🟢 Easy  (+${R.scoring.questionEasy} ${pts})`, class: 'btn btn-primary',
+  const easyBtn = { id: 'easy', label: `Easy  (+${R.scoring.questionEasy} ${pts})`, icon: 'easy', class: 'btn btn-primary',
     callback: () => choose('easy') };
-  const hardBtn = { id: 'hard', label: `🔵 Hard  (+${R.scoring.questionHard} ${pts})`, class: 'btn btn-primary btn-blue',
+  const hardBtn = { id: 'hard', label: `Hard  (+${R.scoring.questionHard} ${pts})`, icon: 'hard', class: 'btn btn-primary btn-blue',
     callback: () => choose('hard') };
 
   const actions = [];
@@ -292,14 +293,14 @@ function _showQuestionChoice(player, space, onDone) {
   // Network game: the player chooses on their phone (G3); the GM can still click
   const token = state.turn?.token;
   const onPhone = R.questions.answerOnPhone && _askOnPhone(player, {
-    title: '❓ Question time',
+    title: `${iconText('tileQuestion')} Question time`,
     text:  `Choose your difficulty — more ${pts} for a harder question.`,
-    hint:  '📱 Tap to choose',
-    choices: actions.map(a => ({ id: a.id, label: a.label })),
+    hint:  `${iconText('phone')} Tap to choose`,
+    choices: actions.map(a => ({ id: a.id, label: [iconText(a.icon), a.label].filter(Boolean).join(' ') })),
   }, diff => { if (!_isStale(token)) { hideModal(); _showQuestion(diff, player, onDone); } });
 
   showModal({
-    icon: '❓',
+    icon: 'tileQuestion',
     title: 'Question Time!',
     content: _playerBadgeHtml(player) +
       `<p>Choose your difficulty. You score more ${pts} for a harder question!</p>${note}` +
@@ -308,9 +309,9 @@ function _showQuestionChoice(player, space, onDone) {
   });
 }
 
-/** "📱 Waiting for Sara to answer on their phone…" under a host card. */
+/** "Waiting for Sara to answer on their phone…" (with a phone icon) under a host card. */
 function _phoneWaitHtml(player, what) {
-  return `<p class="phone-wait">📱 Waiting for <strong>${esc(player.name)}</strong> ${what} on their phone…</p>`;
+  return `<p class="phone-wait">${icon('phone')} Waiting for <strong>${esc(player.name)}</strong> ${what} on their phone…</p>`;
 }
 
 function _showQuestion(diff, player, onDone) {
@@ -327,16 +328,16 @@ function _showQuestion(diff, player, onDone) {
   if (!q) {
     // No questions loaded — use physical card fallback
     showModal({
-      icon: diff === 'easy' ? '🟢' : '🔵',
+      icon: diff,
       title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question`,
       content: `<strong>${esc(player.name)}</strong>, draw a <em>${diff === 'easy' ? 'Easy' : 'Hard'}</em>
                 question card from the physical deck and read it aloud.
                 <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
       actions: [
-        { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+        { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
           callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-        { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
-        { label: '📋 Use physical card instead', class: 'btn btn-secondary',
+        { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+        { label: 'Use physical card instead', icon: 'physicalCard', class: 'btn btn-secondary',
           callback: () => _showPhysicalCard(diff, player, pts, onDone) },
       ],
     });
@@ -348,15 +349,15 @@ function _showQuestion(diff, player, onDone) {
   const letters = ['A', 'B', 'C', 'D'];
   const token   = state.turn?.token;
   const ptsName = CONFIG.GAME?.pointsName ?? 'pts';
-  const title   = `${diff === 'easy' ? '🟢 Easy' : '🔵 Hard'} question (+${pts} ${ptsName})`;
+  const title   = `${iconText(diff)} ${diff === 'easy' ? 'Easy' : 'Hard'} question (+${pts} ${ptsName})`;
   let onPhone = false;
   if (R.questions.answerOnPhone && q.opts?.length) {
     onPhone = _askOnPhone(player, {
-      title, text: _plainText(q.q), hint: '📱 Tap your answer',
+      title, text: _plainText(q.q), hint: `${iconText('phone')} Tap your answer`,
       choices: q.opts.map((o, i) => ({ id: letters[i], label: `${letters[i]}  ${_plainText(o)}` })),
     }, letter => { if (!_isStale(token)) { hideModal(); _showPhoneAnswer(q, diff, pts, player, letter, onDone); } });
   } else if (R.questions.answerOnPhone) {
-    _sendPhoneCard(player, { title, text: _plainText(q.q), hint: '🗣 Say your answer out loud', note: 'The GM judges your answer.' });
+    _sendPhoneCard(player, { title, text: _plainText(q.q), hint: `${iconText('sayAnswer')} Say your answer out loud`, note: 'The GM judges your answer.' });
   }
   // The GM judges instead: a late tap on the phone is ignored
   const judgeHere = () => _cancelPhonePrompt('The GM is judging this one — say your answer out loud.');
@@ -379,7 +380,7 @@ function _showQuestion(diff, player, onDone) {
     ${optionsHtml}
     ${onPhone ? _phoneWaitHtml(player, 'to answer') : ''}
     <div id="question-answer-reveal" class="hidden" data-secret>
-      <div class="answer-box">✅ Answer: <strong>${
+      <div class="answer-box">${icon('answer')} Answer: <strong>${
         q.opts && q.opts.length
           ? `${q.answer} — ${q.opts[['A','B','C','D'].indexOf(q.answer)] ?? q.answer}`
           : q.answer
@@ -389,17 +390,17 @@ function _showQuestion(diff, player, onDone) {
     ${reportQuestionHtml(q)}`;
 
   showModal({
-    icon: diff === 'easy' ? '🟢' : '🔵',
+    icon: diff,
     title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question  (+${pts} ${CONFIG.GAME?.pointsName ?? 'pts'})`,
     content: contentHtml,
     actions: [
-      { label: onPhone ? '👁 Reveal answer (judge here)' : '👁 Reveal Answer', class: 'btn btn-secondary',
+      { label: onPhone ? 'Reveal answer (judge here)' : 'Reveal Answer', icon: 'reveal', class: 'btn btn-secondary',
         callback: () => {
           judgeHere();
           _markAsked(diff, q.id); // mark as used when the answer is revealed
           _showQuestionWithAnswer(q, diff, pts, player, onDone);
         }},
-      { label: '📋 Use physical card', class: 'btn btn-secondary',
+      { label: 'Use physical card', icon: 'physicalCard', class: 'btn btn-secondary',
         callback: () => { judgeHere(); _showPhysicalCard(diff, player, pts, onDone); } },
     ],
   });
@@ -425,7 +426,7 @@ function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
 
   const answerLabel = `${q.answer} — ${q.opts[letters.indexOf(q.answer)] ?? q.answer}`;
   _sendPhoneCard(player, {
-    title: right ? `✅ Correct! +${pts} ${ptsName}` : '❌ Not quite',
+    title: right ? `${iconText('resultRight')} Correct! +${pts} ${ptsName}` : `${iconText('resultWrong')} Not quite`,
     text:  right ? `${letter} — ${_plainText(q.opts[letters.indexOf(letter)])}` : `The answer was ${_plainText(answerLabel)}`,
     hint:  `You answered ${letter}`,
     note:  _plainText(q.note),
@@ -433,20 +434,20 @@ function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
 
   const optionsHtml = `<div class="question-options">` + q.opts.map((o, i) => {
     const cls = letters[i] === q.answer ? 'option-correct' : letters[i] === letter ? 'option-wrong' : '';
-    const tag = letters[i] === letter ? `<span class="option-picked">📱 ${esc(player.name)}</span>` : '';
+    const tag = letters[i] === letter ? `<span class="option-picked">${icon('phone')} ${esc(player.name)}</span>` : '';
     return `<div class="question-option ${cls}"><span class="option-letter">${letters[i]}</span><span>${o}</span>${tag}</div>`;
   }).join('') + `</div>`;
 
   showModal({
-    icon: right ? '✅' : '❌',
+    icon: right ? 'resultRight' : 'resultWrong',
     title: right ? `Correct! +${pts} ${ptsName}` : 'Not quite!',
     content: _playerBadgeHtml(player) + `
       <div class="question-text">${q.q}</div>
       ${optionsHtml}
-      <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
+      <div class="answer-box">${icon('answer')} Answer: <strong>${answerLabel}</strong></div>
       ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
       ${reportQuestionHtml(q)}`,
-    actions: [{ label: 'Continue ▶', class: 'btn btn-primary', callback: onDone }],
+    actions: [{ label: 'Continue', iconAfter: 'continue', class: 'btn btn-primary', callback: onDone }],
   });
 }
 
@@ -467,18 +468,18 @@ function _showQuestionWithAnswer(q, diff, pts, player, onDone) {
     : q.answer;
 
   showModal({
-    icon: diff === 'easy' ? '🟢' : '🔵',
+    icon: diff,
     title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question  (+${pts} ${CONFIG.GAME?.pointsName ?? 'pts'})`,
     content: `
       <div class="question-text">${q.q}</div>
       ${optionsHtml}
-      <div class="answer-box">✅ Answer: <strong>${answerLabel}</strong></div>
+      <div class="answer-box">${icon('answer')} Answer: <strong>${answerLabel}</strong></div>
       ${q.note ? `<div class="answer-note">${q.note}</div>` : ''}
       ${reportQuestionHtml(q)}`,
     actions: [
-      { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+      { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
         callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
     ],
   });
 }
@@ -488,14 +489,14 @@ function _noteQuestion(right) { if (state.turn) state.turn.result = { question: 
 
 function _showPhysicalCard(diff, player, pts, onDone) {
   showModal({
-    icon: diff === 'easy' ? '🟢' : '🔵',
+    icon: diff,
     title: `${diff === 'easy' ? 'Easy' : 'Hard'} Question (physical card)`,
     content: `<strong>${esc(player.name)}</strong>, draw a <em>${diff}</em> card from the deck and read it aloud.
               <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
     actions: [
-      { label: `✅ Correct (+${pts})`, class: 'btn btn-primary',
+      { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
         callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-      { label: '❌ Incorrect', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
     ],
   });
 }
@@ -520,13 +521,13 @@ function _showActionModal(player, onDone) {
   const onPhone = card ? _sendPrivateCard(player, card) : false;
 
   const actions = [
-    { label: perf === guess ? `✅ Guessed! (+${perf} each)` : `✅ Guessed! (+${perf})`,
-      class: 'btn btn-primary',
+    { label: perf === guess ? `Guessed! (+${perf} each)` : `Guessed! (+${perf})`,
+      icon: 'judgeCorrect', class: 'btn btn-primary',
       callback: () => { addScore(player, perf); onDone(true); } },
-    { label: '⏱ No guess / Time up', class: 'btn btn-secondary', callback: () => onDone(false) },
+    { label: 'No guess / Time up', icon: 'timeUp', class: 'btn btn-secondary', callback: () => onDone(false) },
   ];
   if (card) {
-    actions.push({ label: '📋 Use a physical card instead', class: 'btn btn-secondary',
+    actions.push({ label: 'Use a physical card instead', icon: 'physicalCard', class: 'btn btn-secondary',
       callback: () => {
         if (state.turn) state.turn.actionCard = null;
         if (onPhone) _sendPrivateCard(player, { kind: '', text: 'Draw a card from the physical deck instead.', note: '' });
@@ -535,7 +536,7 @@ function _showActionModal(player, onDone) {
   }
 
   showModal({
-    icon: CONFIG.SPACE_INFO.action?.icon ?? '🎬',
+    icon: CONFIG.SPACE_INFO.action?.icon ?? 'tileAction',
     title: 'Action Card!',
     content: _playerBadgeHtml(player) +
              (card ? _actionCardHtml(card, player, onPhone)
@@ -584,18 +585,18 @@ function _drawActionCard(kinds = null, general = true) {
  * otherwise the performer reveals it while the others look away.
  */
 function _actionCardHtml(card, player, onPhone) {
-  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: '🎬', label: 'Action', rule: '' };
+  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: 'tileAction', label: 'Action', rule: '' };
   const who = onPhone
-    ? `📱 The card is on <strong>${esc(player.name)}</strong>'s phone.`
+    ? `${icon('phone')} The card is on <strong>${esc(player.name)}</strong>'s phone.`
     : `<strong>${esc(player.name)}</strong>, reveal your card — everyone else look away!`;
   return `
     <div class="action-card">
-      <div class="action-card-kind">${kind.icon} ${esc(kind.label)}</div>
+      <div class="action-card-kind">${icon(kind.icon)} ${esc(kind.label)}</div>
       <div class="action-card-rule">${esc(kind.rule)}</div>
       <p class="action-card-who">${who}</p>
       <button type="button" class="btn btn-secondary btn-small"
               onclick="this.nextElementSibling.classList.toggle('hidden')">
-        ${onPhone ? '👁 GM: show / hide card' : '👁 Show / hide card'}
+        ${icon('reveal')} ${onPhone ? 'GM: show / hide card' : 'Show / hide card'}
       </button>
       <div class="action-card-secret hidden" data-secret>
         <div class="action-card-text">${esc(card.text)}</div>
@@ -610,18 +611,18 @@ function _showDeedCard(space, player, onDone) {
   const isGood     = space.type === 'good_deed';
   const card       = space.deed; // pre-assigned from deeds.js during board generation
   const spaceInfo  = CONFIG.SPACE_INFO[space.type] ?? {};
-  const deedIcon   = spaceInfo.icon  ?? (isGood ? '✅' : '❌');
+  const deedIcon   = spaceInfo.icon  ?? (isGood ? 'tileGoodDeed' : 'tileBadDeed');
   const deedLabel  = spaceInfo.label ?? (isGood ? 'Good Deed' : 'Bad Deed');
 
   // Protection card absorbs one bad deed
   if (!isGood && player.protectedFromBadDeed) {
     player.protectedFromBadDeed = false;
     showModal({
-      icon: '🛡️',
+      icon: 'protection',
       title: 'Protected!',
       content: `${_playerBadgeHtml(player)}
                 <p>Your protection card blocked this — the effect is cancelled!</p>`,
-      actions: [{ label: '🛡️ Nice!', class: 'btn btn-primary', callback: onDone }],
+      actions: [{ label: 'Nice!', icon: 'protection', class: 'btn btn-primary', callback: onDone }],
     });
     return;
   }
@@ -651,27 +652,27 @@ function _showDeedCard(space, player, onDone) {
       effectDesc = `<div class="deed-effect deed-bad">−${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
       break;
     case 'move_forward':
-      effectDesc = `<div class="deed-effect deed-good">▶ Move forward ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
+      effectDesc = `<div class="deed-effect deed-good">${icon('moveForward')} Move forward ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
       break;
     case 'move_back':
-      effectDesc = `<div class="deed-effect deed-bad">◀ Move back ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
+      effectDesc = `<div class="deed-effect deed-bad">${icon('moveBack')} Move back ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
       break;
     case 'move_to_landmark':
-      effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">📍 Go to: ${card.landmark}</div>`;
+      effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">${icon('goToLandmark')} Go to: ${card.landmark}</div>`;
       break;
     case 'move_to_prev_landmark':
     case 'move_to_next_landmark': {
       const rel = _resolveRelativeLandmark(card.effect, player.position, card.value);
       const relName = rel?.name ?? 'nearest landmark';
-      const relDir = card.effect === 'move_to_prev_landmark' ? '◀' : '▶';
+      const relDir = icon(card.effect === 'move_to_prev_landmark' ? 'moveBack' : 'moveForward');
       effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">${relDir} Go to: ${relName}</div>`;
       break;
     }
     case 'skip_turn':
-      effectDesc = `<div class="deed-effect deed-bad">⏭ Skip your next turn</div>`;
+      effectDesc = `<div class="deed-effect deed-bad">${icon('tileSkip')} Skip your next turn</div>`;
       break;
     case 'extra_turn':
-      effectDesc = `<div class="deed-effect deed-good">🎲 Roll again!</div>`;
+      effectDesc = `<div class="deed-effect deed-good">${icon('extraTurn')} Roll again!</div>`;
       break;
     case 'all_players_gain':
       effectDesc = `<div class="deed-effect deed-good">Everyone +${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
@@ -680,7 +681,7 @@ function _showDeedCard(space, player, onDone) {
       effectDesc = `<div class="deed-effect deed-bad">Everyone −${card.value} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>`;
       break;
     case 'protection':
-      effectDesc = `<div class="deed-effect deed-good">🛡️ Next bad deed cancelled</div>`;
+      effectDesc = `<div class="deed-effect deed-good">${icon('protection')} Next bad deed cancelled</div>`;
       break;
     // move_to_next_landmark is now handled in the relative-landmark block above
 
@@ -695,7 +696,7 @@ function _showDeedCard(space, player, onDone) {
 
   showModal({
     icon: deedIcon,
-    title: isGood ? `${deedLabel}! 🌟` : deedLabel,
+    title: isGood ? `${deedLabel}! ${iconText('goodDeedCheer')}` : deedLabel,
     content: `<div class="deed-text">${deedText}</div>${effectDesc}`,
     actions: [
       { label: 'Apply Effect', class: 'btn btn-primary',
@@ -741,7 +742,7 @@ function _landmarkArrival(card, player, before) {
   const pts = landmarkPoints(gameRules(), card.type === 'good' ? 'good' : 'bad');
   if (pts) addScore(player, pts);
   const unit = CONFIG.GAME?.pointsName ?? 'pts';
-  showToast(`📍 ${player.name} arrived at ${space.name}${pts ? ` · ${pts > 0 ? '+' : ''}${pts} ${unit}` : ''}`, 3500);
+  showToast(`${iconText('goToLandmark')} ${player.name} arrived at ${space.name}${pts ? ` · ${pts > 0 ? '+' : ''}${pts} ${unit}` : ''}`, 3500);
 }
 
 function _applyDeedEffectOnly(card, player) {
@@ -812,7 +813,7 @@ function showGuesserModal(players, performer, onDone) {
   }));
   options.push({ label: 'No one guessed', class: 'btn btn-secondary', callback: onDone });
   showModal({
-    icon: '🎯', title: 'Who guessed it?',
+    icon: 'whoGuessed', title: 'Who guessed it?',
     content: `Award ${guessPts} ${CONFIG.GAME?.pointsName ?? 'pts'} to the first player who guessed correctly.`,
     actions: options,
   });
@@ -822,7 +823,7 @@ function showGuesserModal(players, performer, onDone) {
 
 function showEndScreen(players) {
   const sorted = getSortedPlayers(players);
-  const ranks  = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+  const ranks  = ['medal1', 'medal2', 'medal3', 'rank4', 'rank5', 'rank6', 'rank7', 'rank8'].map(n => icon(n));
   const { stats, awards } = endOfGameSummary(players, state.history);
   const statsById = new Map(stats.map(s => [s.id, s]));
   document.getElementById('final-scores').innerHTML = sorted.map((p, i) => `
@@ -857,14 +858,14 @@ function endOfGameSummary(players, history) {
   return { stats, awards };
 }
 
-/** "✅ 3/5 questions · 🎬 1/2 actions · 🎲 avg 3.4 · 👣 38 spaces" (empty parts left out). */
+/** "3/5 questions · 1/2 actions · avg 3.4 · 38 spaces", each with its icon (empty parts left out). */
 function statLine(s) {
   if (!s) return '';
   return [
-    s.questions && `✅ ${s.questionsRight}/${s.questions} questions`,
-    s.actions   && `🎬 ${s.actionsGuessed}/${s.actions} actions`,
-    s.rolls     && `🎲 avg ${s.avgRoll}`,
-    s.spaces    && `👣 ${s.spaces} spaces`,
+    s.questions && `${iconText('answer')} ${s.questionsRight}/${s.questions} questions`,
+    s.actions   && `${iconText('tileAction')} ${s.actionsGuessed}/${s.actions} actions`,
+    s.rolls     && `${iconText('rolled')} avg ${s.avgRoll}`,
+    s.spaces    && `${iconText('steps')} ${s.spaces} spaces`,
   ].filter(Boolean).join(' · ');
 }
 
@@ -874,7 +875,7 @@ function awardsHtml(awards, players) {
   const name = id => players.find(p => p.id === id)?.name ?? '?';
   return `<h3 class="awards-title">Awards</h3><div class="awards-grid">` + awards.map(a => `
     <div class="award-card">
-      <div class="award-icon">${esc(a.icon)}</div>
+      <div class="award-icon">${icon(a.icon) || esc(a.icon)}</div>
       <div class="award-title">${esc(a.title)}</div>
       <div class="award-who">${esc(a.playerIds.map(name).join(' & '))}</div>
       <div class="award-why">${esc(a.text)}</div>
@@ -901,7 +902,7 @@ function showScoreFlyout(player, amount) {
 // ── Game History ──────────────────────────────────────────────────────────────
 
 function _spaceIcon(type) {
-  return CONFIG.SPACE_INFO[type]?.icon ?? { question: '❓', action: '🎬', landmark: '🌍', skip: '⏭', finish: '🏁', start: '🚩', gm: '⚙️' }[type] ?? '•';
+  return icon(CONFIG.SPACE_INFO[type]?.icon ?? (type === 'gm' ? 'historyGm' : '')) || '•';
 }
 
 function renderHistoryPanel(history) {
@@ -920,7 +921,7 @@ function renderHistoryPanel(history) {
     const scoreStr  = scoreDiff !== 0
       ? `<span class="history-score ${scoreDiff > 0 ? 'hs-pos' : 'hs-neg'}">${scoreDiff > 0 ? '+' : ''}${scoreDiff}</span>`
       : '';
-    const rollStr   = e.roll ? `🎲 ${e.roll}` : (e.spaceType === 'gm' ? '⚙️ GM' : '⏭ skipped');
+    const rollStr   = e.roll ? `${icon('rolled')} ${e.roll}` : (e.spaceType === 'gm' ? `${icon('historyGm')} GM` : `${icon('tileSkip')} skipped`);
     return `<div class="history-entry${i === 0 ? ' history-latest' : ''}">
       <div class="history-badge" style="background:${esc(e.playerColor)}">${esc(e.playerToken)}</div>
       <div class="history-info">
@@ -941,9 +942,9 @@ function renderLegend() {
   const types = ['question', 'action', 'good_deed', 'bad_deed', 'landmark', 'skip'];
   legend.innerHTML = types.map(t => {
     const info = CONFIG.SPACE_INFO[t];
-    const icon = t === 'question' ? '<span class="legend-q">?</span>' : info.icon;
+    const mark = t === 'question' ? '<span class="legend-q">?</span>' : icon(info.icon);
     return `<div class="legend-item">
-      <div class="legend-space" style="background:${info.color}">${icon}</div>
+      <div class="legend-space" style="background:${info.color}">${mark}</div>
       <span>${info.label}</span>
     </div>`;
   }).join('');
@@ -974,7 +975,7 @@ function timerStartStop() {
 function timerStart() {
   if (timer.remaining <= 0) { timer.remaining = timer.duration; }
   timer.running = true;
-  document.getElementById('timer-startstop-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-startstop-btn').innerHTML = `${icon('timerPause')} Pause`;
   _timerRender();
   timer._interval = setInterval(() => {
     timer.remaining = Math.max(0, timer.remaining - 1);
@@ -988,7 +989,7 @@ function timerPause() {
   clearInterval(timer._interval);
   if (typeof _displayTimer === 'function') _displayTimer();
   const btn = document.getElementById('timer-startstop-btn');
-  if (btn) btn.textContent = '▶ Start';
+  if (btn) btn.innerHTML = `${icon('timerStart')} Start`;
 }
 
 function timerStop() {
@@ -1025,14 +1026,15 @@ function _timerRender() {
 
 // ── Toast notification ────────────────────────────────────────────────────────
 
-function showToast(message, durationMs = 2500) {
+/** A short message at the bottom; `iconName` (js/shared/icon-registry.js) goes in front of it. */
+function showToast(message, durationMs = 2500, iconName = null) {
   let el = document.getElementById('tx-toast');
   if (!el) {
     el = document.createElement('div');
     el.id = 'tx-toast';
     document.body.appendChild(el);
   }
-  el.textContent = message;
+  el.innerHTML = `${iconName ? icon(iconName) + ' ' : ''}${esc(message)}`;   // the message is text (player names)
   el.classList.add('tx-toast-visible');
   clearTimeout(el._hideTimer);
   el._hideTimer = setTimeout(() => el.classList.remove('tx-toast-visible'), durationMs);
@@ -1047,7 +1049,7 @@ function showLandmarkInfo(space) {
     overlay.id = 'landmark-info-overlay';
     overlay.innerHTML = `
       <div id="landmark-info-box">
-        <button id="landmark-info-close" aria-label="Close">✕</button>
+        <button id="landmark-info-close" aria-label="Close">${icon('close')}</button>
         <img id="landmark-info-img" src="" alt="" onerror="this.style.display='none'">
         <h2 id="landmark-info-name"></h2>
         <p id="landmark-info-desc"></p>

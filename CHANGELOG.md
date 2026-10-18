@@ -22,6 +22,7 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed
+- **Icons by name**: the engine's ~450 hard-coded emoji and symbols are now named icons in `js/shared/icon-registry.js`, used through `icon()` / `iconText()` / `data-icon`. A test keeps raw icons out of engine code and checks every name exists. No visible change. Badge lists live in the registry (the phone and host no longer keep separate copies).
 - Marked questions moved from js/host/storage.js to js/shared/marks.js (shared with the Academy).
 - Landing on a landmark now gives **3** points by default (was 5): easy 1 · hard 2 · landmark 3. Applies to every edition; games saved earlier keep their rules.
 - New editions start from Swab Quest's board mix (the template's `SPACE_DISTRIBUTION`: 10% action / good / bad deeds, 8% landmarks, 5% skips; long boards 12% action). World Tour uses it too.

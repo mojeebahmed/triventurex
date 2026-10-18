@@ -38,7 +38,6 @@ function _renderBdGrid() {
   const cells = designCells(_bd.start, _bd.segments);
   const order = new Map(cells.map((p, i) => [`${p.r},${p.c}`, i]));
   const crowded = designCrowded(cells);
-  const arrows = { up: '↑', down: '↓', left: '←', right: '→' };
 
   // Preview of the run the next click would add
   const preview = new Map();
@@ -68,7 +67,7 @@ function _renderBdGrid() {
         cls += i === 0 ? ' bd-start' : last && cells.length > 1 ? ' bd-finish' : ' bd-path';
         if (last) cls += ' bd-end';
         if (crowded.has(key)) cls += ' bd-crowded';
-        label = i === 0 ? '🚩' : last && cells.length > 1 ? '🏁' : arrows[cells[i].dir];
+        label = icon(i === 0 ? 'tileStart' : last && cells.length > 1 ? 'tileFinish' : DIR_ICONS[cells[i].dir]);
       } else if (preview.has(key)) {
         cls += ' ' + preview.get(key);
       }
@@ -76,9 +75,9 @@ function _renderBdGrid() {
     }
   }
   grid.innerHTML = html;
-  document.getElementById('bd-hint').textContent = !_bd.start
-    ? 'Click a cell to place the start 🚩'
-    : 'Click a cell in a straight line from the end to add a run · ↩ Undo removes the last one';
+  document.getElementById('bd-hint').innerHTML = !_bd.start
+    ? `Click a cell to place the start ${icon('tileStart')}`
+    : `Click a cell in a straight line from the end to add a run · ${icon('boardUndo')} Undo removes the last one`;
 }
 
 function _onBdClick(r, c) {
@@ -125,8 +124,8 @@ function _renderBdSide() {
   document.getElementById('bd-stats').innerHTML = `
     <div class="bd-count"><strong>${n}</strong> space${n === 1 ? '' : 's'} <small>· ${esc(_bd.length)} boards have about ${check.target}</small></div>
     ${check.errors.map(e => `<div class="bd-msg bd-err">• ${esc(e)}</div>`).join('')}
-    ${check.warnings.map(w => `<div class="bd-msg bd-warn">⚠️ ${esc(w)}</div>`).join('')}
-    ${!check.errors.length && !check.warnings.length ? '<div class="bd-msg bd-good">✅ Ready to play</div>' : ''}`;
+    ${check.warnings.map(w => `<div class="bd-msg bd-warn">${icon('warning')} ${esc(w)}</div>`).join('')}
+    ${!check.errors.length && !check.warnings.length ? `<div class="bd-msg bd-good">${icon('resultRight')} Ready to play</div>` : ''}`;
 }
 
 function _renderBdSaved() {
@@ -139,7 +138,7 @@ function _renderBdSaved() {
           <button type="button" class="link-btn" data-bd-edit="${esc(t.id)}">Edit</button>
           <button type="button" class="link-btn bd-del" data-bd-delete="${esc(t.id)}">Delete</button>
         </div>`).join('')
-    : '<p class="bd-none">No boards yet — draw one and 💾 Save it.</p>';
+    : `<p class="bd-none">No boards yet — draw one and ${icon('save')} Save it.</p>`;
 }
 
 /** "Start from…" — copy a built-in board, or open one of mine. */
@@ -148,7 +147,7 @@ function _renderBdLoad() {
   const opts = ['<option value="">Start from a board…</option>'];
   for (const [len, list] of Object.entries(CONFIG.PATH_TEMPLATES)) {
     opts.push(`<optgroup label="${esc(len)}">` + list.map((t, i) =>
-      `<option value="${esc(len)}:${i}">${t.custom ? '✏️ ' : ''}${esc(t.name)}</option>`).join('') + '</optgroup>');
+      `<option value="${esc(len)}:${i}">${t.custom ? iconText('boardCustom') + ' ' : ''}${esc(t.name)}</option>`).join('') + '</optgroup>');
   }
   sel.innerHTML = opts.join('');
 }
@@ -180,7 +179,7 @@ function saveDesignedBoard({ quiet = false } = {}) {
   _renderBdLoad();
   const len = document.querySelector('input[name="gameLength"]:checked')?.value || 'medium';
   renderBoardPicker(len);                // the New game tab shows it too
-  if (!quiet) showToast(`💾 Saved — it's in the ${_bd.length} boards`);
+  if (!quiet) showToast(`Saved — it's in the ${_bd.length} boards`, undefined, 'save');
   return CONFIG.PATH_TEMPLATES[_bd.length].findIndex(t => t.id === _bd.id);
 }
 
@@ -193,7 +192,7 @@ function playDesignedBoard() {
   renderBoardPicker(_bd.length, String(index));
   updateSetupValues();
   showSetupTab('new');
-  showToast('▶ Board chosen — press Start');
+  showToast('Board chosen — press Start', undefined, 'playBoard');
 }
 
 function copyBoardTemplate() {
@@ -203,7 +202,7 @@ function copyBoardTemplate() {
   box.value = `// Paste into CONFIG.PATH_TEMPLATES.${_bd.length} in js/shared/config.js\n${text}`;
   box.classList.remove('hidden');
   box.select();
-  navigator.clipboard?.writeText(text).then(() => showToast('📋 Copied'), () => {});
+  navigator.clipboard?.writeText(text).then(() => showToast('Copied', undefined, 'copy'), () => {});
 }
 
 function _deleteSavedBoard(id) {

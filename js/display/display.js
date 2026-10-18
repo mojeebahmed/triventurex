@@ -43,7 +43,7 @@ async function _useEdition(editionId) {
   applyEditionColors(CONFIG);
   _editionId = editionId;
   const g = CONFIG.GAME || {};
-  document.title = `📺 ${g.editionName || g.engineName || 'Triventurex'}`;
+  document.title = `${iconText('tv')} ${g.editionName || g.engineName || 'Triventurex'}`;
   document.getElementById('d-end-msg').textContent = g.endScreenMessage || '';
 }
 
@@ -114,7 +114,7 @@ function _onLive({ players, currentPlayerIndex, turnPhase, phase }) {
       <div class="score-name">${esc(p.name)}</div>
       <div>
         <div class="score-points">${p.score} ${esc(pts)}</div>
-        <div class="score-position">Space ${p.position}${p.finished ? ' ✅' : ''}${p.inactive ? ' 💤' : ''}</div>
+        <div class="score-position">Space ${p.position}${p.finished ? ' ' + icon('finished') : ''}${p.inactive ? ' ' + icon('sittingOut') : ''}</div>
       </div>
     </div>`).join('');
 
@@ -122,18 +122,18 @@ function _onLive({ players, currentPlayerIndex, turnPhase, phase }) {
   else if (document.getElementById('d-end').classList.contains('active')) showDisplayScreen('d-game');
 }
 
-let _end = null;   // { lines: {playerId: "✅ 3/5 questions · …"}, awards: [...] } (G13)
+let _end = null;   // { lines: {playerId: "3/5 questions · …"}, awards: [...] } (G13)
 
 function _showEnd(players) {
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['medal1', 'medal2', 'medal3'].map(n => icon(n));
   document.getElementById('d-podium').innerHTML = getSortedPlayers(players).map((p, i) => `
     <div class="d-chip"><span class="d-place">${medals[i] ?? i + 1}</span>
       <div class="score-token" style="background:${esc(p.color)}"><div class="token-emoji">${esc(p.token || '●')}</div></div>
       <div>${esc(p.name)}${_end?.lines?.[p.id] ? `<div class="d-stats">${esc(_end.lines[p.id])}</div>` : ''}</div>
       <span class="d-pts">${p.score} ${esc(pts)}</span></div>`).join('');
   document.getElementById('d-awards').innerHTML = (_end?.awards || []).map(a => `
-    <div class="d-award"><div class="d-award-icon">${esc(a.icon)}</div>
+    <div class="d-award"><div class="d-award-icon">${icon(a.icon) || esc(a.icon)}</div>
       <div class="d-award-title">${esc(a.title)}</div><div class="d-award-who">${esc(a.who)}</div>
       <div class="d-award-why">${esc(a.text)}</div></div>`).join('');
   showDisplayScreen('d-end');
@@ -144,7 +144,7 @@ function _onCard(card) {
   const overlay = document.getElementById('modal-overlay');
   if (!card) { overlay.classList.add('hidden'); return; }
   if (card.accent) document.documentElement.style.setProperty('--modal-accent', card.accent);
-  document.getElementById('modal-icon').textContent  = card.icon || '';
+  document.getElementById('modal-icon').innerHTML  = icon(card.icon) || esc(card.icon || '');
   document.getElementById('modal-title').textContent = card.title || '';
   document.getElementById('modal-content').innerHTML = card.content || '';
   overlay.classList.remove('hidden');

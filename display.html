@@ -88,7 +88,7 @@
   <!-- No game ID in the address: ask for one -->
   <div id="d-join" class="d-screen d-center">
     <div class="d-card">
-      <div class="d-title">📺 TV display</div>
+      <div class="d-title"><i data-icon="tv"></i> TV display</div>
       <div class="d-sub">Enter the Game ID shown on the host screen</div>
       <form onsubmit="event.preventDefault(); joinDisplay(document.getElementById('d-join-id').value)">
         <input id="d-join-id" inputmode="numeric" maxlength="4" autocomplete="off" autofocus>
@@ -105,7 +105,7 @@
       <div class="d-lobby">
         <div id="d-qr"></div>
         <div>
-          <div class="d-label">📱 Scan with a phone camera, or open</div>
+          <div class="d-label"><i data-icon="phone"></i> Scan with a phone camera, or open</div>
           <div class="d-url" id="d-url">—</div>
           <div class="d-label">Game ID</div>
           <div class="d-gameid" id="d-gameid">—</div>
@@ -165,7 +165,7 @@
   <!-- Game over -->
   <div id="d-end" class="d-screen d-center">
     <div class="d-card">
-      <div class="d-title">🏆 Final scores</div>
+      <div class="d-title"><i data-icon="trophy"></i> Final scores</div>
       <div class="d-sub" id="d-end-msg"></div>
       <div class="d-podium" id="d-podium"></div>
       <div class="d-awards" id="d-awards"></div>
@@ -178,6 +178,7 @@
   <script src="game_editions/editions.js"></script>
   <script src="js/vendor/qrcode.js"></script>
   <script src="js/shared/utils.js"></script>
+  <script src="js/shared/icon-registry.js"></script>
   <script src="js/shared/icons-data.js"></script>
   <script src="js/shared/icons.js"></script>
   <script src="js/shared/config.js"></script>

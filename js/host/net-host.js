@@ -88,7 +88,7 @@ function showJoinCode() {
   if (!_networkGameId) return;
   if (!_joinUrls.length) _joinUrls = _pickJoinUrls(_networkGameId, []);
   showModal({
-    icon: '📱', title: 'Join this game',
+    icon: 'phone', title: 'Join this game',
     content: `<div class="join-modal">${_qrSvg(_joinUrls[0])}
       <p>Scan with a phone camera, or open <strong>${esc(_shortUrl(_joinUrls[0]))}</strong>
          and enter Game ID <strong>${esc(_networkGameId)}</strong></p></div>`,
@@ -131,8 +131,8 @@ function _renderLobbyPlayers(players) {
           <button type="button" class="score-token badge-btn" style="background:${esc(p.color)}" title="Change badge"
                   onclick="openBadgeModal({ playerId: ${p.id}, where: 'lobby' })"><div class="token-emoji">${esc(p.token)}</div></button>
           <span>${esc(p.name)}</span>
-          ${p.noPhone ? `<small class="no-phone-tag">🖥 no phone</small>
-            <button type="button" class="lobby-remove" title="Remove" onclick="removeLobbyPlayer(${p.id})">✕</button>` : ''}
+          ${p.noPhone ? `<small class="no-phone-tag">${icon('noPhone')} no phone</small>
+            <button type="button" class="lobby-remove" title="Remove" aria-label="Remove" onclick="removeLobbyPlayer(${p.id})">${icon('remove')}</button>` : ''}
         </div>`).join('');
 }
 
@@ -180,8 +180,8 @@ function _renderGMNetworkPlayers(serverPlayers) {
               onclick="openBadgeModal({ playerId: ${p.id}, where: 'game' })">
         <div class="token-emoji">${esc(p.token)}</div>
       </button>
-      <span class="gm-net-name">${esc(p.name)}${p.noPhone ? ' <small class="no-phone-tag">🖥 no phone</small>' : ''}${p.disconnected ? ' ⚠️' : ''}${p.inactive ? ' 💤' : ''}</span>
-      <button class="btn btn-small btn-danger" onclick="gmRemoveNetworkPlayer(${p.id})">✕</button>
+      <span class="gm-net-name">${esc(p.name)}${p.noPhone ? ` <small class="no-phone-tag">${icon('noPhone')} no phone</small>` : ''}${p.disconnected ? ' ' + icon('disconnected') : ''}${p.inactive ? ' ' + icon('sittingOut') : ''}</span>
+      <button class="btn btn-small btn-danger" aria-label="Remove" onclick="gmRemoveNetworkPlayer(${p.id})">${icon('remove')}</button>
     </div>`).join('');
 }
 
@@ -324,9 +324,9 @@ function _syncStateToServer() {
  * Generic payload so other private cards (e.g. answering on the phone) can reuse it.
  */
 function _sendPrivateCard(player, card) {
-  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: '🎬', label: 'Action', rule: '' };
+  const kind = CONFIG.ACTION_KINDS?.[card.kind] ?? { icon: 'tileAction', label: 'Action', rule: '' };
   return _sendPhoneCard(player, {
-    title: `${kind.icon} ${kind.label}`,
+    title: `${iconText(kind.icon)} ${kind.label}`,
     text:  card.text,
     rule:  kind.rule,
     note:  card.note || '',
@@ -371,7 +371,7 @@ function _askOnPhone(player, card, onChoice) {
 function _cancelPhonePrompt(text) {
   const p = _phonePrompt;
   _phonePrompt = null;
-  if (p && text) _sendPhoneCard(state.players.find(pl => pl.id === p.playerId), { title: p.card.title, text, hint: '📺 Look at the main screen' });
+  if (p && text) _sendPhoneCard(state.players.find(pl => pl.id === p.playerId), { title: p.card.title, text, hint: `${iconText('tv')} Look at the main screen` });
 }
 
 function _onCardChoice({ playerId, promptId, choice }) {
@@ -403,7 +403,7 @@ function _updateNetworkStatusBar() {
   const bar = document.getElementById('net-status-bar');
   if (!bar || !_isNetworkGame) return;
   bar.classList.remove('hidden');
-  document.getElementById('net-status-text').textContent  = '📡 Network Game';
+  document.getElementById('net-status-text').innerHTML  = `${icon('network')} Network Game`;
   document.getElementById('net-game-id-label').textContent = _networkGameId;
 }
 

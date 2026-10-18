@@ -1,20 +1,24 @@
 /**
- * icons.js — draw emoji and control icons from the sets bundled with the game,
- * so they look the same on every device (host, phones, TV, Academy).
+ * icons.js — draw icons from the sets bundled with the game, so they look the
+ * same on every device (host, phones, TV, Academy).
  *
- *   • Emoji anywhere in the page → <img class="tx-emoji"> from images/emoji/
- *     (Fluent Emoji Flat; see scripts/icons.config.js).
- *   • A glyph at the start or end of a control's label (button, tab, summary)
- *     that is in the control table → an inline line icon (Lucide) that takes
- *     the control's text colour.
+ * Engine code asks for icons BY NAME (js/shared/icon-registry.js):
+ *   icon('undo')            → HTML: an inline line icon (Lucide) in the text colour,
+ *                             or an emoji image (Fluent Emoji Flat)
+ *   iconText('tileSkip')    → plain text for places that cannot hold HTML;
+ *                             '' for line icons
+ *   <i data-icon="undo"></i> in the HTML pages, filled in by startIcons()
+ * `icon()` / `iconText()` also accept an emoji itself — editions and saved
+ * player badges hold emoji, not names.
  *
- * Content keeps plain emoji everywhere (CSVs, config.js, JS strings); startIcons()
- * swaps them in the page as it changes, through one MutationObserver. Text-only
- * places (<option>, <title>, inputs, textarea) keep the device's own emoji.
+ * Content (questions, deed texts, edition labels) keeps plain emoji. After
+ * startIcons(), one MutationObserver swaps emoji in the page for the bundled
+ * images, so content looks the same as the engine's icons. Text-only places
+ * (<option>, <title>, inputs) keep the device's own emoji.
  *
- * The icon data (which emoji files exist, the control SVGs) is generated into
- * js/shared/icons-data.js by `npm run build:icons`. Top-level code here does
- * not touch the page; the pure helpers are unit-tested in test/icons.test.js.
+ * The icon data (emoji files that exist, line-icon SVGs) is generated into
+ * js/shared/icons-data.js by `npm run build:icons`. Top-level code here does not
+ * touch the page; the pure helpers are unit-tested in test/icons.test.js.
  */
 
 const EMOJI_DIR = 'images/emoji/';
@@ -39,147 +43,114 @@ function findEmoji(text) {
   return out;
 }
 
+/** Is `s` exactly one emoji? */
+const isEmoji = s => { const e = findEmoji(s); return e.length === 1 && e[0].index === 0 && e[0].glyph === String(s); };
+
+// ── By name ─────────────────────────────────────────────────────────────────────
+
+/** The registry entry for a name ('lucide:undo-2', 'emoji:🎲'), or null. */
+function iconEntry(name) {
+  return (typeof ICONS !== 'undefined' && ICONS[name]) || null;
+}
+
+/** Plain text for an icon name or an emoji: the emoji, or '' for line icons and unknown names. */
+function iconText(nameOrEmoji) {
+  const e = iconEntry(nameOrEmoji);
+  if (e) return e.startsWith('emoji:') ? e.slice(6) : '';
+  return isEmoji(nameOrEmoji) ? String(nameOrEmoji) : '';
+}
+
+const _escAttr = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function _iconsData() { return typeof TX_ICON_DATA !== 'undefined' ? TX_ICON_DATA : null; }
+
+/** An emoji as HTML: the bundled image when there is one, otherwise the emoji itself. */
+function emojiHtml(glyph) {
+  const data = _iconsData();
+  if (!data || !data.emoji.includes(glyphKey(glyph))) return _escAttr(glyph);
+  return `<img class="tx-emoji" src="${EMOJI_DIR}${glyphKey(glyph)}.svg" alt="${_escAttr(glyph)}" draggable="false" decoding="async">`;
+}
+
 /**
- * A control label's leading / trailing glyph, if it is in the control table
- * (`keys` = Set of glyphKey()s). A glyph only counts when a space or the end
- * of the text follows (leading) or a space or the start precedes it (trailing),
- * so "+1" and "+30s" stay text. → { lead: { glyph, end } | null, trail: { glyph, start } | null }
+ * HTML for an icon name (or an emoji). Line icons are decorative
+ * (aria-hidden) — the control's own text names it. Unknown names give ''.
  */
-function controlGlyphs(text, keys, { first = true, last = true } = {}) {
-  const t = String(text);
-  const res = { lead: null, trail: null };
-  const probe = s => {                        // the longest table glyph at the start of s
-    for (const len of [3, 2, 1]) {
-      const g = [...s].slice(0, len).join('');
-      if (g && keys.has(glyphKey(g))) return g;
-    }
-    return null;
-  };
-  if (first) {
-    const lead = t.length - t.trimStart().length;
-    const g = probe(t.slice(lead));
-    if (g) {
-      const end = lead + g.length;
-      if (end === t.length || /\s/.test(t[end])) res.lead = { glyph: g, end };
-    }
-  }
-  if (last) {
-    const body = t.trimEnd();
-    const chars = [...body];
-    for (const len of [3, 2, 1]) {
-      const g = chars.slice(-len).join('');
-      if (!g || !keys.has(glyphKey(g))) continue;
-      const start = body.length - g.length;
-      if ((start === 0 || /\s/.test(body[start - 1])) && (!res.lead || start >= res.lead.end)) res.trail = { glyph: g, start };
-      break;
-    }
-  }
-  return res;
+function icon(nameOrEmoji) {
+  const e = iconEntry(nameOrEmoji);
+  if (!e) return isEmoji(nameOrEmoji) ? emojiHtml(nameOrEmoji) : '';
+  if (e.startsWith('emoji:')) return emojiHtml(e.slice(6));
+  const svg = _iconsData()?.ui?.[nameOrEmoji];
+  return svg ? `<span class="tx-icon" aria-hidden="true">${svg}</span>` : '';
 }
 
 // ── In the page ─────────────────────────────────────────────────────────────────
 
-const CONTROL_SEL = 'button, summary, [role="tab"], .btn, .link-btn';
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'TITLE', 'NOSCRIPT', 'svg', 'SVG']);
-let _iconData = null, _controlKeys = null, _emojiKeys = null;
 
-function _iconsReady() {
-  if (_iconData) return true;
-  if (typeof TX_ICON_DATA === 'undefined') return false;
-  _iconData = TX_ICON_DATA;
-  _controlKeys = new Set(Object.keys(_iconData.controls));
-  _emojiKeys = new Set(_iconData.emoji);
-  return true;
-}
-
-function _emojiImg(doc, glyph) {
-  const img = doc.createElement('img');
-  img.className = 'tx-emoji';
-  img.src = EMOJI_DIR + glyphKey(glyph) + '.svg';
-  img.alt = glyph;                 // copy / paste and screen readers keep the emoji
-  img.draggable = false;
-  img.decoding = 'async';
-  return img;
-}
-
-function _controlIcon(doc, glyph) {
-  const span = doc.createElement('span');
-  span.className = 'tx-icon';
-  span.setAttribute('aria-hidden', 'true');
-  span.innerHTML = _iconData.controls[glyphKey(glyph)];
-  return span;
-}
-
-/** Replace the emoji in one text node with images (and control glyphs with icons). */
-function _enhanceText(node) {
+/** Replace the emoji in one text node with the bundled images. */
+function _emojiInText(node) {
   const text = node.nodeValue;
-  if (!text || !/[^\x00-\x7F]|[+]/.test(text)) return;
+  if (!text || !/[^\x00-\x7F]/.test(text)) return;
   const parent = node.parentNode;
   if (!parent || SKIP_TAGS.has(parent.nodeName) || parent.closest?.('[contenteditable], .no-icons')) return;
+  const data = _iconsData();
+  const found = findEmoji(text).filter(e => data.emoji.includes(glyphKey(e.glyph)));
+  if (!found.length) return;
   const doc = node.ownerDocument;
-
-  // Control glyph? Only on the control's first / last piece of text
-  let lead = null, trail = null;
-  const control = parent.closest?.(CONTROL_SEL);
-  if (control && !parent.closest('[data-content]')) {
-    const texts = [];
-    const w = doc.createTreeWalker(control, NodeFilter.SHOW_TEXT);
-    for (let n; (n = w.nextNode());) if (n.nodeValue.trim()) texts.push(n);
-    ({ lead, trail } = controlGlyphs(text, _controlKeys, { first: texts[0] === node, last: texts.at(-1) === node }));
-  }
-
-  const parts = [];
-  let pos = 0;
-  const pushText = (from, to) => { if (to > from) parts.push(doc.createTextNode(text.slice(from, to))); };
-  const emojiIn = (from, to) => {
-    let p = from;
-    for (const e of findEmoji(text.slice(from, to))) {
-      const at = from + e.index;
-      if (!_emojiKeys.has(glyphKey(e.glyph))) continue;          // no image for it: keep the device's emoji
-      pushText(p, at);
-      parts.push(_emojiImg(doc, e.glyph));
-      p = at + e.glyph.length;
-    }
-    pushText(p, to);
-  };
-  if (lead) { pushText(0, lead.end - lead.glyph.length); parts.push(_controlIcon(doc, lead.glyph)); pos = lead.end; }
-  const end = trail ? trail.start : text.length;
-  emojiIn(pos, end);
-  if (trail) { parts.push(_controlIcon(doc, trail.glyph)); pushText(trail.start + trail.glyph.length, text.length); }
-
-  const changed = parts.length !== 1 || parts[0].nodeType !== 3 || parts[0].nodeValue !== text;
-  if (!changed) return;
   const frag = doc.createDocumentFragment();
-  parts.forEach(p => frag.appendChild(p));
-  parent.replaceChild(frag, node);
-  // an icon-only control still needs a name for screen readers
-  if (control && !control.textContent.trim() && !control.getAttribute('aria-label') && !control.title) {
-    control.setAttribute('aria-label', (lead || trail).glyph);
+  let p = 0;
+  for (const e of found) {
+    if (e.index > p) frag.appendChild(doc.createTextNode(text.slice(p, e.index)));
+    const tmp = doc.createElement('span');
+    tmp.innerHTML = emojiHtml(e.glyph);
+    frag.appendChild(tmp.firstChild);
+    p = e.index + e.glyph.length;
   }
+  if (p < text.length) frag.appendChild(doc.createTextNode(text.slice(p)));
+  parent.replaceChild(frag, node);
 }
 
-/** Replace emoji / control glyphs in an element and everything inside it. */
+/**
+ * Fill <i data-icon="name"></i> placeholders, put an emoji in front of text-only
+ * labels (<option data-icon-text="easy">Easy</option>), and swap emoji in an
+ * element and everything inside it.
+ */
 function enhanceIcons(root) {
-  if (!_iconsReady() || !root) return;
-  if (root.nodeType === 3) { _enhanceText(root); return; }
+  if (!_iconsData() || !root) return;
+  if (root.nodeType === 3) { _emojiInText(root); return; }
   if (root.nodeType !== 1 || SKIP_TAGS.has(root.nodeName)) return;
+  const slots = [...(root.matches?.('[data-icon]') ? [root] : []), ...root.querySelectorAll('[data-icon]')];
+  for (const el of slots) {
+    if (el.dataset.iconDone === el.dataset.icon) continue;
+    el.dataset.iconDone = el.dataset.icon;
+    el.innerHTML = icon(el.dataset.icon);
+  }
+  const labels = [...(root.matches?.('[data-icon-text]') ? [root] : []), ...root.querySelectorAll('[data-icon-text]')];
+  for (const el of labels) {
+    if (el.dataset.iconDone === el.dataset.iconText) continue;
+    if (el.dataset.label === undefined) el.dataset.label = el.textContent.trim();
+    el.dataset.iconDone = el.dataset.iconText;
+    const t = iconText(el.dataset.iconText);
+    el.textContent = (t ? t + ' ' : '') + el.dataset.label;
+  }
   const texts = [];
   const w = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let n; (n = w.nextNode());) texts.push(n);
-  texts.forEach(_enhanceText);
+  texts.forEach(_emojiInText);
 }
 
 /** Start drawing icons on this page: the current content, and everything added later. */
 function startIcons(doc = typeof document !== 'undefined' ? document : null) {
-  if (!doc?.body || typeof MutationObserver === 'undefined' || !_iconsReady() || doc.__txIcons) return;
+  if (!doc?.body || typeof MutationObserver === 'undefined' || !_iconsData() || doc.__txIcons) return;
   doc.__txIcons = true;
   enhanceIcons(doc.body);
   new MutationObserver(records => {
     for (const r of records) {
       if (r.type === 'characterData') enhanceIcons(r.target);
+      else if (r.type === 'attributes') enhanceIcons(r.target);
       else r.addedNodes.forEach(n => enhanceIcons(n));
     }
-  }).observe(doc.body, { childList: true, subtree: true, characterData: true });
+  }).observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['data-icon'] });
 }
 
-if (typeof module !== 'undefined') module.exports = { glyphKey, findEmoji, controlGlyphs, EMOJI_RE };
+if (typeof module !== 'undefined') module.exports = { glyphKey, findEmoji, isEmoji, iconEntry, iconText, icon, EMOJI_RE };

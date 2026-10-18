@@ -62,12 +62,13 @@ npm run build:content     # check every edition's CSV content (and the shared ac
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
 node scripts/review-sheet.js <edition>                 # printable question review sheet (REVIEW.md) for someone without the game
-npm run build:icons                                    # bundle the emoji (Fluent Flat) and control icons (Lucide) the game uses — run after adding an emoji
+npm run build:icons                                    # bundle the icons the game uses (names in js/shared/icon-registry.js; emoji in content) — run after adding one
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
 - **`TRIVENTUREX-DESIGN.md`**: design decisions and how the pieces fit together
 - **`game_editions/IDEAS.md`**: ideas for new editions, content targets per edition, and how an edition is built
+- **Icons**: engine code uses icons by name — `icon('undo')`, `<i data-icon="undo"></i>` — from `js/shared/icon-registry.js` (Lucide line icons for controls, Fluent Emoji Flat for game symbols). New icon: add a name there and run `npm run build:icons`. Details in `CLAUDE.md` → Icons
 - **`CLAUDE.md`**: detailed architecture rules and invariants (also the brief for AI assistants)
 
 ---

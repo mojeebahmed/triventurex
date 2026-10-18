@@ -14,7 +14,8 @@ const R = require('../js/shared/rules.js');
 function config() {
   const ctx = {};
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/shared/config.js'), 'utf8') + ';this.CONFIG = CONFIG;', ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/shared/icon-registry.js'), 'utf8') +
+                  fs.readFileSync(path.join(__dirname, '../js/shared/config.js'), 'utf8') + ';this.CONFIG = CONFIG;', ctx);
   return JSON.parse(JSON.stringify(ctx.CONFIG));
 }
 const WITH_CARDS = { hasActionCards: true };

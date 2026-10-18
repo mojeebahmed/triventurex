@@ -22,7 +22,7 @@
       <!-- Resume prompt (shown when a saved game exists) -->
       <div id="resume-prompt" class="hidden">
         <div class="resume-card">
-          <span class="resume-icon">💾</span>
+          <span class="resume-icon" data-icon="saved"></span>
           <span class="resume-meta" id="resume-meta"></span>
           <button id="resume-btn" class="btn btn-primary btn-small">Resume</button>
           <button id="discard-btn" class="btn btn-secondary btn-small">Discard</button>
@@ -31,10 +31,10 @@
 
       <!-- Two tabs: set up a new game / the rules (G6, G12) -->
       <div class="setup-tabs" role="tablist">
-        <button type="button" class="setup-tab active" data-tab="new" role="tab">🎲 New game</button>
-        <button type="button" class="setup-tab" data-tab="rules" role="tab">⚙️ Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
-        <button type="button" class="setup-tab" data-tab="questions" role="tab">📚 Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
-        <button type="button" class="setup-tab" data-tab="boards" role="tab">✏️ Boards</button>
+        <button type="button" class="setup-tab active" data-tab="new" role="tab"><i data-icon="tabNewGame"></i> New game</button>
+        <button type="button" class="setup-tab" data-tab="rules" role="tab"><i data-icon="tabRules"></i> Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
+        <button type="button" class="setup-tab" data-tab="questions" role="tab"><i data-icon="tabQuestions"></i> Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
+        <button type="button" class="setup-tab" data-tab="boards" role="tab"><i data-icon="tabBoards"></i> Boards</button>
       </div>
 
       <!-- ── Tab 1: New game — one step open at a time; choosing moves on ── -->
@@ -107,17 +107,17 @@
           <div class="step-body">
             <!-- Where players play (shown once the server is reachable) -->
             <div id="mp-tabs" class="hidden">
-              <button type="button" class="mp-tab active" data-mode="local" onclick="setMPMode('local')">🎮 On this screen</button>
-              <button type="button" class="mp-tab" data-mode="host" onclick="setMPMode('host')">📱 On phones</button>
+              <button type="button" class="mp-tab active" data-mode="local" onclick="setMPMode('local')"><i data-icon="onThisScreen"></i> On this screen</button>
+              <button type="button" class="mp-tab" data-mode="host" onclick="setMPMode('host')"><i data-icon="onPhones"></i> On phones</button>
             </div>
 
             <!-- On this screen: the players -->
             <div id="local-players-section">
               <div id="players-setup" class="player-chips"></div>
               <div class="player-controls">
-                <button id="add-player-btn" class="btn btn-secondary btn-small">+ Add</button>
-                <button id="remove-player-btn" class="btn btn-secondary btn-small">− Remove</button>
-                <button id="reset-players-btn" class="btn btn-secondary btn-small" title="Clear saved names and reset to defaults">↺ Reset</button>
+                <button id="add-player-btn" class="btn btn-secondary btn-small"><i data-icon="addPlayer"></i> Add</button>
+                <button id="remove-player-btn" class="btn btn-secondary btn-small"><i data-icon="removePlayer"></i> Remove</button>
+                <button id="reset-players-btn" class="btn btn-secondary btn-small" title="Clear saved names and reset to defaults"><i data-icon="reset"></i> Reset</button>
               </div>
             </div>
 
@@ -144,9 +144,9 @@
           <span id="rules-changed" class="rules-changed"></span>
           <span class="rules-foot-spacer"></span>
           <button type="button" id="rules-reset-btn" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()"
-                  title="Undo your changes — back to the preset's settings">↺ Reset to preset</button>
+                  title="Undo your changes — back to the preset's settings"><i data-icon="reset"></i> Reset to preset</button>
           <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()"
-                  title="Copy these rules as a RULE_PRESETS entry to paste into config.js">📋 Copy as preset</button>
+                  title="Copy these rules as a RULE_PRESETS entry to paste into config.js"><i data-icon="copy"></i> Copy as preset</button>
         </div>
         <div class="rules-layout">
           <nav id="rules-nav" class="rules-nav" role="tablist"></nav>
@@ -171,13 +171,13 @@
         <div class="qx-head">
           <input id="qx-search" type="search" placeholder="Search questions, answers, notes or #id…" autocomplete="off">
           <select id="qx-diff" class="settings-select">
-            <option value="all">Easy + hard</option><option value="easy">🟢 Easy</option><option value="hard">🔵 Hard</option>
+            <option value="all">Easy + hard</option><option value="easy" data-icon-text="easy">Easy</option><option value="hard" data-icon-text="hard">Hard</option>
           </select>
-          <label class="qx-check"><input type="checkbox" id="qx-marked-only"> 🚩 Marked only</label>
+          <label class="qx-check"><input type="checkbox" id="qx-marked-only"> <i data-icon="marked"></i> Marked only</label>
           <label class="qx-check"><input type="checkbox" id="qx-answers"> Show answers</label>
           <span class="rules-foot-spacer"></span>
           <button type="button" class="btn btn-secondary btn-small" onclick="openAcademy()"
-                  title="Learn this edition's questions with flashcards, quizzes and games — in a new tab">🎓 Academy</button>
+                  title="Learn this edition's questions with flashcards, quizzes and games — in a new tab"><i data-icon="academy"></i> Academy</button>
         </div>
         <div class="rules-layout qx-layout">
           <nav id="qx-tree" class="qx-tree"></nav>
@@ -189,7 +189,7 @@
         <div class="rules-foot qx-foot">
           <span id="qx-marked-summary" class="qx-marked-summary"></span>
           <span class="rules-foot-spacer"></span>
-          <button type="button" class="btn btn-secondary btn-small" onclick="copyMarkedQuestions()">📋 Copy marked list</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyMarkedQuestions()"><i data-icon="copy"></i> Copy marked list</button>
           <button type="button" class="btn btn-secondary btn-small" onclick="clearMarkedQuestions()">Clear marks</button>
         </div>
         <textarea id="qx-export" class="rules-export hidden" rows="8" readonly></textarea>
@@ -216,18 +216,18 @@
             <div id="bd-thumb" class="bd-thumb"></div>
             <div id="bd-stats" class="bd-stats"></div>
             <div class="bd-tools">
-              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerUndo()">↩ Undo</button>
-              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerNew()">✨ New</button>
+              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerUndo()"><i data-icon="boardUndo"></i> Undo</button>
+              <button type="button" class="btn btn-secondary btn-small" onclick="boardDesignerNew()"><i data-icon="boardNew"></i> New</button>
             </div>
             <h4 class="bd-saved-title">My boards</h4>
             <div id="bd-saved" class="bd-saved"></div>
           </aside>
         </div>
         <div class="rules-foot bd-foot">
-          <button type="button" class="btn btn-secondary btn-small" onclick="copyBoardTemplate()">📋 Copy as template</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="copyBoardTemplate()"><i data-icon="copy"></i> Copy as template</button>
           <span class="rules-foot-spacer"></span>
-          <button type="button" class="btn btn-secondary btn-small" onclick="saveDesignedBoard()">💾 Save board</button>
-          <button type="button" class="btn btn-primary btn-small" onclick="playDesignedBoard()">▶ Play this board</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="saveDesignedBoard()"><i data-icon="save"></i> Save board</button>
+          <button type="button" class="btn btn-primary btn-small" onclick="playDesignedBoard()"><i data-icon="playBoard"></i> Play this board</button>
         </div>
         <textarea id="bd-export" class="rules-export hidden" rows="3" readonly></textarea>
       </div>
@@ -235,7 +235,7 @@
       <!-- Always visible: the whole setup + Start -->
       <div class="setup-footer">
         <div class="setup-summary" id="setup-summary"></div>
-        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game ▶</button>
+        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game <i data-icon="startGame"></i></button>
       </div>
 
     </div>
@@ -246,12 +246,12 @@
   ═══════════════════════════════════════════════ -->
   <div id="lobby-screen" class="screen">
     <div class="lobby-container">
-      <h1 id="lobby-title">🎮 Hosting Game</h1>
+      <h1 id="lobby-title"><i data-icon="hosting"></i> Hosting Game</h1>
       <!-- How phones join (G11): scan, or type the address + Game ID -->
       <div class="lobby-join">
         <div id="lobby-qr" class="lobby-qr" aria-label="QR code to join"></div>
         <div class="lobby-join-text">
-          <div class="lobby-label">📱 Scan with a phone camera to join</div>
+          <div class="lobby-label"><i data-icon="phone"></i> Scan with a phone camera to join</div>
           <p class="lobby-or">or open <strong id="lobby-join-url">—</strong> and enter</p>
           <div class="lobby-label">Game ID</div>
           <div id="lobby-game-id" class="lobby-game-id-value">—</div>
@@ -262,17 +262,17 @@
       <!-- G17: someone at the table without a phone plays on this screen -->
       <form class="add-local-row" onsubmit="event.preventDefault(); addPhonelessPlayer('lobby-local-name')">
         <input id="lobby-local-name" type="text" maxlength="20" placeholder="No phone? Add a player by name" autocomplete="off">
-        <button type="submit" class="btn btn-secondary btn-small">➕ Add</button>
+        <button type="submit" class="btn btn-secondary btn-small"><i data-icon="addPlayer"></i> Add</button>
       </form>
       <div id="lobby-status" class="lobby-status">Waiting for players to join...</div>
       <button id="lobby-start-btn" class="btn btn-primary btn-large" disabled onclick="startNetworkGame()">
-        Start Game →
+        Start Game <i data-icon="forward"></i>
       </button>
       <div class="lobby-tv">
-        <button type="button" class="btn btn-secondary btn-small" onclick="openDisplay()">📺 Open TV display</button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openDisplay()"><i data-icon="tvDisplay"></i> Open TV display</button>
         <span class="lobby-hint">or on a smart TV open <strong id="lobby-display-url">—</strong></span>
       </div>
-      <button class="btn btn-secondary" style="margin-top:10px" onclick="cancelLobby()">← Back</button>
+      <button class="btn btn-secondary" style="margin-top:10px" onclick="cancelLobby()"><i data-icon="back"></i> Back</button>
     </div>
   </div>
 
@@ -284,7 +284,7 @@
 
       <!-- Network status strip (hidden in local mode) -->
       <div id="net-status-bar" class="hidden">
-        <span id="net-status-text">📡 Network Game</span>
+        <span id="net-status-text"><i data-icon="network"></i> Network Game</span>
         <span id="net-game-id-label"></span>
       </div>
 
@@ -310,19 +310,19 @@
 
         <!-- Zoom controls -->
         <div id="zoom-controls">
-          <button onclick="zoomOut()"   title="Zoom out">−</button>
+          <button onclick="zoomOut()"   title="Zoom out" aria-label="Zoom out"><i data-icon="zoomOut"></i></button>
           <span   id="zoom-label">100%</span>
-          <button onclick="zoomReset()" title="Fit to screen">⌂</button>
-          <button onclick="zoomIn()"    title="Zoom in">+</button>
+          <button onclick="zoomReset()" title="Fit to screen" aria-label="Fit to screen"><i data-icon="fitBoard"></i></button>
+          <button onclick="zoomIn()"    title="Zoom in" aria-label="Zoom in"><i data-icon="zoomIn"></i></button>
           <button onclick="togglePresentation()" class="zoom-present-btn"
-                  title="Presentation mode — full screen for a TV (P)">📺</button>
+                  title="Presentation mode — full screen for a TV (P)" aria-label="Presentation mode"><i data-icon="presentation"></i></button>
         </div>
 
         <!-- Presentation mode (G15): the only controls left on the TV -->
         <div id="present-controls">
           <button type="button" id="present-gm-btn" onclick="togglePresentGM()"
-                  title="GM controls, game log, manual dice" aria-pressed="false">⚙️</button>
-          <button type="button" onclick="exitPresentation()" title="Leave presentation mode (Esc)">✕</button>
+                  title="GM controls, game log, manual dice" aria-pressed="false" aria-label="GM controls"><i data-icon="gmControls"></i></button>
+          <button type="button" onclick="exitPresentation()" title="Leave presentation mode (Esc)" aria-label="Leave presentation mode"><i data-icon="close"></i></button>
         </div>
 
         <!-- Modal — absolute inside board-viewport so sidebar stays accessible -->
@@ -376,8 +376,8 @@
           <div id="timer-time">60</div>
           <div id="timer-main-controls">
             <button id="timer-startstop-btn" class="btn btn-primary btn-small"
-                    onclick="timerStartStop()">▶ Start</button>
-            <button class="btn btn-secondary btn-small" onclick="timerReset()">↺</button>
+                    onclick="timerStartStop()"><i data-icon="timerStart"></i> Start</button>
+            <button class="btn btn-secondary btn-small" onclick="timerReset()" title="Reset the timer" aria-label="Reset the timer"><i data-icon="timerReset"></i></button>
             <button class="btn btn-secondary btn-small" onclick="timerAdd(30)">+30s</button>
           </div>
           <div id="timer-presets">
@@ -397,25 +397,25 @@
         <div class="panel" id="history-panel">
           <button id="history-toggle" class="btn btn-secondary btn-small"
                   onclick="document.getElementById('history-content').classList.toggle('hidden')">
-            📜 Game Log
+            <i data-icon="gameLog"></i> Game Log
           </button>
           <div id="history-content" class="hidden">
             <div id="history-list"><div class="history-empty">No moves yet</div></div>
             <button id="undo-btn" class="btn btn-small btn-secondary"
                     style="width:100%;margin-top:6px" onclick="undoLastMove()" disabled>
-              ↺ Undo Last Move
+              <i data-icon="undoMove"></i> Undo Last Move
             </button>
           </div>
         </div>
 
         <!-- GM Controls -->
         <div class="panel" id="gm-panel">
-          <button id="gm-toggle" class="btn btn-secondary btn-small">⚙️ GM Controls</button>
+          <button id="gm-toggle" class="btn btn-secondary btn-small"><i data-icon="gmControls"></i> GM Controls</button>
           <div id="gm-controls" class="hidden">
             <h4>Player</h4>
             <div class="gm-player-row">
               <select id="gm-player-select"></select>
-              <button type="button" class="btn btn-secondary btn-small" onclick="gmChangeBadge()" title="Change this player's badge and colour">🎨</button>
+              <button type="button" class="btn btn-secondary btn-small" onclick="gmChangeBadge()" title="Change this player's badge and colour" aria-label="Change badge"><i data-icon="changeBadge"></i></button>
             </div>
             <h4>Adjust Score</h4>
             <div class="gm-score-controls">
@@ -433,9 +433,9 @@
               <button class="btn btn-small btn-secondary" onclick="gmMovePlayer(3)">+3</button>
             </div>
             <button class="btn btn-small btn-danger" style="width:100%;margin-top:4px"
-                    onclick="gmSkipTurn()">⏭ Skip Turn</button>
+                    onclick="gmSkipTurn()"><i data-icon="skipTurn"></i> Skip Turn</button>
             <button class="btn btn-small btn-secondary" style="width:100%;margin-top:4px"
-                    onclick="gmToggleSitOut()" title="Skip this player in turn order until toggled back">💤 Sit Out / Rejoin</button>
+                    onclick="gmToggleSitOut()" title="Skip this player in turn order until toggled back"><i data-icon="sitOut"></i> Sit Out / Rejoin</button>
 
             <!-- GM Network Players section -->
             <div id="gm-network-section" class="hidden">
@@ -443,12 +443,12 @@
               <div id="gm-network-list"></div>
               <form class="add-local-row" onsubmit="event.preventDefault(); addPhonelessPlayer('gm-local-name')">
                 <input id="gm-local-name" type="text" maxlength="20" placeholder="Player without a phone" autocomplete="off">
-                <button type="submit" class="btn btn-secondary btn-small" title="Add a player who plays on this screen">➕</button>
+                <button type="submit" class="btn btn-secondary btn-small" title="Add a player who plays on this screen" aria-label="Add player"><i data-icon="addPlayer"></i></button>
               </form>
               <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
-                      onclick="showJoinCode()">📱 Show join code</button>
+                      onclick="showJoinCode()"><i data-icon="showJoinCode"></i> Show join code</button>
               <button type="button" class="btn btn-secondary btn-small" style="width:100%;margin-top:6px"
-                      onclick="openDisplay()" title="A second screen with the board, scores and cards — no buttons">📺 Open TV display</button>
+                      onclick="openDisplay()" title="A second screen with the board, scores and cards — no buttons"><i data-icon="tvDisplay"></i> Open TV display</button>
             </div>
 
           </div><!-- /gm-controls -->
@@ -464,12 +464,12 @@
   ═══════════════════════════════════════════════ -->
   <div id="end-screen" class="screen">
     <div class="end-container">
-      <h1>🏆 Journey Complete!</h1>
+      <h1><i data-icon="trophy"></i> Journey Complete!</h1>
       <p id="end-screen-message">All players have reached the finish!</p>
       <div id="final-scores"></div>
       <div id="end-awards"></div>
       <div class="end-actions">
-        <button id="rematch-btn" class="btn btn-primary btn-large">🔁 Rematch</button>
+        <button id="rematch-btn" class="btn btn-primary btn-large"><i data-icon="rematch"></i> Rematch</button>
         <button id="play-again-btn" class="btn btn-secondary btn-large">New game setup</button>
       </div>
     </div>
@@ -498,6 +498,7 @@
        Top-level declarations are shared between these files; game.js is last. -->
   <script src="js/vendor/qrcode.js"></script>  <!-- QR codes for joining (MIT, Kazuhiko Arase) -->
   <script src="js/shared/utils.js"></script>
+  <script src="js/shared/icon-registry.js"></script>
   <script src="js/shared/icons-data.js"></script>
   <script src="js/shared/icons.js"></script>
   <script src="js/shared/config.js"></script>

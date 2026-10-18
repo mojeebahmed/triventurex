@@ -15,14 +15,14 @@ const CONFIG = {
   GAME: {
     engineName:   'Triventurex',
     editionName:  '',          // set by edition
-    editionIcon:  '🎯',
+    editionIcon:  'appLogo',   // an icon name (js/shared/icon-registry.js) or an emoji
     subtitle:     '',
     gameIdPrefix: 'TX',
     pointsName:   'pts',      // overridden by edition (e.g. 'Sawab', 'Goals')
     // Finish space and end-screen text — overridden by edition
     finishLabel:      'Finish',                       // name of the finish space on the board
-    finishCelebration: 'Well done! 🎉',               // body text in the finish modal
-    finishButtonLabel: '🎉 Celebrate!',               // button in the finish modal
+    finishCelebration: 'Well done!',                  // body text in the finish modal
+    finishButtonLabel: 'Celebrate!',                  // button in the finish modal (🎉 added when the label has no emoji)
     endScreenMessage:  'All players have reached the finish!', // subtitle on the end screen
   },
 
@@ -53,15 +53,16 @@ const CONFIG = {
   // Space type definitions — engine level.
   // Editions can override individual entries via EDITION_CONFIG.SPACE_INFO.
   // Colors here are neutral engine defaults; editions should override them.
+  // `icon` = an icon name (js/shared/icon-registry.js) or an emoji.
   SPACE_INFO: {
-    start:     { icon: '🚩', label: 'Start' },
-    finish:    { icon: '🏁', label: 'Finish' },
-    question:  { icon: '❓', label: 'Question',  color: '#3c8aef' },
-    action:    { icon: '🎬', label: 'Action',    color: '#9526c0' },
-    good_deed: { icon: '✅', label: 'Good', color: '#62ad65' },
-    bad_deed:  { icon: '❌', label: 'Bad',  color: '#ed5653' },
-    landmark:  { icon: '🌍', label: 'Landmark',  color: '#fbe092' },
-    skip:      { icon: '⏭', label: 'Skip',      color: '#9E9E9E' },
+    start:     { icon: 'tileStart',    label: 'Start' },
+    finish:    { icon: 'tileFinish',   label: 'Finish' },
+    question:  { icon: 'tileQuestion', label: 'Question',  color: '#3c8aef' },
+    action:    { icon: 'tileAction',   label: 'Action',    color: '#9526c0' },
+    good_deed: { icon: 'tileGoodDeed', label: 'Good', color: '#62ad65' },
+    bad_deed:  { icon: 'tileBadDeed',  label: 'Bad',  color: '#ed5653' },
+    landmark:  { icon: 'tileLandmark', label: 'Landmark',  color: '#fbe092' },
+    skip:      { icon: 'tileSkip',     label: 'Skip',      color: '#9E9E9E' },
   },
 
   // Engine-level colour fallbacks (overridden by active edition's COLORS block).
@@ -109,17 +110,18 @@ const CONFIG = {
    * In `text`: {n} = the value, {s} = "s" unless {n} is 1, {good} / {bad} /
    * {landmark} = the edition's space labels, {points} = its points name.
    * minRolls – roll awards need at least this many rolls per player.
+   * `icon` = an icon name (js/shared/icon-registry.js) or an emoji.
    */
   AWARDS: {
-    quizMaster:    { icon: '🧠', title: 'Quiz master',       text: '{n} question{s} right' },
-    performer:     { icon: '🎭', title: 'Star performer',    text: '{n} action{s} guessed' },
-    goodDeeds:     { icon: '😇', title: 'Do-gooder',         text: '{n} × {good}' },
-    badDeeds:      { icon: '😈', title: 'Trouble magnet',    text: '{n} × {bad}' },
-    explorer:      { icon: '🌍', title: 'Explorer',          text: '{n} × {landmark}' },
-    bigTurn:       { icon: '🚀', title: 'Big moment',        text: '+{n} {points} in one turn' },
-    luckyRoller:   { icon: '🍀', title: 'Lucky roller',      text: 'average roll {n}' },
-    unluckyRoller: { icon: '🐢', title: 'Unluckiest roller', text: 'average roll {n}' },
-    patience:      { icon: '⏳', title: 'Patience award',    text: '{n} turn{s} skipped' },
+    quizMaster:    { icon: 'awardQuizMaster', title: 'Quiz master',       text: '{n} question{s} right' },
+    performer:     { icon: 'awardPerformer', title: 'Star performer',    text: '{n} action{s} guessed' },
+    goodDeeds:     { icon: 'awardGoodDeeds', title: 'Do-gooder',         text: '{n} × {good}' },
+    badDeeds:      { icon: 'awardBadDeeds', title: 'Trouble magnet',    text: '{n} × {bad}' },
+    explorer:      { icon: 'awardExplorer', title: 'Explorer',          text: '{n} × {landmark}' },
+    bigTurn:       { icon: 'awardBigTurn', title: 'Big moment',        text: '+{n} {points} in one turn' },
+    luckyRoller:   { icon: 'awardLuckyRoller', title: 'Lucky roller',      text: 'average roll {n}' },
+    unluckyRoller: { icon: 'awardUnluckyRoller', title: 'Unluckiest roller', text: 'average roll {n}' },
+    patience:      { icon: 'awardPatience', title: 'Patience award',    text: '{n} turn{s} skipped' },
   },
   AWARD_MIN_ROLLS: 3,
 
@@ -143,9 +145,9 @@ const CONFIG = {
   // Action card kinds (actions.csv `kind` column). Shown on the host modal and
   // sent to the performer's phone with the card.
   ACTION_KINDS: {
-    act:     { icon: '🎭', label: 'Act it out',   rule: 'No words, no sounds — just actions.' },
-    explain: { icon: '💬', label: 'Explain it',   rule: "Describe it without saying the word(s) on the card." },
-    sound:   { icon: '🎵', label: 'Hum or sound', rule: 'Hum or make sounds — no words.' },
+    act:     { icon: 'actAct', label: 'Act it out',   rule: 'No words, no sounds — just actions.' },
+    explain: { icon: 'actExplain', label: 'Explain it',   rule: "Describe it without saying the word(s) on the card." },
+    sound:   { icon: 'actSound', label: 'Hum or sound', rule: 'Hum or make sounds — no words.' },
   },
 
   /**
@@ -231,14 +233,14 @@ const CONFIG = {
    */
   PLAYERS: {
     defaults: [
-      { name: 'Player 1', color: '#E53935', token: '🚀' },
-      { name: 'Player 2', color: '#1565C0', token: '⭐' },
-      { name: 'Player 3', color: '#2E7D32', token: '⚡' },
-      { name: 'Player 4', color: '#F9A825', token: '🎯' },
-      { name: 'Player 5', color: '#6A1B9A', token: '🏆' },
-      { name: 'Player 6', color: '#00838F', token: '🌙' },
-      { name: 'Player 7', color: '#BF360C', token: '🦋' },
-      { name: 'Player 8', color: '#37474F', token: '🎪' },
+      { name: 'Player 1', color: '#E53935', token: BADGES[0] },
+      { name: 'Player 2', color: '#1565C0', token: BADGES[1] },
+      { name: 'Player 3', color: '#2E7D32', token: BADGES[2] },
+      { name: 'Player 4', color: '#F9A825', token: BADGES[3] },
+      { name: 'Player 5', color: '#6A1B9A', token: BADGES[4] },
+      { name: 'Player 6', color: '#00838F', token: BADGES[5] },
+      { name: 'Player 7', color: '#BF360C', token: BADGES[6] },
+      { name: 'Player 8', color: '#37474F', token: BADGES[7] },
     ],
 
     colors: [
@@ -281,23 +283,7 @@ const CONFIG = {
       '#651FFF', // Electric Purple
     ],
 
-    tokens: [
-      // Existing
-      '🚀','⭐','⚡','🎯','🏆','🌙','🦋','🎪',
-      '🌟','🔥','💎','🎈','🦁','🐉','🌺','🎵',
-      // Fantasy / adventure
-      '🛡️','⚔️','🧭','🗺️','🏹','👑','🔮','🪄',
-      '🦅','🐺','🐯','🐻','🦄','🐢','🐬','🦊',
-      // Fun / playful
-      '🍀','🎲','🧩','🎨','🎮','🎤','🎸','🥇',
-      '🎊','🎁','🎀','🪁','🎂','🍉','🍕','🍩',
-      // Cosmic / magical
-      '☀️','🪐','🌈','☄️','🌌','❄️','💫','✨',
-      // Nature
-      '🌸','🌻','🌴','🍁','🌵','🌊','⛰️','🌋',
-      // Cute/simple
-      '🐼','🐸','🐵','🐧','🐞','🐙','🐝','🦜',
-    ],
+    tokens: BADGES,     // js/shared/icon-registry.js
   },
 
   // Bonus score for finishing order (index 0 = 1st to finish).

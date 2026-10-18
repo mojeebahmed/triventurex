@@ -13,7 +13,7 @@ function load() {
   const ctx = {};
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['js/shared/config.js', 'js/shared/players.js']) {
+  for (const f of ['js/shared/icon-registry.js', 'js/shared/config.js', 'js/shared/players.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
   }
   return ctx;

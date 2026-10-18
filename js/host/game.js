@@ -128,7 +128,7 @@ function _startNewGame({ gameId, players, gameLength, pathIndex, hostPlayerId = 
   });
   _enterGameScreen();
   saveGame();
-  if (first !== 0) showToast(`🎲 ${players[first].name} starts!`);
+  if (first !== 0) showToast(`${iconText('rolled')} ${players[first].name} starts!`);
 }
 
 /**

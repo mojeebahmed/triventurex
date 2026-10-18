@@ -87,7 +87,7 @@ function setMPMode(mode) {
   // Step ④ shows the local player list or the host's own player
   document.getElementById('local-players-section')?.classList.toggle('hidden', isHost);
   document.getElementById('host-player-section')?.classList.toggle('hidden', !isHost);
-  document.getElementById('start-game-btn').textContent = isHost ? 'Open lobby ▶' : 'Start Game ▶';
+  document.getElementById('start-game-btn').innerHTML = `${isHost ? 'Open lobby' : 'Start Game'} ${icon('startGame')}`;
   if (typeof updateSetupValues === 'function') updateSetupValues();
 
   if (isHost) {

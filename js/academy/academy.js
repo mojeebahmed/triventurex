@@ -124,7 +124,7 @@ function _filterChanged() {
 function _renderModeTabs() {
   document.getElementById('ac-modes').innerHTML = AC_MODES.map(m =>
     `<button type="button" role="tab" class="ac-mode-btn ${m.id === ac.mode ? 'active' : ''}" data-mode="${m.id}"
-             aria-selected="${m.id === ac.mode}" title="${esc(m.hint || '')}">${m.icon} ${esc(m.label)}</button>`).join('');
+             aria-selected="${m.id === ac.mode}" title="${esc(m.hint || '')}">${icon(m.icon)} ${esc(m.label)}</button>`).join('');
 }
 
 function showMode(id) {

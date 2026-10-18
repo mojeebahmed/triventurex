@@ -26,7 +26,7 @@ function makeUi(cards, general = []) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/host/ui.js']) {
+  for (const f of ['js/shared/utils.js', 'js/shared/icon-registry.js', 'js/shared/icons.js', 'js/shared/config.js', 'js/host/ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
   ctx.showToast = t => toasts.push(t); // ui.js defines its own; use the recorder

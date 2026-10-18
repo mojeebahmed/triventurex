@@ -188,7 +188,7 @@ function _skipTurn() {
   const player = _turnPlayer();
   player.skipNextTurn = false; // undo re-arms it — the snapshot was taken first
   showModal({
-    icon: '⏭', title: 'Turn Skipped',
+    icon: 'tileSkip', title: 'Turn Skipped',
     content: `<strong>${esc(player.name)}</strong> must skip this turn.`,
     actions: [{ label: 'OK', class: 'btn btn-primary', callback: () => {
       if (!_isStale(token)) _finishTurn({ outcome: 'skip' });
@@ -259,7 +259,7 @@ function _recordFinish(player, { announce = true } = {}) {
   addScore(player, bonus);
   if (announce) {
     const ordinal = ['1st','2nd','3rd'][state.finishCount - 1] || `${state.finishCount}th`;
-    showToast(`🏁 ${player.name} finished ${ordinal}! +${bonus} ${CONFIG.GAME?.pointsName ?? 'pts'}`, 3500);
+    showToast(`${iconText('tileFinish')} ${player.name} finished ${ordinal}! +${bonus} ${CONFIG.GAME?.pointsName ?? 'pts'}`, 3500);
   }
 }
 
@@ -320,7 +320,7 @@ function _finishTurn({ outcome = 'space' } = {}) {
     state.turnPhase = 'roll';
     refreshUI();
     highlightSpace(player.position);
-    updateCurrentPlayerDisplay(player, '🎲 Roll again — extra turn!');
+    updateCurrentPlayerDisplay(player, `${iconText('extraTurn')} Roll again — extra turn!`);
   } else {
     player.hasExtraTurn = false;
     endTurn();
@@ -427,7 +427,7 @@ function gmToggleSitOut() {
   const p = getGMSelectedPlayer();
   if (!p) return;
   p.inactive = !p.inactive;
-  showToast(p.inactive ? `💤 ${p.name} is sitting out` : `${p.name} is back in the game`);
+  showToast(p.inactive ? `${iconText('sittingOut')} ${p.name} is sitting out` : `${p.name} is back in the game`);
 
   // If it's their turn and they haven't rolled yet, pass the turn on now
   if (p.inactive && p === currentPlayer() && !state.turn) {

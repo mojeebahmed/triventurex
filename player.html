@@ -514,14 +514,14 @@
   ═══════════════════════════════ -->
   <div id="join-view" class="view active">
     <div style="text-align:center;padding:24px 0 16px">
-      <h1>🎯 Triventurex</h1>
+      <h1><i data-icon="appLogo"></i> Triventurex</h1>
       <p>Join a game on the same Wi-Fi</p>
     </div>
 
     <div class="card">
       <div id="badge-preview-wrap">
         <div class="player-badge" id="join-badge" onclick="openBadgePicker()" title="Tap to customize">
-          <span class="badge-emoji" id="join-badge-emoji">🌟</span>
+          <span class="badge-emoji" id="join-badge-emoji"></span>
           <span class="badge-initials" id="join-badge-initials"></span>
         </div>
         <span class="badge-hint">Tap badge to customize</span>
@@ -540,7 +540,7 @@
                inputmode="numeric" maxlength="4" spellcheck="false">
       </div>
 
-      <button class="btn btn-primary btn-full" onclick="joinGame()">Join Game →</button>
+      <button class="btn btn-primary btn-full" onclick="joinGame()">Join Game <i data-icon="forward"></i></button>
     </div>
   </div>
 
@@ -565,7 +565,7 @@
     </div>
 
     <!-- Changed your mind / wrong badge? Leave and join again (G21) -->
-    <button class="btn btn-secondary btn-full lobby-leave" onclick="leaveLobby()">← Leave · change name or badge</button>
+    <button class="btn btn-secondary btn-full lobby-leave" onclick="leaveLobby()"><i data-icon="back"></i> Leave · change name or badge</button>
   </div>
 
   <!-- ═══════════════════════════════
@@ -576,7 +576,7 @@
     <div class="game-header">
       <div class="own-badge-wrap">
         <div class="own-badge" id="game-own-badge">
-          <span class="badge-emoji" id="game-badge-emoji">🌟</span>
+          <span class="badge-emoji" id="game-badge-emoji"></span>
           <span class="badge-initials" id="game-badge-initials"></span>
         </div>
         <div>
@@ -613,7 +613,7 @@
       <!-- Card mode (space landed on) -->
       <div id="ab-card" class="ab-mode">
         <div class="ab-card-top">
-          <span class="ab-card-icon" id="ab-card-icon">❓</span>
+          <span class="ab-card-icon" id="ab-card-icon" data-icon="tileQuestion"></span>
           <span class="ab-card-type" id="ab-card-type"></span>
         </div>
         <div class="ab-card-title" id="ab-card-title"></div>
@@ -663,7 +663,7 @@
 
   <!-- Reconnecting overlay (shown while auto-rejoining after refresh) -->
   <div id="reconnecting-overlay">
-    <div class="reconnecting-spinner">🔄</div>
+    <div class="reconnecting-spinner" data-icon="reconnecting"></div>
     <div>Reconnecting to game...</div>
     <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;margin-top:8px"
             onclick="cancelRejoin()">Cancel</button>
@@ -672,7 +672,7 @@
   <!-- Host left overlay -->
   <div id="host-left-overlay">
     <div class="host-left-card">
-      <h2>🚪 Host Left</h2>
+      <h2><i data-icon="hostLeft"></i> Host Left</h2>
       <p id="host-left-msg">The host has ended the session.</p>
       <button class="btn btn-primary btn-full" onclick="leaveAndReset()">Back to Join</button>
     </div>
@@ -680,6 +680,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/shared/utils.js"></script>
+  <script src="js/shared/icon-registry.js"></script>
   <script src="js/shared/icons-data.js"></script>
   <script src="js/shared/icons.js"></script>
   <script src="js/shared/dice.js"></script>

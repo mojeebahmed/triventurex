@@ -69,7 +69,8 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `js/shared/edition.js` | Edition config merge + colours as CSS variables (host + TV) |
 | `js/shared/stats.js` | End-screen stats and awards from the game history (pure) |
 | `js/shared/questions.js` | Question tree / search / marked-questions report / topic keys (pure) |
-| `js/shared/icons.js`, `icons-data.js` | Emoji drawn as bundled Fluent Emoji Flat images, control glyphs as Lucide line icons — same look on every device; built by `npm run build:icons` from `scripts/icons.config.js` |
+| `js/shared/icon-registry.js` | Every engine icon by name (`lucide:…` for controls, `emoji:…` for game symbols) and the badge lists |
+| `js/shared/icons.js`, `icons-data.js` | `icon(name)` / `iconText(name)`, `data-icon` placeholders, content emoji drawn as bundled Fluent Emoji Flat images — built by `npm run build:icons` |
 | `js/shared/marks.js` | 🚩 marked questions + reviewed ticks in localStorage (host + Academy share them) |
 | `js/shared/academy.js` | Academy rounds: true/false items, match pairs, places quiz, flashcard sets, double-sided print sheets, text size for fixed cards, review stats (pure, tested) |
 | `js/academy/academy.js`, `modes.js` | Academy page: edition loading, shared filter, mode switching; the nine modes |

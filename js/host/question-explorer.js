@@ -73,15 +73,15 @@ function _qxItemHtml(q, mark) {
   const opts = q.opts?.length
     ? `<ol class="qx-opts">${q.opts.map((o, i) =>
         `<li class="${letters[i] === q.answer ? 'qx-correct' : ''}"><b>${letters[i]}</b> ${o}</li>`).join('')}</ol>` : '';
-  const answer = `<div class="qx-answer">✅ ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
+  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
   const editing = _qx.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${_qx.answers ? 'show-answers' : ''}" data-id="${q.id}">
-      <div class="qx-meta">#${q.id} · ${q.diff === 'hard' ? '🔵 Hard' : '🟢 Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}</div>
+      <div class="qx-meta">#${q.id} · ${icon(q.diff === 'hard' ? 'hard' : 'easy')} ${q.diff === 'hard' ? 'Hard' : 'Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}</div>
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${_qx.answers ? 'open' : ''}><summary>Answer</summary>${answer}</details>
-      ${mark && !editing ? `<div class="qx-mark">🚩 ${esc(mark.note || 'Marked')}</div>` : ''}
+      ${mark && !editing ? `<div class="qx-mark">${icon('marked')} ${esc(mark.note || 'Marked')}</div>` : ''}
       ${editing ? `
         <div class="qx-edit">
           <input type="text" class="qx-note-input" maxlength="300" value="${esc(mark?.note || '')}" placeholder="What's wrong? (optional)">
@@ -90,9 +90,9 @@ function _qxItemHtml(q, mark) {
         </div>` : `
         <div class="qx-actions">
           ${mark
-            ? `<button type="button" class="link-btn" data-action="edit">✏️ Edit note</button>
+            ? `<button type="button" class="link-btn" data-action="edit">${icon('editNote')} Edit note</button>
                <button type="button" class="link-btn" data-action="unmark">Unmark</button>`
-            : `<button type="button" class="link-btn" data-action="edit">🚩 Mark as wrong / unclear</button>`}
+            : `<button type="button" class="link-btn" data-action="edit">${icon('markQuestion')} Mark as wrong / unclear</button>`}
         </div>`}
     </div>`;
 }
@@ -108,9 +108,9 @@ function openAcademy() {
 function updateMarkedBadge() {
   const n = Object.keys(loadMarkedQuestions()).length;
   const badge = document.getElementById('qx-tab-badge');
-  if (badge) { badge.textContent = `🚩 ${n}`; badge.classList.toggle('hidden', !n); }
+  if (badge) { badge.innerHTML = `${icon('marked')} ${n}`; badge.classList.toggle('hidden', !n); }
   const sum = document.getElementById('qx-marked-summary');
-  if (sum) sum.textContent = n ? `🚩 ${n} marked in this edition` : 'No questions marked';
+  if (sum) sum.innerHTML = n ? `${icon('marked')} ${n} marked in this edition` : 'No questions marked';
 }
 
 /** Copy the marked questions (with notes) as text, to fix questions.csv. */
@@ -120,7 +120,7 @@ function copyMarkedQuestions() {
   box.value = text;
   box.classList.remove('hidden');
   box.select();
-  navigator.clipboard?.writeText(text).then(() => showToast('📋 Marked questions copied'), () => {});
+  navigator.clipboard?.writeText(text).then(() => showToast('Marked questions copied', undefined, 'copy'), () => {});
 }
 
 function clearMarkedQuestions() {
@@ -138,7 +138,7 @@ function reportQuestionHtml(q) {
   const mark = loadMarkedQuestions()[q.id];
   return `
     <details class="q-report" data-host-only ${mark ? 'open' : ''}>
-      <summary>${mark ? '🚩 Reported' : '🚩 Report this question'}</summary>
+      <summary>${icon('markQuestion')} ${mark ? 'Reported' : 'Report this question'}</summary>
       <div class="q-report-row">
         <input type="text" id="q-report-note" maxlength="300" value="${esc(mark?.note || '')}" placeholder="What's wrong? (optional)">
         <button type="button" class="btn btn-secondary btn-small" onclick="reportQuestion(${Number(q.id)})">${mark ? 'Update' : 'Save'}</button>
@@ -149,9 +149,9 @@ function reportQuestionHtml(q) {
 function reportQuestion(id) {
   markQuestion(id, document.getElementById('q-report-note')?.value || '');
   const box = document.querySelector('.q-report');
-  if (box) box.querySelector('summary').textContent = '🚩 Reported';
+  if (box) box.querySelector('summary').innerHTML = `${icon('markQuestion')} Reported`;
   updateMarkedBadge();
-  showToast('🚩 Question reported — see Setup › 📚 Questions');
+  showToast('Question reported — see Setup › Questions', undefined, 'marked');
 }
 
 // ── Wiring ──────────────────────────────────────────────────────────────────────

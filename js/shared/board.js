@@ -24,7 +24,7 @@ const DIR_VECTORS = {
   right: [ 0,  1],
 };
 
-const DIR_ARROWS = { right: '→', left: '←', up: '↑', down: '↓' };
+const DIR_ICONS = { right: 'dirRight', left: 'dirLeft', up: 'dirUp', down: 'dirDown' };   // js/shared/icon-registry.js
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,16 +63,16 @@ function _deedLabel(card) {
   const effectTag = {
     score_add:              `+${n} ${pts}`,
     score_remove:           `−${n} ${pts}`,
-    move_forward:           `▶ Move forward ${n}`,
-    move_back:              `◀ Move back ${n}`,
-    move_to_landmark:       `📍 Go to: ${card.landmark}`,
-    move_to_next_landmark:  lm ? `📍 Advance to ${lm}` : `📍 Advance to next landmark`,
-    move_to_prev_landmark:  lm ? `📍 Back to ${lm}`    : `📍 Back to previous landmark`,
-    skip_turn:              `⏭ Skip next turn`,
-    extra_turn:             `🎲 Roll again!`,
-    all_players_gain:       `🌟 Everyone +${n} ${pts}`,
-    all_players_lose:       `⚡ Everyone −${n} ${pts}`,
-    protection:             `🛡️ Next bad deed cancelled`,
+    move_forward:           `${iconText('moveForward')} Move forward ${n}`,
+    move_back:              `${iconText('moveBack')} Move back ${n}`,
+    move_to_landmark:       `${iconText('goToLandmark')} Go to: ${card.landmark}`,
+    move_to_next_landmark:  `${iconText('goToLandmark')} ${lm ? `Advance to ${lm}` : 'Advance to next landmark'}`,
+    move_to_prev_landmark:  `${iconText('goToLandmark')} ${lm ? `Back to ${lm}` : 'Back to previous landmark'}`,
+    skip_turn:              `${iconText('tileSkip')} Skip next turn`,
+    extra_turn:             `${iconText('extraTurn')} Roll again!`,
+    all_players_gain:       `${iconText('everyoneGain')} Everyone +${n} ${pts}`,
+    all_players_lose:       `${iconText('everyoneLose')} Everyone −${n} ${pts}`,
+    protection:             `${iconText('protection')} Next bad deed cancelled`,
   }[card.effect] || '';
   const text = fillLandmarkText(card.text, lm);
   return effectTag ? `${effectTag}\n${text}` : text;
@@ -587,12 +587,12 @@ function createSpaceElement(space, players) {
   } else if (!isDeed && !hasLandmarkImage) {
     const iconEl = document.createElement('div');
     iconEl.className   = 'space-icon';
-    iconEl.textContent = info.icon;
+    iconEl.innerHTML   = icon(info.icon) || esc(info.icon ?? '');
     el.appendChild(iconEl);
   } else if (isDeed && !space.text) {
     const iconEl = document.createElement('div');
     iconEl.className   = 'space-icon';
-    iconEl.textContent = info.icon;
+    iconEl.innerHTML   = icon(info.icon) || esc(info.icon ?? '');
     el.appendChild(iconEl);
   }
 
@@ -611,7 +611,7 @@ function createSpaceElement(space, players) {
   if (space.nextDir) {
     const arrowEl = document.createElement('div');
     arrowEl.className   = `space-arrow space-arrow--${space.nextDir}`;
-    arrowEl.textContent = DIR_ARROWS[space.nextDir];
+    arrowEl.innerHTML = icon(DIR_ICONS[space.nextDir]);
     el.appendChild(arrowEl);
   }
 

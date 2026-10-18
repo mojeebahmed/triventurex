@@ -28,7 +28,7 @@ function makeUi(ruleChanges = {}, { phone = false } = {}) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['js/shared/utils.js', 'js/shared/config.js', 'js/shared/players.js',
+  for (const f of ['js/shared/utils.js', 'js/shared/icon-registry.js', 'js/shared/icons.js', 'js/shared/config.js', 'js/shared/players.js',
                    'js/shared/rules.js', 'js/host/ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
@@ -267,7 +267,8 @@ describe('answering on the phone (G3)', () => {
       u.ctx.showSpaceModal({ type: 'question' }, u.player, () => {});
       assert.equal(u.asked.length, 0);
       assert.doesNotMatch(last(u.modals).content, /Waiting for/);
-      assert.equal(last(u.modals).actions[0].label, '👁 Reveal Answer');
+      assert.equal(last(u.modals).actions[0].label, 'Reveal Answer');
+      assert.equal(last(u.modals).actions[0].icon, 'reveal');
     }
   });
 });
