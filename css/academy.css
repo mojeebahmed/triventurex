@@ -168,16 +168,17 @@ body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
 
 /* ── Print cards ─────────────────────────────────────────────────────────────────
    Fixed sizes in mm, so every card — and every fold line — is the same.
-   Double-sided: A4 pages of 2 × 4 cards (90 × 62 mm); the next page holds the
+   Double-sided: A4 pages of 2 × 4 cards (90 × 62 mm, 6 mm apart); the next page holds the
    answers, each row mirrored, so they land behind their questions when
    printed on both sides (flip on the long edge).
    Fold-over: 2 × 2 cards of 90 × 124 mm, folded exactly in the middle. */
 .ac-sheet {
-  width: 210mm; min-height: 297mm; margin: 0 auto 18px; padding: 12mm 15mm; background: #fff;
+  width: 210mm; min-height: 297mm; margin: 0 auto 18px; padding: 10mm 12mm; background: #fff;
   box-shadow: 0 2px 12px rgba(0,0,0,.15);
 }
-.ac-sheet-label { font-size: .75rem; color: var(--text-muted); margin: -6mm 0 3mm; }
-.ac-sheet-grid { display: grid; grid-template-columns: 90mm 90mm; grid-auto-rows: 62mm; gap: 0; justify-content: center; }
+.ac-sheet-label { font-size: .75rem; color: var(--text-muted); margin: -6mm 0 2mm; }
+/* 6 mm between cards, so each can be cut on its own border: 12 + 90 + 6 + 90 + 12 = 210 mm wide; 4 × 62 + 3 × 6 = 266 mm tall */
+.ac-sheet-grid { display: grid; grid-template-columns: 90mm 90mm; grid-auto-rows: 62mm; gap: 6mm; justify-content: center; }
 .ac-sheet.fold .ac-sheet-grid { grid-auto-rows: 124mm; }
 .ac-print-card {
   height: 62mm; overflow: hidden; padding: 4mm 5mm; border-radius: 3mm; box-shadow: none;
