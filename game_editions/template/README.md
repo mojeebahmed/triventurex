@@ -10,7 +10,7 @@ Starter folder for a new Triventurex edition.
 4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js` / `actions.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
 5. Add your edition to `game_editions/editions.js`.
 
-**Icons:** set the icons your edition changes in one `ICONS` block in `config.js` — `tileGoodDeed: '⚽'`, `awardExplorer: '🏟️'`. Every other icon is the engine's. The names are listed (with what each is for) in `js/shared/icon-registry.js`. A value is an emoji, `'<set>:<icon>'` (e.g. `'lucide:trophy'`, any installed Iconify set), or `'file:icons/my-icon.svg'` for your own picture in the edition folder (SVG or PNG, square). `npm run check:content` reports unknown names and missing files; `npm run build:icons` bundles new line icons.
+**Icons:** set the icons your edition changes in one `ICONS` block in `config.js` — `tileGoodDeed: '⚽'`, `awardExplorer: '🏟️'`. Every other icon is the engine's. The names are listed (with what each is for) in `js/shared/icon-registry.js`. A value is an emoji, `'<set>:<icon>'` (e.g. `'lucide:trophy'`, any installed Iconify set), or `'file:icons/my-icon.svg'` for your own picture in the edition folder (`.svg`, `.png`, `.jpg` or `.webp`, square). A `'<set>:<icon>'` set must be installed (`npm i -D @iconify-json/<set>`). `npm run check:content` reports unknown names, bad values and missing files; `npm run build:icons` bundles new line icons. To try icons before choosing, open `/tools/icon-picker.html` (with `node server.js` running) — it gives you the `ICONS` block to paste. Phones get the edition's icons and words from the host, so they match the board.
 
 `config.js` already has the standard board mix (`SPACE_DISTRIBUTION`, Swab Quest's values). For landmark photos, `node scripts/commons-image.js` finds free-licence photos on Wikimedia Commons and saves them cropped (800×600) with their credit; the whole process, with content targets, is in [`../IDEAS.md`](../IDEAS.md).
 
@@ -39,7 +39,7 @@ Found a wrong or unclear question while playing? Use 🚩 on the question card o
 |---|---|
 | `type` | `good` or `bad` |
 | `text` | Card text read aloud. `{landmark}` is replaced by the landmark the card moves to. |
-| `effect`, `value`, `landmark` | The card's effect (see below) |
+| `effect`, `value`, `landmark` | The card's effect (see below). The `landmark` columns are optional — only the old `move_to_landmark` effect uses them, so most editions leave them out. |
 | `effect_2/3`, `value_2/3`, `landmark_2/3` | Optional alternatives. One effect is picked at random each game. |
 | `mood` | Optional flavour tag (blessing, social, challenge, reflection, funny, risk…) |
 
@@ -50,7 +50,7 @@ Found a wrong or unclear question while playing? Use 🚩 on the question card o
 | `score_add` / `score_remove` | points gained / lost |
 | `move_forward` / `move_back` | spaces moved |
 | `move_to_next_landmark` / `move_to_prev_landmark` | which landmark: 1 = nearest ahead / behind, 2 = the one after, … (needs `LANDMARKS` in config.js) |
-| `move_to_landmark` | ignored. Put the exact landmark name from `LANDMARKS` in the `landmark` column. |
+| `move_to_landmark` | ignored. Put the exact landmark name from `LANDMARKS` in the `landmark` column. Old style — still works, but no edition uses it; prefer the next / previous landmark effects. |
 | `skip_turn` | ignored (use 0). The player skips their next turn. |
 | `extra_turn` | ignored (use 0). The player rolls again. |
 | `all_players_gain` / `all_players_lose` | points for every player |

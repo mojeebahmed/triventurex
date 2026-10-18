@@ -1,6 +1,6 @@
 # Triventurex — Design Document
 
-_Last updated: 2026-10-17 (version 2.2.0)_
+_Last updated: 2026-10-19 (version 2.2.0 + unreleased work)_
 
 > **For AI assistants / new contributors:** Start here for context, then read `CLAUDE.md` for the authoritative architecture reference and `README.md` for gameplay and setup instructions. `CHANGELOG.md` lists what changed in each release.
 
@@ -14,7 +14,7 @@ A family/group board game engine where players roll dice, move along a path, and
 - **Quiz questions** — Easy (+1 pt) or Hard (+2 pt) by default, chosen by the player; in a network game answered on the player's phone
 - **Action cards** — act it out / explain it / hum it; performer and guesser both earn points. In a network game the card is shown only on the performer's phone
 - **Good/Bad deed cards** — Randomly assigned effects (move forward/back, score, skip turn, etc.)
-- **Landmarks** — Visual stops with photos and descriptions; points set by the rules (+5 by default when landing by a roll)
+- **Landmarks** — Visual stops with photos and descriptions; points set by the rules (+3 by default when landing by a roll)
 
 **Winner = most points when all players reach the finish.** The end screen adds per-player stats and fun awards.
 
@@ -43,7 +43,8 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 - **Client:** Vanilla HTML + CSS + JavaScript — no framework, no build step. Plain `<script>` files, not ES modules, so `index.html` also works opened from disk
 - **Server (V2):** Node.js + Express + Socket.IO
 - **Content:** CSV files (loaded via `fetch()`) with generated JS fallbacks for offline/`file://` use (`npm run build:content`)
-- **Tests:** Node's built-in test runner (`npm test`, ~390 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
+- **Tests:** Node's built-in test runner (`npm test`, ~440 tests), no test framework; one third-party client library, vendored: `js/vendor/qrcode.js` (MIT)
+- **Icons:** Lucide line icons for controls and Fluent Emoji Flat images for game symbols, bundled into the repo by `npm run build:icons` (dev dependencies only — nothing is loaded from the internet while playing)
 
 ### Pages
 
@@ -56,7 +57,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 
 ### Key files
 
-`js/` is grouped by who loads a file: `shared/` (no page access at load; used by several of host page, phone page, TV page, server, tests), `host/` (index.html only), `player/` (player.html only), `display/` (display.html only), `vendor/` (third-party, don't edit).
+`js/` is grouped by who loads a file: `shared/` (no page access at load; used by several of host page, phone page, TV page, server, tests), `host/` (index.html only), `player/` (player.html only), `display/` (display.html only), `academy/` (academy.html only), `vendor/` (third-party, don't edit).
 
 | File | Responsibility |
 |---|---|
@@ -69,7 +70,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `js/shared/edition.js` | Edition config merge + colours as CSS variables (host + TV) |
 | `js/shared/stats.js` | End-screen stats and awards from the game history (pure) |
 | `js/shared/questions.js` | Question tree / search / marked-questions report / topic keys (pure) |
-| `js/shared/icon-registry.js` | Every engine icon by name (`lucide:…` for controls, `emoji:…` for game symbols) and the badge lists |
+| `js/shared/icon-registry.js` | Every engine icon by name (`ICONS`: `lucide:…` for controls, `emoji:…` for game symbols), `ICON_OVERRIDES` (engine swaps that keep the original), and the badge pickers' `BADGES` + `BADGE_COLORS` (host and phones) |
 | `js/shared/icons.js`, `icons-data.js` | `icon(name)` / `iconText(name)`, `data-icon` placeholders, content emoji drawn as bundled Fluent Emoji Flat images — built by `npm run build:icons` |
 | `js/shared/marks.js` | 🚩 marked questions + reviewed ticks in localStorage (host + Academy share them) |
 | `js/shared/academy.js` | Academy rounds: true/false items, match pairs, places quiz, flashcard sets, double-sided print sheets, text size for fixed cards, review stats (pure, tested) |
@@ -81,7 +82,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `js/shared/utils.js` | `esc()` — HTML escaping for anything a player can type |
 | `js/host/game.js` | Shared game `state`; start / resume / rematch / reset a game; bootstrap (loaded last) |
 | `js/host/turn-flow.js` | The turn pipeline, undo, GM controls |
-| `js/host/net-host.js` | Host side of network play: lobby, QR, state sync, socket events, private cards, phone prompts, players without a phone, TV display feed |
+| `js/host/net-host.js` | Host side of network play: lobby (with the edition banner), QR, state sync (incl. the edition details for phones), socket events, private cards, phone prompts, players without a phone, TV display feed |
 | `js/host/ui.js` | Modals (question, deed, action, landmark), scoreboard, legend, timer, history, end screen |
 | `js/host/setup.js`, `setup-flow.js`, `board-picker.js`, `badge-picker.js`, `category-filter.js` | Setup screen: player rows, the step-by-step New game tab, board thumbnails, badge picker, topic tree |
 | `js/host/rules-panel.js` | ⚙️ Rules tab; `gameRules()` — the only way host code reads rules |
@@ -90,7 +91,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `js/host/presentation.js` | 📺 Presentation mode (full screen on one screen) |
 | `js/host/edition-loader.js` | Edition loading, edition picker, branding |
 | `js/host/storage.js` | localStorage: saved game, preferences, custom boards, marked questions |
-| `js/player/player.js` | Phone screen logic: join, action box, answering, session management |
+| `js/player/player.js` | Phone screen logic: join, action box, answering, session management; the edition's words, icons and banner from the host |
 | `js/display/display.js` | TV display logic |
 | `game_editions/editions.js` | Edition registry — lists all available editions |
 | `game_editions/<id>/config.js` | Edition config: name, colours, landmarks, background, space / score / award overrides |
@@ -98,7 +99,8 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `game_editions/shared/actions.csv` | General action cards mixed into every edition (`GENERAL_ACTIONS_DATA`; ids become `g<n>` in the deck) |
 | `game_editions/IDEAS.md` | Ideas for new editions, content targets, how an edition is built |
 | `server.js` | Rooms, authoritative dice, relays (host → phones, phone → host, host → TV); state-ownership rules at the top |
-| `scripts/` | Node-only dev tooling: content build + checker, `commons-image.js` for Wikimedia Commons photos, `review-sheet.js` for a printable question review (not served) |
+| `scripts/` | Node-only dev tooling: content build + checker, icon bundler (`build-icons.js`, `icons.config.js`), `commons-image.js` for Wikimedia Commons photos, `review-sheet.js` for a printable question review (not served) |
+| `tools/icon-picker.html` | Try other icons for the engine or an edition; copies the list of changes to apply (changes no file) |
 | `tools/path-designer.html` | Older standalone path designer (the ✏️ Boards tab replaces it) |
 | `test/` | Automated tests (`npm test`) |
 
@@ -156,7 +158,7 @@ Every rule has a default in code (engine or edition). The **⚙️ Rules** tab c
 
 | Section | Rules (default) |
 |---|---|
-| Scoring | Question points easy/hard (1/2) · action performer/guesser (1/1) · finish bonus Standard 10/7/5… / Small 5/3/2/1 / Off · landmark points by roll (+5), via good deed (0), via bad deed (0) · negative scores (off) |
+| Scoring | Question points easy/hard (1/2) · action performer/guesser (1/1) · finish bonus Standard 10/7/5… / Small 5/3/2/1 / Off · landmark points by roll (+3), via good deed (0), via bad deed (0) · negative scores (off) |
 | Questions | Difficulty: player chooses / always easy / always hard · timer auto-start (off) + seconds (30) · avoid repeats: across games / per game · players answer on their phone (on) · topics |
 | Action cards | Digital or physical deck (a digital card can always be swapped) · add the general cards (on) · kinds: act / explain / sound · timer (90 s) |
 | Board | Tile mix per type (0 removes it; presets; special tiles capped at 70%) · deed effects varied / first · no going backwards |
@@ -212,6 +214,7 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
   GM controls panel                  own badge + score                  dice, timer, open card
   all V1 functionality               others' scores, "You're next"      lobby QR, final awards
   rolls for itself + no-phone seats  dice → rolled → card → activity    read-only
+  lobby: edition banner              edition words, icons + banner
 ```
 
 **Ownership model:**
@@ -227,12 +230,13 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 - **`turn_result` before `space_card_done`** — activity feed updates before card clears
 - **Private cards** — `private_card` goes from the host to ONE phone only (action cards, questions, results). With `choices` it's a prompt: the phone answers with `card_choice`, which reaches the host only, with the player id taken from the socket; the host accepts only the prompt it is waiting for
 - **TX_NET forwards only listed events** — a new server → page event must be added to the list in socket-client.js (a test checks it)
+- **Edition on phones** — the phone page loads no edition: the host sends `edition: { name, icon, pointsName, finishLabel, icons, labels, board }` with `host_game` and every `sync_state`; the server cleans it (`cleanEdition`) and passes it on in `joined`, `rejoined` and `state_update`. Phone text uses the edition's words, never a fixed "pts"
 - **Room lifecycle** — closed when the host clicks *New game setup* on the end screen / leaves the lobby, 5 min after the game ends, or 30 min after the host disconnects without coming back
 
 ### Session persistence
 
 - **Identity** (`triventurex_player_identity`): name, token, colour — pre-fills on next join (and adopts a badge the host gave this phone)
-- **Session** (`triventurex_game_session`): `{ gameId, playerId, rejoinToken }` — auto-rejoin on any reconnect. A `?game=` link (QR) is read once and removed from the address, so a refresh rejoins instead of re-applying an old link
+- **Session** (`triventurex_game_session`): `{ gameId, playerId, token }` (the rejoin token) — auto-rejoin on any reconnect. A `?game=` link (QR) is read once and removed from the address, so a refresh rejoins instead of re-applying an old link
 - **Host** (`tx_net_game`): gameId — re-registers host socket after browser refresh
 
 ### Action box modes (player screen)
@@ -261,6 +265,7 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 | `triventurex_player_identity` | Player name/token/colour on player device (V2) |
 | `triventurex_game_session` | Rejoin token + game/player IDs on player device (V2) |
 | `tx_net_game` | Host's active network game ID for host-rejoin after refresh (V2) |
+| `triventurex_icon_picker` | `tools/icon-picker.html`: the icon changes being tried (dev tool only) |
 
 ---
 
@@ -343,6 +348,10 @@ Browse every question by category › subcategory › topic, search, filter by d
 
 A learning page next to the game, one edition at a time (switching edition reloads the page with `?edition=<id>`; the mode is the `#hash`). One filter (topic tree, difficulty, search) feeds every question mode. The rounds are built by `js/shared/academy.js` (pure); the page is `js/academy/`. 🚩 marks and reviewer ticks live in `js/shared/marks.js`, so a mark made in the Academy shows in the game's 📚 Questions tab in the same browser. Opened from disk the page works the same — the edition's `config.js` and `questions.js` are loaded as plain scripts.
 
+### Icon picker (`tools/icon-picker.html`)
+
+Open via the server (`/tools/icon-picker.html`). Lists every icon name with its purpose and current icon, for the engine or one edition; search other icon sets (needs the internet) and try them. It changes no file — it gives the lines to apply (`ICON_OVERRIDES`, an edition's `ICONS` block, `scripts/icons.config.js`), then run `npm run build:icons`.
+
 ### Path Designer (`tools/path-designer.html`)
 
 The older standalone version of the ✏️ Boards tab. It needs to be served (it loads `js/shared/config.js`): with `node server.js` running, open `http://localhost:3000/tools/path-designer.html`.
@@ -351,6 +360,7 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 
 - `npm run build:content [edition]` — checks every edition's CSV files and regenerates the JS copies
 - `npm run check:content` — check only; also fails if a generated file is out of date (`npm test` runs the same checks)
+- `npm run build:icons` / `check:icons` — bundle (or check) the icons named in the registry and editions' `ICONS`, and the emoji used in content
 
 ---
 
@@ -364,7 +374,7 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 - **Football Quest subcategories/topics** — currently flat; could add `Clubs / International / History` structure
 
 ### Medium-term
-- **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour and Animal Safari are done)
+- **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour, Animal Safari and Prophets' Stories are done)
 - **Team mode** — two teams share a token; questions alternate between team members
 - **Timer penalty** — losing points when the question timer runs out
 - **Mobile layout improvements** — board tiles larger on phones; better touch handling
@@ -389,4 +399,5 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 | More landmarks | 2026-06-03 | Swab Quest: 6 → 20 landmarks; Football Quest: 6 → 20 stadiums/venues |
 | Code review & hardening (2.1) | 2026-10-16/17 | 18 bugs fixed; one turn pipeline; host/server state ownership; `game.js` split into `js/shared/host/player`; content build + checker; digital action cards; ~200 automated tests |
 | Gameplay & play experience (2.2) | 2026-10-17 | Setup screen with tabs, rules panel + presets, board picker, QR join, answering on phones, players without a phone, presentation mode, TV display, end-screen stats + awards, question explorer + reporting, board designer; ~310 tests — details in `CHANGELOG.md` |
-| World Tour, Animal Safari + shared actions (unreleased) | 2026-10-17/18 | World Tour and Animal Safari editions (220 questions each); Prophets' Stories (in review); topic filter keyed by full path; World Tour edition (220 questions, 56 deeds, 26 wonders with Commons photos); 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |
+| New editions + shared actions (unreleased) | 2026-10-17/18 | World Tour and Animal Safari editions (220 questions, 56 deeds, 26 landmarks with Commons photos each); Prophets' Stories (in review); topic filter keyed by full path; 40 general action cards for every edition; landmark points 3; Rules tab action bar; `scripts/commons-image.js`; board test covers every registered edition |
+| Academy, icons, phones (unreleased) | 2026-10-18/19 | 🎓 Triventurex Academy (nine modes, print cards); Fluent Emoji + Lucide icons used by name, edition `ICONS` blocks, `ICON_OVERRIDES` + icon picker; phones show the same badges and colours as the host and the edition's words, icons and banner; host lobby banner; ~440 tests |

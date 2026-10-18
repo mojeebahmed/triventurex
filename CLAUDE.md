@@ -43,11 +43,13 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `test/action-cards.test.js` — drawing/showing action cards
 - `test/ui-rules.test.js` — the space modals follow the game's rules (points, timer, difficulty, answering on the phone)
 - `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
-- `test/html-structure.test.js` — every `<div>` in index.html / player.html is closed and the screens are top-level (a missing `</div>` once hid the board)
+- `test/html-structure.test.js` — every `<div>` in index.html / player.html / academy.html is closed, the host screens are top-level (a missing `</div>` once hid the board), and academy.html loads only shared + academy scripts
+- `test/icons.test.js` — icons: `icon()` / `iconText()`, edition → `ICON_OVERRIDES` → `ICONS` lookup, valid registry, host and phones offer the same badges + colours, no raw emoji/icon symbols in engine code, every icon name used exists, bundles up to date, every page loads the icon scripts in order
+- `test/academy.test.js` — Academy rounds (js/shared/academy.js) + every edition gives each mode content
 - `test/socket-events.test.js` — every `TX_NET.on('…')` event is in socket-client.js's forward list
 - `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
 - `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
-- Run `npm test` before merging any change (it takes ~3 s)
+- Run `npm test` before merging any change (it takes ~5 s)
 
 ## Key files
 `js/` is grouped by who loads a file (plus `js/vendor/` for third-party libraries):
@@ -102,6 +104,7 @@ Player page, TV page, Academy + server:
 - `display.html` + `js/display/display.js` — TV display (read-only)
 - `server.js` — rooms, dice rolling, relays host → phones / phone → host / host → TV (ownership rules at the top)
 - `js/vendor/qrcode.js` — qrcode-generator (MIT, Kazuhiko Arase) — third-party, don't edit
+- `tools/icon-picker.html` — try other icons for the engine or an edition, copy the list of changes (see *Icons*); `tools/path-designer.html` — older standalone board-path designer
 
 Content:
 - `game_editions/editions.js` — edition registry (loaded via `<script>` in index.html)
@@ -168,7 +171,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 ## Architecture — V2 (don't revert)
 - **Escaping**: any player-supplied value (name, token, colour) inserted via innerHTML/template MUST go through `esc()`. Not needed for `textContent` (toasts, button labels, modal titles). Server also cleans profiles on join (`cleanProfile`: name ≤20, token ≤8 code points, hex-only colour)
-- **Static files**: server.js serves an allowlist only (`/`, `/player`, `css/ js/ game_editions/ images/ tools/`). New top-level client folder → add it to `PUBLIC_DIRS`
+- **Static files**: server.js serves an allowlist only (`/`, `/player`, `/display`, `/academy`, `css/ js/ game_editions/ images/ tools/`). New top-level client folder → add it to `PUBLIC_DIRS`
 - **Offline fallback**: `index.html` dynamically loads `/socket.io/socket.io.js`; `onerror` leaves V1 untouched
 - **Authority**: Host (`game.js`) runs all game logic; server relays state via `sync_state` → `state_update`
 - **Dice**: server rolls (authoritative); player taps → `roll` event → server generates → broadcasts `roll_result`
@@ -222,7 +225,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
 - Four pages: host (`index.html`), phones (`player.html`), TV (`display.html`), 🎓 Academy (`academy.html`)
-- ~390 tests (`npm test`)
+- ~440 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
 - `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)

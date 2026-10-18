@@ -85,6 +85,8 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 
 ## 1. Animal Safari 🦁
 
+**Built** (`game_editions/animal-safari/`; what was decided is in its `OUTLINE.md`). The idea below was the starting point.
+
 *Merges Gemini's "Wild Kingdom".*
 
 **Pitch:** an expedition through the world's habitats, from the savannah to the Arctic.
@@ -126,6 +128,8 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 ---
 
 ## 3. World Tour 🌍
+
+**Built** (`game_editions/world-tour/`; what was decided is in its `OUTLINE.md`). The idea below was the starting point.
 
 *Merges Gemini's "Global Trekker".*
 
@@ -315,6 +319,8 @@ Each edition is built on its own branch (`feat/edition-<id>`) in five steps. Cla
 ---
 
 ## 16. Prophets' Stories (Kids) 🕌
+
+**Built** as *Prophets' Stories* (`game_editions/prophets-stories/`, in review): 8 eras of prophets instead of the categories below, Ahmadiyya understanding; decisions in its `OUTLINE.md`. The idea below was the starting point.
 
 **Pitch:** a kid-level journey through the stories of the prophets, for families who play Swab Quest.
 **Categories:** stories of the prophets (80), the Prophet Muhammad's (saw) life (50), Islamic manners & worship (50), the Qur'an for kids (40).

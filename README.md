@@ -57,12 +57,13 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~430, a few seconds): server, turn flow, board generation, rules, stats, content
+npm test                  # all tests (~440, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
 node scripts/review-sheet.js <edition>                 # printable question review sheet (REVIEW.md) for someone without the game
 npm run build:icons                                    # bundle the icons the game uses (names in js/shared/icon-registry.js; emoji in content) — run after adding one
+npm run check:icons                                    # check only: fails if the bundled icons are out of date
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
@@ -89,6 +90,9 @@ Triventurex/
 │   ├── shared/                   No page access at load time; used by more than one place
 │   │   ├── config.js             ← All engine settings (start here)
 │   │   ├── utils.js              esc(): HTML escaping for player-supplied text
+│   │   ├── icon-registry.js      Every icon by name (ICONS, ICON_OVERRIDES) + badges and badge colours
+│   │   ├── icons.js              icon() / iconText(), data-icon placeholders, emoji → bundled images
+│   │   ├── icons-data.js         Generated: bundled line icons (npm run build:icons)
 │   │   ├── players.js            Player model: create, move, score, sort
 │   │   ├── turn.js               Pure turn logic: next player, undo snapshots, history rows
 │   │   ├── csv.js                CSV parsing for questions / deeds / action cards
@@ -99,6 +103,8 @@ Triventurex/
 │   │   ├── edition.js            Edition config merge + colours (host + TV display)
 │   │   ├── stats.js              End-screen stats + awards
 │   │   ├── questions.js          Question tree / search / marked-questions report
+│   │   ├── marks.js              🚩 Marked questions + reviewed ticks (host page and Academy)
+│   │   ├── academy.js            Academy rounds, flashcard sets, print sheets
 │   │   ├── path-design.js        Drawing board paths (✏️ Boards tab)
 │   │   └── socket-client.js      TX_NET: Socket.IO layer, safe no-ops when offline
 │   ├── host/                     Host page only
@@ -121,12 +127,16 @@ Triventurex/
 │   │   └── player.js             Phone screen logic
 │   ├── display/
 │   │   └── display.js            TV display logic
+│   ├── academy/
+│   │   ├── academy.js            Academy page: edition, filter, mode switching
+│   │   └── modes.js              The Academy's nine modes
 │   └── vendor/
 │       └── qrcode.js             QR codes for joining (qrcode-generator, MIT — don't edit)
 │
 ├── css/styles.css                All styling (colours driven by edition config)
-├── images/                       Setup screen game-length illustrations
-├── scripts/                      Node-only dev tooling: content build + checker, Wikimedia Commons image tool (not served)
+├── css/academy.css               Academy page styling
+├── images/                       Setup screen game-length illustrations; emoji/ = bundled Fluent Emoji images
+├── scripts/                      Node-only dev tooling: content build + checker, icon bundler, review sheet, Wikimedia Commons image tool (not served)
 ├── tools/icon-picker.html        Try other icons for the engine or an edition → a list of changes to apply
 ├── tools/path-designer.html      Older standalone board path designer (the ✏️ Boards tab replaces it)
 ├── test/                         Automated tests (npm test)
@@ -201,7 +211,7 @@ Engine-level settings only. Edition values live in `game_editions/<id>/config.js
 | `SPACE_INFO` | Icon, label, colour per space type |
 | `ACTION_KINDS` | Action card kinds (act / explain / sound): icon, label, rule |
 | `RULE_PRESETS` | Rule presets for the rules panel (Family, Kids, Quiz night) |
-| `PLAYERS` | Default names, colours, tokens; picker palette |
+| `PLAYERS` | Default names, colours, badges (the picker's badges and colours: `BADGES`, `BADGE_COLORS` in `js/shared/icon-registry.js`) |
 | `FINISH_BONUS` | Score bonus for finishing order |
 | `SCORE_VALUES` | Points for questions, actions, landmarks (every label in the game reads these) |
 | `ZOOM` | Max zoom-in (200%), zoom-out factor |
@@ -361,7 +371,7 @@ id,text,kind,note
 7. After rolling, your phone shows the die result while the GM resolves the space on the host screen.
 8. **Questions are answered on your phone**: tap Easy or Hard, then tap A / B / C. The host scores it automatically and both screens show the right answer. Open questions appear on your phone too; say the answer out loud and the GM judges it. (The GM can still answer for you on the host. Rule: *Rules → Questions → Players answer on their phone*.)
 9. Your phone then shows your space card. **Action cards appear only on the performer's phone** ("🤫 Only you can see this"). The host screen shows it only if the GM taps *show card*.
-10. The activity feed on your phone shows what happened (score gained/lost, movements, etc.).
+10. The activity feed on your phone shows what happened (score gained/lost, movements, etc.). Phones use the edition's words, icons and tile names (e.g. *Goals*, *Good Play*), and the lobby and game screens show the edition, game length and board — as does the host's lobby.
 11. **📺 TV display**: in the lobby (or *GM controls*) click **📺 Open TV display** and drag the window to the TV (or open the shown address on a smart TV). The TV shows the lobby QR code, then the board, tokens, scoreboard, dice, timer and the open card — never an unrevealed answer or an action card. The laptop keeps all the controls.
 12. If your phone screen turns off and back on, it reconnects and resumes automatically. If the host refreshes, phones show "host disconnected" until the host is back.
 13. The GM can click a specific die face on the host screen to use a physical dice result instead of rolling digitally.
@@ -414,6 +424,8 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 
 ### Unreleased (2026-10)
 - **🎓 Triventurex Academy** (academy.html): explore, flashcards, quiz, match, true or false, speed round, places, print cards and a reviewer mode
+- **Icons**: Fluent Emoji (game symbols) and Lucide (controls) everywhere, used by name; editions change icons in one `ICONS` block; `tools/icon-picker.html` to try other icons
+- **Phones**: the same badges and colours as the host; the edition's words, icons and tile names; an edition banner on the phone and host lobby
 - **World Tour** 🌍, **Animal Safari** 🦁 and **Prophets' Stories** 📖 editions; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
 
 ### Future ideas
@@ -433,5 +445,5 @@ Decided against (2026-10): endgame pacing rules (the GM can move a player or set
 
 - **Emoji**: [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (Flat), MIT License — bundled in `images/emoji/` (licence in `images/emoji/LICENSE.txt`)
 - **Control icons**: [Lucide](https://lucide.dev), ISC License — bundled in `js/shared/icons-data.js`
-- **Landmark photos**: Wikimedia Commons — authors and licences in each edition's `CREDITS.md`
+- **Landmark photos** (World Tour, Animal Safari, Prophets' Stories): Wikimedia Commons — authors and licences in each edition's `CREDITS.md`
 - **QR codes**: qrcode-generator by Kazuhiko Arase, MIT License (`js/vendor/qrcode.js`)
