@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Every path on this page is relative to the game's root folder -->
+<base href="../">
+<title>Icon picker — Triventurex</title>
+<!--
+  tools/icon-picker.html — a developer tool: try other icons for the names in
+  js/shared/icon-registry.js (engine) or an edition's ICONS block, then copy a
+  short list of changes to apply (by hand or by asking Claude).
+
+  Lists every icon name with what it is for and what it looks like now. Picking
+  another icon needs the internet (search and previews come from the Iconify API
+  and the emoji sets' CDNs); the game itself stays offline. Nothing here changes
+  a file. Choices are remembered in this browser until you clear them.
+
+  Open it from the running server (http://localhost:3000/tools/icon-picker.html)
+  to see each name's purpose; opened from disk it still works, grouped by kind.
+-->
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #6b7280; --border: #dfe3ea;
+    --accent: #2e7d32; --accent-soft: #e8f5e9; --edition: #8e24aa; --changed: #e65100;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header {
+    position: sticky; top: 0; z-index: 2; background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 16px;
+  }
+  header h1 { font-size: 1.05rem; margin: 0 8px 0 0; }
+  select, input, button { font: inherit; }
+  select, input[type=text], input[type=search] {
+    padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text);
+  }
+  button {
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hint { color: var(--muted); font-size: .85rem; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 16px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin: 18px 0 6px; }
+  h2:first-child { margin-top: 0; }
+  .row { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 4px; }
+  .row.changed { border-color: var(--changed); }
+  .row-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px; cursor: pointer; }
+  .ic { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .ic img, .ic svg { width: 24px; height: 24px; }
+  .ic .tx-icon { display: inline-flex; }
+  .name { font-family: ui-monospace, monospace; font-weight: 600; min-width: 140px; }
+  .note { color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .val { font-family: ui-monospace, monospace; font-size: .8rem; color: var(--muted); }
+  .tag { font-size: .7rem; padding: 1px 6px; border-radius: 10px; color: #fff; background: var(--edition); }
+  .tag.chg { background: var(--changed); }
+  .arrow { color: var(--changed); font-weight: 700; }
+
+  .editor { border-top: 1px solid var(--border); padding: 10px; display: grid; gap: 10px; }
+  .editor label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  .line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; }
+  .cand {
+    width: 52px; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; padding: 2px;
+  }
+  .cand:hover, .cand.on { border-color: var(--accent); background: var(--accent-soft); }
+  .cand img, .cand svg { width: 28px; height: 28px; }
+  .cand small { font-size: .6rem; color: var(--muted); max-width: 48px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  aside { position: sticky; top: 64px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  aside h3 { margin: 0 0 6px; font-size: .95rem; }
+  aside textarea {
+    width: 100%; height: 340px; font: 12px/1.45 ui-monospace, monospace; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px; resize: vertical; background: #fafbfc;
+  }
+  aside .line { margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Icon picker</h1>
+  <label>Change icons for
+    <select id="target"></select>
+  </label>
+  <input type="search" id="filter" placeholder="Filter names…">
+  <select id="show">
+    <option value="all">All</option>
+    <option value="line">Line icons</option>
+    <option value="emoji">Emoji</option>
+    <option value="changed">Changed / edition</option>
+  </select>
+  <span class="hint">Click a row to try other icons. Keep overrides few.</span>
+</header>
+
+<main>
+  <section id="list"></section>
+  <aside>
+    <h3>Changes</h3>
+    <div class="hint">Copy this list and apply it — or paste it to Claude. Then <code>npm run build:icons</code>.</div>
+    <textarea id="out" readonly></textarea>
+    <div class="line">
+      <button class="primary" id="copy">Copy</button>
+      <button id="clear">Clear all</button>
+      <span class="hint" id="copied"></span>
+    </div>
+  </aside>
+</main>
+
+<script src="js/shared/utils.js"></script>
+<script src="js/shared/icon-registry.js"></script>
+<script src="js/shared/icons-data.js"></script>
+<script src="js/shared/icons.js"></script>
+<script src="js/shared/edition.js"></script>
+<script src="game_editions/editions.js"></script>
+<script>
+// icon() looks up CONFIG.EDITION_ICONS first — set to the chosen edition's icons
+const CONFIG = { EDITION_ICONS: null };
+
+const API = 'https://api.iconify.design';
+const LINE_SETS = [['lucide', 'Lucide'], ['ph', 'Phosphor'], ['tabler', 'Tabler']];
+// The same emoji drawn by other sets (by code points) — pinned versions
+const EMOJI_SETS = [
+  ['fluent-emoji-flat', 'Fluent', null],   // the game's set (bundled images)
+  ['twemoji',  'Twemoji',  k => `https://cdn.jsdelivr.net/gh/jdecked/twemoji@v15.1.0/assets/svg/${k}.svg`],
+  ['noto',     'Noto',     k => `https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v2.047/svg/emoji_u${k.replace(/-/g, '_')}.svg`],
+  ['openmoji', 'OpenMoji', k => `https://cdn.jsdelivr.net/npm/openmoji@15.1.0/color/svg/${k.toUpperCase()}.svg`],
+];
+const LS_KEY = 'triventurex_icon_picker';
+
+// ── State ───────────────────────────────────────────────────────────────────────
+
+const editionIconsRaw = {};          // edition id → its ICONS block as written
+let meta = {};                       // name → { group, note } (from the registry source, when served)
+let saved = { changes: {}, emojiSets: {} };   // changes[target][name] = value as written in that file ('' = remove)
+try { Object.assign(saved, JSON.parse(localStorage.getItem(LS_KEY)) || {}); } catch {}
+const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(saved)); } catch {} };
+
+let target = 'engine';
+let open = null;                     // the expanded row's name
+let fluentChars = null;              // fluent-emoji-flat icon name → emoji (from the API, for search results)
+
+const $ = id => document.getElementById(id);
+const isEngine = () => target === 'engine';
+const changesFor = t => (saved.changes[t] ||= {});
+
+// ── Loading ─────────────────────────────────────────────────────────────────────
+
+function loadScript(src) {
+  return new Promise(res => { const s = document.createElement('script'); s.src = src; s.onload = s.onerror = res; document.head.appendChild(s); });
+}
+
+async function loadEditions() {
+  for (const ed of window.TRIVENTUREX_EDITIONS || []) {
+    window.EDITION_CONFIG = null;
+    await loadScript(`game_editions/${ed.id}/config.js`);
+    editionIconsRaw[ed.id] = window.EDITION_CONFIG?.ICONS || {};
+  }
+}
+
+/** Groups and purposes from the registry's comments (only when served — file:// can't fetch). */
+async function loadMeta() {
+  try {
+    const src = await (await fetch('js/shared/icon-registry.js')).text();
+    let group = '';
+    for (const line of src.slice(0, src.indexOf('const BADGES')).split('\n')) {
+      const h = line.match(/\/\/ ── (.+?) ─/);
+      if (h) { group = h[1]; continue; }
+      const m = line.match(/^\s+(\w+):\s*'[^']*',?\s*(?:\/\/\s*(.*))?$/);
+      if (m) meta[m[1]] = { group, note: m[2] || '' };
+    }
+  } catch { meta = {}; }
+}
+
+// ── Values ──────────────────────────────────────────────────────────────────────
+
+/** A value as written in the target's file → a registry entry ('emoji:…', 'set:name', 'url:…'). */
+function toEntry(value) {
+  if (!value) return null;
+  return isEngine() ? (/^[a-z0-9-]+:/.test(value) ? value : `emoji:${value}`) : editionIcons({ x: value }, target).x;
+}
+
+/** A registry entry → how the target's file writes it. */
+function toValue(entry) {
+  if (isEngine()) return entry;
+  return entry.startsWith('emoji:') ? entry.slice(6) : entry;
+}
+
+const glyphOf = entry => entry?.startsWith('emoji:') ? entry.slice(6) : null;
+
+/** The entry a name has now in the target (before this page's changes). */
+function currentEntry(name) {
+  if (isEngine()) return ICONS[name];
+  const raw = editionIconsRaw[target][name];
+  return raw ? editionIcons({ x: raw }, target).x : ICONS[name];
+}
+
+function installedSets() {
+  const s = new Set(['lucide', 'fluent-emoji-flat']);
+  for (const id of Object.keys(TX_ICON_DATA.ui)) s.add(id.split(':')[0]);
+  return s;
+}
+
+/** HTML for an entry — bundled when we have it, else from the internet. */
+function preview(entry) {
+  if (!entry) return '';
+  const g = glyphOf(entry);
+  if (g) {
+    const set = EMOJI_SETS.find(s => s[0] === saved.emojiSets[g]);
+    return set?.[2] ? `<img src="${set[2](glyphKey(g))}" alt="${esc(g)}">` : emojiHtml(g);
+  }
+  if (entry.startsWith('url:')) return `<img src="${esc(entry.slice(4))}" alt="">`;
+  if (TX_ICON_DATA.ui[entry]) return `<span class="tx-icon">${TX_ICON_DATA.ui[entry]}</span>`;
+  const [p, n] = entry.split(':');
+  return `<img src="${API}/${esc(p)}/${esc(n)}.svg" alt="">`;
+}
+
+// ── List ────────────────────────────────────────────────────────────────────────
+
+function render() {
+  CONFIG.EDITION_ICONS = isEngine() ? null : editionIcons(editionIconsRaw[target], target);
+  const q = $('filter').value.trim().toLowerCase();
+  const show = $('show').value;
+  const ch = changesFor(target);
+  const groups = new Map();
+  for (const name of Object.keys(ICONS)) {
+    const cur = currentEntry(name);
+    const fromEdition = !isEngine() && name in editionIconsRaw[target];
+    const changed = name in ch || !!saved.emojiSets[glyphOf(cur)];
+    if (q && !name.toLowerCase().includes(q) && !(meta[name]?.note || '').toLowerCase().includes(q)) continue;
+    if (show === 'line' && glyphOf(cur)) continue;
+    if (show === 'emoji' && !glyphOf(cur)) continue;
+    if (show === 'changed' && !changed && !fromEdition) continue;
+    const group = meta[name]?.group || (glyphOf(ICONS[name]) ? 'Game symbols (emoji)' : 'Controls (line icons)');
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push(rowHtml(name, cur, fromEdition, ch));
+  }
+  $('list').innerHTML = [...groups].map(([g, rows]) => `<h2>${esc(g)}</h2>${rows.join('')}`).join('') ||
+    '<p class="hint">No icon names match.</p>';
+  if (open) fillEditor(open);
+  renderOut();
+}
+
+function rowHtml(name, cur, fromEdition, ch) {
+  const has = name in ch;
+  const next = has ? (ch[name] ? toEntry(ch[name]) : ICONS[name]) : null;
+  return `<div class="row ${has ? 'changed' : ''}" data-name="${name}">
+    <div class="row-head" onclick="toggle('${name}')">
+      <span class="ic">${preview(cur)}</span>
+      ${has ? `<span class="arrow">→</span><span class="ic">${preview(next)}</span>` : ''}
+      <span class="name">${name}</span>
+      <span class="note">${esc(meta[name]?.note || '')}</span>
+      ${fromEdition ? '<span class="tag">edition</span>' : ''}
+      ${has ? '<span class="tag chg">changed</span>' : ''}
+      <span class="val">${esc(has ? (ch[name] || '(engine)') : toValue(cur))}</span>
+    </div>
+    ${open === name ? '<div class="editor" id="editor"></div>' : ''}
+  </div>`;
+}
+
+function toggle(name) { open = open === name ? null : name; render(); }
+
+// ── Editor (one row at a time) ──────────────────────────────────────────────────
+
+function fillEditor(name) {
+  const box = $('editor');
+  if (!box) return;
+  const cur = currentEntry(name);
+  const ch = changesFor(target);
+  const g = glyphOf(cur);
+  // start the search from the name's words (tileSkip → "skip") or the line icon's own name
+  const nameWords = name.replace(/^(tile|award|act|rules|mode|history)(?=[A-Z])/, '').replace(/([a-z])([A-Z0-9])/g, '$1 $2');
+  const search = g ? nameWords : (cur.split(':')[1] || nameWords).replace(/-\d+$/, '').replace(/-/g, ' ');
+  box.innerHTML = `
+    <div>
+      <label>Use instead — ${isEngine() ? 'an emoji, or <code>lucide:name</code> / <code>ph:name</code> / any Iconify set'
+        : 'an emoji, <code>set:name</code>, or a picture in the edition folder (<code>file:icons/x.svg</code>)'}</label>
+      <div class="line">
+        <input type="text" id="ed-value" size="28" value="${esc(name in ch ? ch[name] : toValue(cur))}">
+        <button class="primary" onclick="setValue('${name}', $('ed-value').value.trim())">Use</button>
+        ${name in ch ? `<button onclick="undo('${name}')">Undo change</button>` : ''}
+        ${!isEngine() && name in editionIconsRaw[target] && ch[name] !== '' ? `<button onclick="setValue('${name}', '')">Use the engine's icon</button>` : ''}
+      </div>
+    </div>
+    ${g ? `<div>
+      <label>The same emoji in another set — changes <b>every</b> ${esc(g)} in the game (scripts/icons.config.js)</label>
+      <div class="grid">${EMOJI_SETS.map(([id, label, url]) => `
+        <div class="cand ${(saved.emojiSets[g] || 'fluent-emoji-flat') === id ? 'on' : ''}" onclick="setEmojiSet('${esc(g)}', '${id}')" title="${label}">
+          ${url ? `<img src="${url(glyphKey(g))}" alt="" onerror="this.replaceWith('—')">` : emojiHtml(g)}<small>${label}</small>
+        </div>`).join('')}</div>
+    </div>` : ''}
+    <div>
+      <label>Search ${g ? 'Fluent emoji' : 'line icons'} (needs the internet)</label>
+      <div class="line">
+        <input type="search" id="ed-search" size="24" value="${esc(search.toLowerCase())}">
+        ${g ? '' : LINE_SETS.map(([p, l]) => `<label style="display:inline;margin:0"><input type="checkbox" class="ed-set" value="${p}" ${p !== 'tabler' ? 'checked' : ''}> ${l}</label>`).join(' ')}
+        <button onclick="runSearch('${name}', ${!!g})">Search</button>
+      </div>
+      <div class="grid" id="ed-results" style="margin-top:6px"></div>
+    </div>`;
+  $('ed-value').onkeydown = e => { if (e.key === 'Enter') setValue(name, e.target.value.trim()); };
+  $('ed-search').onkeydown = e => { if (e.key === 'Enter') runSearch(name, !!g); };
+  runSearch(name, !!g);
+}
+
+async function runSearch(name, emoji) {
+  const out = $('ed-results');
+  const q = $('ed-search').value.trim();
+  if (!out || !q) return;
+  const prefixes = [...document.querySelectorAll('.ed-set:checked')].map(c => c.value);
+  out.innerHTML = '<span class="hint">Searching…</span>';
+  try {
+    let items;
+    if (emoji) {                                   // emoji: match every word against all Fluent emoji names
+      await loadFluentChars();
+      const words = q.toLowerCase().split(/\s+/);
+      items = Object.keys(fluentChars)
+        .filter(n => !/-(light|medium-light|medium|medium-dark|dark)$/.test(n) && words.every(w => n.includes(w))).slice(0, 64)
+        .map(n => ({ id: `fluent-emoji-flat:${n}`, glyph: fluentChars[n] }));
+    } else {
+      const r = await (await fetch(`${API}/search?query=${encodeURIComponent(q)}&prefixes=${prefixes.join(',')}&limit=64`)).json();
+      items = (r.icons || []).map(id => ({ id }));
+    }
+    const svgs = await svgsFor(items.map(i => i.id));
+    if ($('ed-search')?.value.trim() !== q) return;   // a newer search is running
+    out.innerHTML = items.map(i => {
+      const [p, n] = i.id.split(':');
+      const value = emoji ? toValue(`emoji:${i.glyph}`) : toValue(i.id);
+      return `<div class="cand" title="${esc(i.id)}" onclick="setValue('${name}', '${esc(value)}')">
+        ${svgs[i.id] || '?'}<small>${esc(emoji ? n : `${p === 'lucide' ? '' : p + ':'}${n}`)}</small></div>`;
+    }).join('') || '<span class="hint">Nothing found — try another word.</span>';
+    if (emoji) {
+      const now = Object.keys(fluentChars).find(n => fluentChars[n] === glyphOf(currentEntry(name)));
+      if (now) out.insertAdjacentHTML('afterbegin', `<div class="hint" style="width:100%">Now: <code>${esc(now)}</code></div>`);
+    }
+  } catch {
+    out.innerHTML = '<span class="hint">Search needs the internet (api.iconify.design).</span>';
+  }
+}
+
+/** SVGs for icon ids ('set:name'), one API request per set (not one per icon). */
+async function svgsFor(ids) {
+  const bySet = {};
+  for (const id of ids) { const [p, n] = id.split(':'); (bySet[p] ||= []).push(n); }
+  const out = {};
+  await Promise.all(Object.entries(bySet).map(async ([p, names]) => {
+    const d = await (await fetch(`${API}/${p}.json?icons=${names.join(',')}`)).json();
+    for (const n of names) {
+      const ic = d.icons?.[n] || d.icons?.[d.aliases?.[n]?.parent];
+      if (ic) out[`${p}:${n}`] = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 ${ic.width ?? d.width ?? 16} ${ic.height ?? d.height ?? 16}">${ic.body}</svg>`;
+    }
+  }));
+  return out;
+}
+
+/** fluent-emoji-flat names → emoji, so a search result becomes an emoji (not a picture). */
+async function loadFluentChars() {
+  if (fluentChars) return;
+  const r = await (await fetch(`${API}/collection?prefix=fluent-emoji-flat&chars=1`)).json();
+  fluentChars = {};
+  for (const [cp, n] of Object.entries(r.chars || {})) {
+    const g = String.fromCodePoint(...cp.split('-').map(h => parseInt(h, 16)));
+    if (!fluentChars[n] || g.length < fluentChars[n].length) fluentChars[n] = g;
+  }
+}
+
+function setValue(name, value) {
+  const ch = changesFor(target);
+  const now = toValue(currentEntry(name));
+  if (value === now) delete ch[name]; else ch[name] = value;
+  save(); render();
+}
+function undo(name) { delete changesFor(target)[name]; save(); render(); }
+function setEmojiSet(glyph, set) {
+  if (set === 'fluent-emoji-flat') delete saved.emojiSets[glyph]; else saved.emojiSets[glyph] = set;
+  save(); render();
+}
+
+// ── The list of changes ─────────────────────────────────────────────────────────
+
+function renderOut() {
+  const lines = [];
+  const needSets = new Set();
+  const have = installedSets();
+  const pad = n => (n + ':').padEnd(17);
+  for (const [t, ch] of Object.entries(saved.changes)) {
+    const names = Object.keys(ch).filter(n => n in ICONS);
+    if (!names.length) continue;
+    if (t === 'engine') {
+      lines.push('// js/shared/icon-registry.js — replace these lines in ICONS');
+      for (const n of names) lines.push(`  ${pad(n)}'${ch[n]}',   // was ${ICONS[n]}`);
+    } else {
+      const ed = (window.TRIVENTUREX_EDITIONS || []).find(e => e.id === t);
+      lines.push(`// game_editions/${t}/config.js — ICONS block (${ed?.name || t})`);
+      for (const n of names) {
+        lines.push(ch[n] === '' ? `    // remove ${n} (use the engine's icon)` : `    ${pad(n)}'${ch[n]}',`);
+      }
+    }
+    for (const n of names) {
+      const v = ch[n];
+      const p = /^([a-z0-9-]+):/.exec(v)?.[1];
+      if (p && !['emoji', 'file', 'url'].includes(p) && !have.has(p)) needSets.add(p);
+    }
+    lines.push('');
+  }
+  const sets = Object.entries(saved.emojiSets);
+  if (sets.length) {
+    lines.push('// scripts/icons.config.js — emoji.overrides (every use of these emoji)');
+    for (const [g, s] of sets) { lines.push(`    '${g}': '${s}',`); if (!have.has(s)) needSets.add(s); }
+    lines.push('');
+  }
+  if (lines.length) {
+    if (needSets.size) lines.push(`npm i -D ${[...needSets].map(s => '@iconify-json/' + s).join(' ')}`);
+    lines.push('npm run build:icons');
+  }
+  $('out').value = lines.join('\n') || '// No changes yet.';
+}
+
+// ── Start ───────────────────────────────────────────────────────────────────────
+
+(async () => {
+  await Promise.all([loadEditions(), loadMeta()]);
+  $('target').innerHTML = '<option value="engine">The engine (every edition)</option>' +
+    (window.TRIVENTUREX_EDITIONS || []).map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  $('target').onchange = e => { target = e.target.value; open = null; render(); };
+  $('filter').oninput = render;
+  $('show').onchange = render;
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText($('out').value); $('copied').textContent = 'Copied'; }
+    catch { $('out').select(); document.execCommand('copy'); $('copied').textContent = 'Copied'; }
+    setTimeout(() => { $('copied').textContent = ''; }, 1500);
+  };
+  $('clear').onclick = () => {
+    if (!confirm('Clear every change on this page?')) return;
+    saved = { changes: {}, emojiSets: {} }; save(); open = null; render();
+  };
+  render();
+})();
+</script>
+</body>
+</html>

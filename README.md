@@ -68,7 +68,7 @@ npm run build:icons                                    # bundle the icons the ga
 - **`CHANGELOG.md`**: what changed, release by release
 - **`TRIVENTUREX-DESIGN.md`**: design decisions and how the pieces fit together
 - **`game_editions/IDEAS.md`**: ideas for new editions, content targets per edition, and how an edition is built
-- **Icons**: an edition changes icons in one `ICONS` block in its `config.js` (`tileGoodDeed: '⚽'`) — see `game_editions/template/README.md`. Engine code uses icons by name — `icon('undo')`, `<i data-icon="undo"></i>` — from `js/shared/icon-registry.js` (Lucide line icons for controls, Fluent Emoji Flat for game symbols). New icon: add a name there and run `npm run build:icons`. Details in `CLAUDE.md` → Icons
+- **Icons**: an edition changes icons in one `ICONS` block in its `config.js` (`tileGoodDeed: '⚽'`) — see `game_editions/template/README.md`. Engine code uses icons by name — `icon('undo')`, `<i data-icon="undo"></i>` — from `js/shared/icon-registry.js` (Lucide line icons for controls, Fluent Emoji Flat for game symbols). New icon: add a name there and run `npm run build:icons`. To try other icons, open `/tools/icon-picker.html`. Details in `CLAUDE.md` → Icons
 - **`CLAUDE.md`**: detailed architecture rules and invariants (also the brief for AI assistants)
 
 ---
@@ -127,6 +127,7 @@ Triventurex/
 ├── css/styles.css                All styling (colours driven by edition config)
 ├── images/                       Setup screen game-length illustrations
 ├── scripts/                      Node-only dev tooling: content build + checker, Wikimedia Commons image tool (not served)
+├── tools/icon-picker.html        Try other icons for the engine or an edition → a list of changes to apply
 ├── tools/path-designer.html      Older standalone board path designer (the ✏️ Boards tab replaces it)
 ├── test/                         Automated tests (npm test)
 │
