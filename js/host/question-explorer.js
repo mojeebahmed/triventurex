@@ -99,6 +99,11 @@ function _qxItemHtml(q, mark) {
 
 // ── Marked list ─────────────────────────────────────────────────────────────────
 
+/** Open Triventurex Academy (academy.html) for the active edition in a new tab. */
+function openAcademy() {
+  window.open(`academy.html?edition=${encodeURIComponent(getActiveEditionId() || '')}`, '_blank', 'noopener');
+}
+
 /** Tab badge + footer line: how many questions are marked in this edition. */
 function updateMarkedBadge() {
   const n = Object.keys(loadMarkedQuestions()).length;

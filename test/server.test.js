@@ -739,7 +739,8 @@ function rawGet(pathname) {
 }
 
 describe('static files', () => {
-  for (const p of ['/', '/index.html', '/player', '/player.html', '/js/host/game.js', '/js/shared/utils.js',
+  for (const p of ['/', '/index.html', '/player', '/player.html', '/academy', '/academy.html', '/js/academy/modes.js',
+                   '/js/host/game.js', '/js/shared/utils.js',
                    '/css/styles.css', '/game_editions/editions.js',
                    '/game_editions/swab-quest/questions.csv', '/images/game-length-short.png']) {
     it(`serves ${p}`, async () => {

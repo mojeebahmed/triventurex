@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
+  <title>Triventurex Academy</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/academy.css">
+</head>
+<body class="academy">
+
+  <!-- Triventurex Academy: learn an edition's questions and places before playing.
+       One edition at a time; works opened from disk and from the server (/academy). -->
+  <header class="ac-top">
+    <div class="ac-brand">🎓 Triventurex Academy</div>
+    <label class="ac-edition" title="Which edition to learn — the page reloads with it">
+      <select id="ac-edition" class="settings-select"></select>
+    </label>
+    <span class="ac-spacer"></span>
+    <a class="btn btn-secondary btn-small" href="index.html">🎲 Play the game</a>
+  </header>
+
+  <nav id="ac-modes" class="ac-modes" role="tablist"></nav>
+
+  <div class="ac-body">
+    <!-- One filter for every question mode (Places ignores it) -->
+    <aside id="ac-side" class="ac-side">
+      <details id="ac-filter" class="ac-filter" open>
+        <summary>🔎 Choose what to learn <span id="ac-filter-summary" class="ac-filter-summary"></span></summary>
+        <input id="ac-search" type="search" placeholder="Search questions, answers or #id…" autocomplete="off">
+        <select id="ac-diff" class="settings-select">
+          <option value="all">Easy + hard</option><option value="easy">🟢 Easy</option><option value="hard">🔵 Hard</option>
+        </select>
+        <nav id="ac-tree" class="ac-tree"></nav>
+      </details>
+    </aside>
+    <main id="ac-main" class="ac-main"></main>
+  </div>
+
+  <textarea id="ac-export" class="rules-export hidden" rows="8" readonly></textarea>
+
+  <script src="game_editions/editions.js"></script>
+  <script src="js/shared/utils.js"></script>
+  <script src="js/shared/config.js"></script>
+  <script src="js/shared/edition.js"></script>
+  <script src="js/shared/questions.js"></script>
+  <script src="js/shared/marks.js"></script>
+  <script src="js/shared/academy.js"></script>
+  <script src="js/academy/academy.js"></script>
+  <script src="js/academy/modes.js"></script>
+</body>
+</html>

@@ -52,6 +52,7 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `index.html` | Host (laptop) | Setup screen (tabs: 🎲 New game · ⚙️ Rules · 📚 Questions · ✏️ Boards), lobby, game screen with GM controls, end screen. Works offline (single device) or as the network host |
 | `player.html` (`/player`) | Phones | Join (QR or Game ID), lobby, one action box: roll, answer, private cards, activity feed |
 | `display.html` (`/display?game=ID`) | TV / second screen | Read-only: lobby QR, board, tokens, scoreboard, dice, timer, open card, final scores and awards |
+| `academy.html` (`/academy`) | Anyone, before playing | 🎓 Triventurex Academy — one edition at a time: Explore, Flashcards, Quiz, Match, True or false, Speed round, Places, Print cards, Review. Works from disk (loads the edition's config.js + questions.js as scripts) |
 
 ### Key files
 
@@ -67,7 +68,10 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 | `js/shared/viewport.js` | Pan / zoom / fit-to-screen and the board background (host + TV) |
 | `js/shared/edition.js` | Edition config merge + colours as CSS variables (host + TV) |
 | `js/shared/stats.js` | End-screen stats and awards from the game history (pure) |
-| `js/shared/questions.js` | Question tree / search / marked-questions report (pure) |
+| `js/shared/questions.js` | Question tree / search / marked-questions report / topic keys (pure) |
+| `js/shared/marks.js` | 🚩 marked questions + reviewed ticks in localStorage (host + Academy share them) |
+| `js/shared/academy.js` | Academy rounds: true/false items, match pairs, places quiz, flashcard requeue, review stats (pure, tested) |
+| `js/academy/academy.js`, `modes.js` | Academy page: edition loading, shared filter, mode switching; the nine modes |
 | `js/shared/path-design.js` | Drawing board paths for the ✏️ Boards tab (pure) |
 | `js/shared/csv.js` | CSV parsing for questions, deeds, action cards (also used by the content tooling) |
 | `js/shared/dice.js` | `renderDie(n, sizeClass)` + `animateDieInto` — CSS dot-die and roll animation; host, phones, TV |
@@ -247,7 +251,9 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 | `triventurex_asked_<editionId>_<diff>` | Asked question IDs per edition and difficulty (`easy` / `hard`) |
 | `triventurex_asked_<editionId>_actions` | Used action card IDs per edition (general cards are `g<n>`) |
 | `triventurex_cats_<editionId>` | Selected question topics per edition, as "cat › subcat › topic" keys (older saves: plain topic names) |
-| `triventurex_marked_<editionId>` | Questions marked wrong / unclear: `{ [id]: { note, at } }` |
+| `triventurex_marked_<editionId>` | Questions marked wrong / unclear: `{ [id]: { note, at } }` (game + Academy) |
+| `triventurex_reviewed_<editionId>` | Academy 🔍 Review: questions ticked as reviewed `{ [id]: at }` |
+| `triventurex_academy_edition` | Last edition opened in the Academy |
 | `triventurex_custom_boards` | Boards from the ✏️ Boards tab: `{ short, medium, long }` (all editions) |
 | `triventurex_player_identity` | Player name/token/colour on player device (V2) |
 | `triventurex_game_session` | Rejoin token + game/player IDs on player device (V2) |
@@ -329,6 +335,10 @@ Built into the setup screen: click a start cell, then cells in a straight line t
 ### 📚 Questions tab
 
 Browse every question by category › subcategory › topic, search, filter by difficulty, show answers, and mark questions as wrong / unclear with a note (also possible with 🚩 on a question card in play). **📋 Copy marked list** gives a text list to fix `questions.csv`.
+
+### 🎓 Triventurex Academy (`academy.html`)
+
+A learning page next to the game, one edition at a time (switching edition reloads the page with `?edition=<id>`; the mode is the `#hash`). One filter (topic tree, difficulty, search) feeds every question mode. The rounds are built by `js/shared/academy.js` (pure); the page is `js/academy/`. 🚩 marks and reviewer ticks live in `js/shared/marks.js`, so a mark made in the Academy shows in the game's 📚 Questions tab in the same browser. Opened from disk the page works the same — the edition's `config.js` and `questions.js` are loaded as plain scripts.
 
 ### Path Designer (`tools/path-designer.html`)
 

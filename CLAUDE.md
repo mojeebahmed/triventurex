@@ -55,6 +55,7 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `js/host/` — host page (`index.html`) only
 - `js/player/` — phone page (`player.html`) only
 - `js/display/` — TV display page (`display.html`) only
+- `js/academy/` — Triventurex Academy page (`academy.html`) only
 
 Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `js/host/game.js` is loaded last.
 
@@ -71,7 +72,9 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/shared/viewport.js` — pan / zoom / fit and the board background — host + TV display
 - `js/shared/edition.js` — `mergeEditionConfig`, `applyEditionColors` — host + TV display
 - `js/shared/stats.js` — end-screen stats + awards from the history (G13)
-- `js/shared/questions.js` — question tree / filter / marked-questions report (G14 + G19)
+- `js/shared/questions.js` — question tree / filter / marked-questions report (G14 + G19), topic keys
+- `js/shared/marks.js` — 🚩 marked questions + reviewed ticks (localStorage), shared by the host page and the Academy
+- `js/shared/academy.js` — Academy rounds (true/false, match pairs, places quiz, flashcard requeue, review stats); pure, unit-tested
 - `js/shared/path-design.js` — drawing board paths: cells, runs, checks, template export (G20)
 
 `js/host/` (the controller was one 2000-line game.js before A4):
@@ -91,7 +94,8 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/host/storage.js` — saved game, remembered preferences, custom boards, marked questions (localStorage)
 - `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 
-Player page, TV page + server:
+Player page, TV page, Academy + server:
+- `academy.html` + `js/academy/academy.js` (edition loading, shared filter, mode switching) + `js/academy/modes.js` (the nine modes) — 🎓 Triventurex Academy
 - `player.html` + `js/player/player.js` — phone screen (join, action box, answering, session management)
 - `display.html` + `js/display/display.js` — TV display (read-only)
 - `server.js` — rooms, dice rolling, relays host → phones / phone → host / host → TV (ownership rules at the top)
@@ -184,7 +188,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - **Rejoin needs a real token**: `rejoin_game` only matches a non-empty string token — seats without one (host's own player, no-phone players) can't be taken over
 - **TV display (G16)**: `display.html` + `js/display/display.js` at `/display?game=ID`, read-only. Host → `display` {kind, data} → server relays to room `display:<id>` only (host socket only; never to phones). Kinds: `game` (edition + board, from `_displayGame` in `_enterGameScreen` / host rejoin), `live` (players + turn, from `updateBoardTokens` + `updateScoreboard` → every hop / score change), `card` (open modal or null, from `showModal` / `hideModal`), `roll`, `timer`. Server keeps the last game/live/card/timer and replays them to a display that (re)joins; lobby list via `displayLobby(room)`; `host` gone/back; `closed`. **Secrets**: `_publicHtml` strips `[data-secret]`, `[data-host-only]`, `.hidden`, buttons and inputs from card HTML — mark any new secret in a modal template with `data-secret`. Host buttons: lobby + GM panel *📺 Open TV display* (`openDisplay`)
 - **End-screen stats + awards (G13)**: `js/shared/stats.js` (pure) — `gameStats(history, players)` and `gameAwards(stats, CONFIG.AWARDS)` from `state.history`. Each history entry carries `landedOn` (the space the ROLL landed on — `spaceType` is where the turn ended after deed moves) and `result` (`{ question }` set by `_noteQuestion` in ui.js, `{ action }` set in `_resolveSpace`). GM entries are ignored. Award titles/texts in `CONFIG.AWARDS` ({n}, {s}, {good}/{bad}/{landmark}, {points}); editions rename them via `AWARDS` in their config.js. Host end screen: `showEndScreen` → `endOfGameSummary` / `statLine` / `awardsHtml`; TV gets `display` kind `end` (`_displayEnd`)
-- **Marked questions (G14 + G19)**: per edition in `triventurex_marked_<editionId>` = `{ [id]: { note, at } }` (storage.js: `loadMarkedQuestions`, `markQuestion`, `unmarkQuestion`). Filled from the setup tab *📚 Questions* (`js/host/question-explorer.js`: tree, search, difficulty, marked-only, show answers, 📋 Copy marked list) and from 🚩 on a question card in play (`reportQuestionHtml(q)` — `data-host-only`, never on the TV). Marks are by question id — another reason never to renumber ids
+- **Marked questions (G14 + G19)**: per edition in `triventurex_marked_<editionId>` = `{ [id]: { note, at } }` (js/shared/marks.js: `loadMarkedQuestions`, `markQuestion`, `unmarkQuestion`; also `loadReviewed` / `setReviewed` for the Academy's reviewer ticks). Filled from the setup tab *📚 Questions* (`js/host/question-explorer.js`: tree, search, difficulty, marked-only, show answers, 📋 Copy marked list) and from 🚩 on a question card in play (`reportQuestionHtml(q)` — `data-host-only`, never on the TV). Marks are by question id — another reason never to renumber ids
 - **Board designer (G20)**: setup tab *✏️ Boards* (`js/host/board-designer.js`): click a start cell, then cells in a straight line to add runs; live thumbnail, space count vs the usual size, crowded-rows warning; 💾 Save / ▶ Play / 📋 Copy as template (a `PATH_TEMPLATES` line). Saved boards: `triventurex_custom_boards` = `{ short, medium, long }` (for every edition). `applyCustomBoards()` (storage.js, at bootstrap and after save/delete) appends them to `CONFIG.PATH_TEMPLATES[len]` marked `custom: true` AFTER the built-in ones, so built-in indexes never change; the board picker shows them with ✏️. `tools/path-designer.html` is the older standalone version
 - **Fit leaves room for the legend**: `fitBoardInView` pads the left by the legend's width (host page), so start tokens bottom-left aren't hidden
 - **Setup tabs**: `showSetupTab(tab)` shows `#setup-tab-<tab>`; Enter-to-start ignores the Rules and Questions tabs and elements already redrawn away (`!e.target.isConnected`)
@@ -214,7 +218,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - 5 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks) + World Tour (220 questions, 56 deed cards, 25 action cards, 26 wonders) + Animal Safari (220 questions, 56 deed cards, 25 action cards, 26 reserves). + Prophets' Stories (221 questions, 56 deed cards, 25 action cards, 24 places; in review). The last three use Wikimedia Commons photos — credits in each edition's `CREDITS.md`
 - Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
-- Three pages: host (`index.html`), phones (`player.html`), TV (`display.html`)
+- Four pages: host (`index.html`), phones (`player.html`), TV (`display.html`), 🎓 Academy (`academy.html`)
 - ~390 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
@@ -229,8 +233,12 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 Note: `move_to_landmark` (named, absolute) is still handled in ui.js for backwards compatibility but no longer used in any edition's deed CSV.
 
+- **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Every edition must give each mode content (test/academy.test.js)
+
 ## Next work / ideas
-- Sound effects
+- Sound effects — and with them **read aloud** in the Academy (Web Speech) for children who can't read yet
+- Academy **progress tracking**: profiles, stars per topic, spaced repetition across days (see IDEAS.md)
+- **Cross-edition question mode**: on a question space the player picks an edition and topic, then gets a question from it
 - *Steal*: others answer when the active player gets a phone question wrong
 - Content review: draft action cards (both editions); Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
 - Team mode; more editions; Football Quest subcategory/topic structure; online multiplayer

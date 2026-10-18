@@ -57,7 +57,7 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~390, a few seconds): server, turn flow, board generation, rules, stats, content
+npm test                  # all tests (~410, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
@@ -79,6 +79,7 @@ Triventurex/
 ├── index.html                    Host page (single device or network host)
 ├── player.html                   Phone page for network players
 ├── display.html                  TV display: read-only second screen (/display?game=ID)
+├── academy.html                  🎓 Triventurex Academy: learn an edition's questions (/academy, works from disk)
 ├── server.js                     Node.js + Socket.IO server (V2)
 ├── package.json                  Dependencies (express, socket.io) + npm scripts
 │
@@ -333,6 +334,17 @@ id,text,kind,note
 
 **🚩 Reporting questions:** a question card on the host has *🚩 Report this question* (with an optional note) — for a wrong answer, a typo or an unclear question. The setup screen's **📚 Questions** tab lists every question by category › subcategory › topic, with search, a difficulty filter and *Show answers*. Mark or unmark questions there too, filter *🚩 Marked only*, and **📋 Copy marked list** to fix them in `questions.csv` (marks are kept per edition until you clear them).
 
+**🎓 Triventurex Academy** (`academy.html`, or `http://<host>:3000/academy`; also 🎓 Academy in the 📚 Questions tab): learn an edition's questions before playing. Works opened from disk too. Pick the edition at the top and what to learn on the left (topic tree, difficulty, search); then choose a mode:
+- **📚 Explore**: every question with its answer and note; 🚩 mark one as wrong / unclear (the same marks as in the game, in the same browser)
+- **🃏 Flashcards**: guess, turn the card, then *😊 I knew it* or *🔁 Not yet* (that card comes back a few cards later)
+- **✏️ Quiz**: rounds of 5 / 10 / 20 with a score and the questions to look at again
+- **🧩 Match**: tap a question, then its answer
+- **✔️ True or false**: is the answer shown right?
+- **⚡ Speed round**: as many as you can in 60 seconds
+- **🗺️ Places**: the edition's landmarks with photos and descriptions, and a *🧭 Where am I?* game
+- **🖨️ Print cards**: the chosen questions as fold-over cards (question on the front, answer on the back)
+- **🔍 Review**: for reviewers — tick each question as reviewed, mark problems with a note, see progress, **📋 Copy report**
+
 **Undo:** while a space card is open, Undo cancels just that turn (back to before the roll). Between turns, it undoes the last turn or GM change.
 
 ### Network game (V2)
@@ -398,6 +410,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - ~310 automated tests — details in `CHANGELOG.md`
 
 ### Unreleased (2026-10)
+- **🎓 Triventurex Academy** (academy.html): explore, flashcards, quiz, match, true or false, speed round, places, print cards and a reviewer mode
 - **World Tour** 🌍, **Animal Safari** 🦁 and **Prophets' Stories** 📖 editions; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
 
 ### Future ideas

@@ -2299,14 +2299,14 @@ body.presenting.present-idle * { cursor: none !important; }
       the buttons in the setup tabs' action bars and footers. Width is set
       where a control is used; height, font, border and focus are set here. */
 :root { --control-h: 34px; --control-font: .85rem; --control-radius: 8px; }
-.settings-select, .rules-number, #qx-search, #bd-name, .qx-note-input, .q-report-row input {
+.settings-select, .rules-number, #qx-search, #bd-name, #ac-search, .qx-note-input, .q-report-row input {
   box-sizing: border-box; height: var(--control-h); padding: 0 10px;
   border: 1.5px solid var(--border); border-radius: var(--control-radius);
   background: var(--card); color: var(--text);
   font: inherit; font-size: var(--control-font);
 }
 .rules-number { padding: 0 6px; }
-.settings-select:focus, .rules-number:focus, #qx-search:focus, #bd-name:focus,
+.settings-select:focus, .rules-number:focus, #qx-search:focus, #bd-name:focus, #ac-search:focus,
 .qx-note-input:focus, .q-report-row input:focus { outline: none; border-color: var(--green); }
 .qx-head .btn, .rules-head .btn, .rules-foot .btn, .bd-tools .btn, .q-report-row .btn {
   height: var(--control-h); padding: 0 12px; font-size: var(--control-font);

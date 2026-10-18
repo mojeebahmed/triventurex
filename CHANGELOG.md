@@ -7,6 +7,7 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **🎓 Triventurex Academy** (`academy.html`, `/academy`; 🎓 Academy in the 📚 Questions tab): learn one edition's questions before playing — 📚 Explore, 🃏 Flashcards, ✏️ Quiz, 🧩 Match, ✔️ True or false, ⚡ Speed round, 🗺️ Places (with *Where am I?*), 🖨️ Print cards and 🔍 Review (reviewer ticks, progress and a copyable report). One filter (topics, difficulty, search) for every mode. Works opened from disk and from the server, on laptops and phones. 🚩 marks are shared with the game.
 - **Prophets' Stories** edition 📖 (in review): the stories of the prophets from Hadhrat Adam (as) to the Holy Prophet Muhammad (sa) and the Promised Messiah (as), collecting *Noor*, finishing at Al-Ka'ba. Ahmadiyya understanding; every question cites its source (Qur'an with Bismillah as verse 1, hadith or books). 221 questions in 8 eras (category = era, subcategory = prophet, topic = story / miracles & signs / prayers & lessons), 56 deed cards (*Good Deed* / *Lesson to Learn*), 25 action cards (nobody acts a prophet) and 24 blessed places (photos of places only).
 - `scripts/review-sheet.js`: a printable review sheet (REVIEW.md) of an edition's questions, answers and sources.
 - **Animal Safari** edition 🦁: an expedition through the world's wild places collecting *Paw Prints*. 220 questions (mammals, birds, reptiles/frogs/bugs, habitats, animal superpowers, a little "under the sea"), 56 deed cards (*Wildlife Hero* / *Safari Mishap*), 25 action cards and 26 reserves with photos from Wikimedia Commons (credits in `game_editions/animal-safari/CREDITS.md`).
@@ -20,6 +21,7 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed
+- Marked questions moved from js/host/storage.js to js/shared/marks.js (shared with the Academy).
 - Landing on a landmark now gives **3** points by default (was 5): easy 1 · hard 2 · landmark 3. Applies to every edition; games saved earlier keep their rules.
 - New editions start from Swab Quest's board mix (the template's `SPACE_DISTRIBUTION`: 10% action / good / bad deeds, 8% landmarks, 5% skips; long boards 12% action). World Tour uses it too.
 - `test/board.test.js` now tests every edition in `game_editions/editions.js` instead of a fixed list.

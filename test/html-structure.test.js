@@ -44,3 +44,14 @@ describe('index.html structure', () => {
 describe('player.html structure', () => {
   it('every <div> is closed', () => assert.equal(divStructure('player.html').balance, 0));
 });
+
+describe('academy.html structure', () => {
+  it('every <div> is closed', () => assert.equal(divStructure('academy.html').balance, 0));
+
+  it('loads only shared and academy scripts (it must work opened from disk, without the host page)', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'academy.html'), 'utf8');
+    const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
+    assert.ok(scripts.length > 0);
+    for (const s of scripts) assert.match(s, /^(js\/shared\/|js\/academy\/|game_editions\/editions\.js$)/, s);
+  });
+});

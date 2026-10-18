@@ -351,3 +351,14 @@ Copy this block:
 ```
 
 Then add a row to the overview table.
+
+---
+
+## Future features (not editions)
+
+Ideas for the game and the 🎓 Academy, parked for later:
+
+- **Academy progress tracking** — family profiles (badge picker), stars and a mastery bar per topic, a daily streak, and spaced repetition that remembers across days which cards each player knows.
+- **Read aloud** — the Academy (and maybe question cards in the game) reads the question and the answer aloud with the browser's built-in voice, for children who can't read yet. Build it together with sound effects.
+- **Cross-edition question mode** — a game mode where a player who lands on a question space picks an edition and a topic, then gets a question from it. One board, every edition's questions.
+

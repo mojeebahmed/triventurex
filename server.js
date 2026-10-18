@@ -43,6 +43,7 @@ for (const dir of PUBLIC_DIRS) {
 app.get(['/', '/index.html'],      (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get(['/player', '/player.html'], (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 app.get(['/display', '/display.html'], (req, res) => res.sendFile(path.join(__dirname, 'display.html')));
+app.get(['/academy', '/academy.html'], (req, res) => res.sendFile(path.join(__dirname, 'academy.html')));
 
 // ── Room state ────────────────────────────────────────────────────────────────
 // Map<gameId, RoomState>
