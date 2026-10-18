@@ -4,7 +4,8 @@
  *
  * Engine code asks for icons BY NAME (js/shared/icon-registry.js); the active
  * edition can override any name in its config.js ICONS block (merged into
- * CONFIG.EDITION_ICONS by js/shared/edition.js), so lookup is edition → engine:
+ * CONFIG.EDITION_ICONS by js/shared/edition.js), and the engine can try another
+ * icon for a name in ICON_OVERRIDES — lookup is edition → ICON_OVERRIDES → ICONS:
  *   icon('undo')            → HTML: an inline line icon (Lucide) in the text colour,
  *                             or an emoji image (Fluent Emoji Flat)
  *   iconText('tileSkip')    → plain text for places that cannot hold HTML;
@@ -51,13 +52,15 @@ const isEmoji = s => { const e = findEmoji(s); return e.length === 1 && e[0].ind
 // ── By name ─────────────────────────────────────────────────────────────────────
 
 /**
- * The entry for a name: the edition's override first, then the engine's
- * registry. Entries: 'emoji:🎲', 'lucide:undo-2' (any '<set>:<icon>'), or
+ * The entry for a name: the edition's icon first, then the engine's
+ * override (ICON_OVERRIDES), then the original (ICONS). Entries: 'emoji:🎲', 'lucide:undo-2' (any '<set>:<icon>'), or
  * 'url:<path>' (an edition's own picture). null for unknown names.
  */
 function iconEntry(name) {
-  const ed = typeof CONFIG !== 'undefined' ? CONFIG.EDITION_ICONS : null;
-  return (ed && ed[name]) || (typeof ICONS !== 'undefined' && ICONS[name]) || null;
+  const own = list => (list && Object.hasOwn(list, name) && list[name]) || null;   // not inherited (toString…)
+  return own(typeof CONFIG !== 'undefined' ? CONFIG.EDITION_ICONS : null) ||
+    own(typeof ICON_OVERRIDES !== 'undefined' ? ICON_OVERRIDES : null) ||
+    own(typeof ICONS !== 'undefined' ? ICONS : null);
 }
 
 /** Plain text for an icon name or an emoji: the emoji, or '' for line icons, pictures and unknown names. */

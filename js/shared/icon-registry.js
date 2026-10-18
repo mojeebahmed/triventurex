@@ -17,7 +17,7 @@
  *   '<set>:<name>'   any other installed @iconify-json set (overrides — keep them few)
  *
  * Adding an icon: add a name here (say what it is for), use it, run
- * `npm run build:icons`. Editions can override any name in their config.js
+ * `npm run build:icons`. Trying another icon for a name: ICON_OVERRIDES below. Editions can override any name in their config.js
  * (ICONS block) — see game_editions/template/README.md.
  */
 
@@ -194,6 +194,17 @@ const ICONS = {
 };
 
 /**
+ * Overrides of the original icons above, one line per name — normally empty or
+ * a few lines. Lookup is edition (its ICONS block) → ICON_OVERRIDES → ICONS.
+ * Try icons in tools/icon-picker.html; it produces the lines for this block.
+ *   back to the original:  remove the line here
+ *   keep it for good:      change the original in ICONS and remove the line here
+ *   e.g.  undoMove: 'ph:arrow-counter-clockwise',   // original: lucide:undo-2
+ */
+const ICON_OVERRIDES = {
+};
+
+/**
  * Badges players can pick (data, not icons by name): the badge pickers on the
  * host and on phones show BADGES and BADGE_COLORS; default players take the
  * first eight badges (colours: CONFIG.PLAYERS.defaults).
@@ -218,4 +229,4 @@ const BADGE_COLORS = [
   '#EC407A', '#5E35B1', '#00C853', '#00BFA5', '#FF4081', '#651FFF',   // pinks, royal purple, neon green, aqua, electric purple
 ];
 
-if (typeof module !== 'undefined') module.exports = { ICONS, BADGES, BADGE_COLORS };
+if (typeof module !== 'undefined') module.exports = { ICONS, ICON_OVERRIDES, BADGES, BADGE_COLORS };

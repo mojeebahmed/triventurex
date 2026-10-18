@@ -18,12 +18,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { findEmoji, glyphKey } = require('../js/shared/icons.js');
 const config = require('./icons.config.js');
-const { ICONS, BADGES } = require('../js/shared/icon-registry.js');
+const { ICONS, ICON_OVERRIDES, BADGES } = require('../js/shared/icon-registry.js');
 const { listEditions, loadEdition } = require('./content.js');
 
-/** Every icon id used: the engine registry plus each edition's ICONS block. */
+/** Every icon id used: the engine registry (originals + overrides) plus each edition's ICONS block. */
 function iconIds() {
-  const ids = new Set(Object.values(ICONS));
+  const ids = new Set([...Object.values(ICONS), ...Object.values(ICON_OVERRIDES)]);
   for (const id of listEditions()) {
     for (const v of Object.values(loadEdition(id).config.ICONS || {})) ids.add(String(v).trim());
   }
@@ -89,7 +89,7 @@ function sourceFiles() {
 
 function usedEmoji() {
   const found = new Map();                       // glyphKey → glyph
-  for (const v of Object.values(ICONS)) if (v.startsWith('emoji:')) found.set(glyphKey(v.slice(6)), v.slice(6));
+  for (const v of [...Object.values(ICONS), ...Object.values(ICON_OVERRIDES)]) if (v.startsWith('emoji:')) found.set(glyphKey(v.slice(6)), v.slice(6));
   for (const b of BADGES) found.set(glyphKey(b), b);
   for (const f of sourceFiles()) {
     for (const { glyph } of findEmoji(fs.readFileSync(f, 'utf8'))) found.set(glyphKey(glyph), glyph);

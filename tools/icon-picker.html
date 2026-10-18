@@ -11,6 +11,10 @@
   js/shared/icon-registry.js (engine) or an edition's ICONS block, then copy a
   short list of changes to apply (by hand or by asking Claude).
 
+  Engine icons keep their original in ICONS; a different choice goes into
+  ICON_OVERRIDES (its own list), so it can be undone ("Back to the original")
+  or kept for good ("Make it the original": change ICONS, drop the override).
+
   Lists every icon name with what it is for and what it looks like now. Picking
   another icon needs the internet (search and previews come from the Iconify API
   and the emoji sets' CDNs); the game itself stays offline. Nothing here changes
@@ -54,6 +58,8 @@
   .ic .tx-icon { display: inline-flex; }
   .name { font-family: ui-monospace, monospace; font-weight: 600; min-width: 140px; }
   .note { color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note img, .note svg { width: 18px; height: 18px; vertical-align: -4px; }
+  .note .tx-icon { display: inline-flex; vertical-align: -4px; }
   .val { font-family: ui-monospace, monospace; font-size: .8rem; color: var(--muted); }
   .tag { font-size: .7rem; padding: 1px 6px; border-radius: 10px; color: #fff; background: var(--edition); }
   .tag.chg { background: var(--changed); }
@@ -92,7 +98,7 @@
     <option value="all">All</option>
     <option value="line">Line icons</option>
     <option value="emoji">Emoji</option>
-    <option value="changed">Changed / edition</option>
+    <option value="changed">Changed / overridden</option>
   </select>
   <span class="hint">Click a row to try other icons. Keep overrides few.</span>
 </header>
@@ -136,8 +142,11 @@ const LS_KEY = 'triventurex_icon_picker';
 
 const editionIconsRaw = {};          // edition id → its ICONS block as written
 let meta = {};                       // name → { group, note } (from the registry source, when served)
-let saved = { changes: {}, emojiSets: {} };   // changes[target][name] = value as written in that file ('' = remove)
+// changes[target][name] = value as written in that file; '' = remove the line (engine: back to the
+// original; edition: use the engine's icon). adopt[name]: make the engine override the original.
+let saved = { changes: {}, emojiSets: {}, adopt: {} };
 try { Object.assign(saved, JSON.parse(localStorage.getItem(LS_KEY)) || {}); } catch {}
+saved.adopt ||= {};
 const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(saved)); } catch {} };
 
 let target = 'engine';
@@ -167,7 +176,7 @@ async function loadMeta() {
   try {
     const src = await (await fetch('js/shared/icon-registry.js')).text();
     let group = '';
-    for (const line of src.slice(0, src.indexOf('const BADGES')).split('\n')) {
+    for (const line of src.slice(0, src.indexOf('const ICON_OVERRIDES')).split('\n')) {
       const h = line.match(/\/\/ ── (.+?) ─/);
       if (h) { group = h[1]; continue; }
       const m = line.match(/^\s+(\w+):\s*'[^']*',?\s*(?:\/\/\s*(.*))?$/);
@@ -192,11 +201,23 @@ function toValue(entry) {
 
 const glyphOf = entry => entry?.startsWith('emoji:') ? entry.slice(6) : null;
 
+/** The engine's override of a name in the file (ICON_OVERRIDES), or undefined. */
+const fileOverride = name => Object.hasOwn(ICON_OVERRIDES, name) ? ICON_OVERRIDES[name] : undefined;
+
+/** The engine's icon for a name now: its override, else the original. */
+const engineEntry = name => fileOverride(name) || ICONS[name];
+
 /** The entry a name has now in the target (before this page's changes). */
 function currentEntry(name) {
-  if (isEngine()) return ICONS[name];
+  if (isEngine()) return engineEntry(name);
   const raw = editionIconsRaw[target][name];
-  return raw ? editionIcons({ x: raw }, target).x : ICONS[name];
+  return raw ? editionIcons({ x: raw }, target).x : engineEntry(name);
+}
+
+/** Engine: the override this name will have after the changes ('' = none). */
+function plannedOverride(name) {
+  const ch = changesFor('engine');
+  return name in ch ? ch[name] : (fileOverride(name) || '');
 }
 
 function installedSets() {
@@ -229,8 +250,8 @@ function render() {
   const groups = new Map();
   for (const name of Object.keys(ICONS)) {
     const cur = currentEntry(name);
-    const fromEdition = !isEngine() && name in editionIconsRaw[target];
-    const changed = name in ch || !!saved.emojiSets[glyphOf(cur)];
+    const fromEdition = isEngine() ? !!fileOverride(name) : name in editionIconsRaw[target];
+    const changed = name in ch || !!saved.emojiSets[glyphOf(cur)] || (isEngine() && !!saved.adopt[name]);
     if (q && !name.toLowerCase().includes(q) && !(meta[name]?.note || '').toLowerCase().includes(q)) continue;
     if (show === 'line' && glyphOf(cur)) continue;
     if (show === 'emoji' && !glyphOf(cur)) continue;
@@ -247,16 +268,26 @@ function render() {
 
 function rowHtml(name, cur, fromEdition, ch) {
   const has = name in ch;
-  const next = has ? (ch[name] ? toEntry(ch[name]) : ICONS[name]) : null;
-  return `<div class="row ${has ? 'changed' : ''}" data-name="${name}">
+  const adopt = isEngine() && saved.adopt[name];
+  // what the name will show after the changes
+  let next = null;
+  if (has) next = ch[name] ? toEntry(ch[name]) : (isEngine() ? ICONS[name] : engineEntry(name));
+  let value = toValue(cur);
+  if (has) value = ch[name] || (isEngine() ? `${ICONS[name]} (original)` : '(engine)');
+  const tags = [
+    fromEdition ? `<span class="tag">${isEngine() ? 'override' : 'edition'}</span>` : '',
+    has ? '<span class="tag chg">changed</span>' : '',
+    adopt ? '<span class="tag chg">→ original</span>' : '',
+  ].join('');
+  const original = isEngine() && fromEdition ? `original ${preview(ICONS[name])}${meta[name]?.note ? ' · ' : ''}` : '';
+  return `<div class="row ${has || adopt ? 'changed' : ''}" data-name="${name}">
     <div class="row-head" onclick="toggle('${name}')">
       <span class="ic">${preview(cur)}</span>
       ${has ? `<span class="arrow">→</span><span class="ic">${preview(next)}</span>` : ''}
       <span class="name">${name}</span>
-      <span class="note">${esc(meta[name]?.note || '')}</span>
-      ${fromEdition ? '<span class="tag">edition</span>' : ''}
-      ${has ? '<span class="tag chg">changed</span>' : ''}
-      <span class="val">${esc(has ? (ch[name] || '(engine)') : toValue(cur))}</span>
+      <span class="note">${original}${esc(meta[name]?.note || '')}</span>
+      ${tags}
+      <span class="val">${esc(value)}</span>
     </div>
     ${open === name ? '<div class="editor" id="editor"></div>' : ''}
   </div>`;
@@ -282,8 +313,10 @@ function fillEditor(name) {
       <div class="line">
         <input type="text" id="ed-value" size="28" value="${esc(name in ch ? ch[name] : toValue(cur))}">
         <button class="primary" onclick="setValue('${name}', $('ed-value').value.trim())">Use</button>
-        ${name in ch ? `<button onclick="undo('${name}')">Undo change</button>` : ''}
+        ${name in ch || (isEngine() && saved.adopt[name]) ? `<button onclick="undo('${name}')">Undo change</button>` : ''}
         ${!isEngine() && name in editionIconsRaw[target] && ch[name] !== '' ? `<button onclick="setValue('${name}', '')">Use the engine's icon</button>` : ''}
+        ${isEngine() && plannedOverride(name) ? `<button onclick="setValue('${name}', ICONS['${name}'])" title="Remove the override">Back to the original</button>` : ''}
+        ${isEngine() && plannedOverride(name) && !saved.adopt[name] ? `<button onclick="adopt('${name}')" title="Change the original in ICONS and remove the override">Make it the original</button>` : ''}
       </div>
     </div>
     ${g ? `<div>
@@ -370,11 +403,23 @@ async function loadFluentChars() {
 
 function setValue(name, value) {
   const ch = changesFor(target);
-  const now = toValue(currentEntry(name));
-  if (value === now) delete ch[name]; else ch[name] = value;
+  if (isEngine()) {
+    // the engine keeps its original in ICONS: anything else is an override
+    if (value === engineEntry(name)) delete ch[name];                 // no change
+    else if (value === ICONS[name]) ch[name] = '';                    // back to the original
+    else ch[name] = value;
+    if (!plannedOverride(name)) delete saved.adopt[name];
+  } else {
+    if (value === toValue(currentEntry(name))) delete ch[name]; else ch[name] = value;
+  }
   save(); render();
 }
-function undo(name) { delete changesFor(target)[name]; save(); render(); }
+function undo(name) {
+  delete changesFor(target)[name];
+  if (isEngine()) delete saved.adopt[name];
+  save(); render();
+}
+function adopt(name) { saved.adopt[name] = true; save(); render(); }
 function setEmojiSet(glyph, set) {
   if (set === 'fluent-emoji-flat') delete saved.emojiSets[glyph]; else saved.emojiSets[glyph] = set;
   save(); render();
@@ -391,8 +436,16 @@ function renderOut() {
     const names = Object.keys(ch).filter(n => n in ICONS);
     if (!names.length) continue;
     if (t === 'engine') {
-      lines.push('// js/shared/icon-registry.js — replace these lines in ICONS');
-      for (const n of names) lines.push(`  ${pad(n)}'${ch[n]}',   // was ${ICONS[n]}`);
+      const add = names.filter(n => ch[n] && !saved.adopt[n]);
+      const remove = names.filter(n => ch[n] === '' && fileOverride(n));
+      if (add.length) {
+        lines.push('// js/shared/icon-registry.js — ICON_OVERRIDES: add or replace these lines');
+        for (const n of add) lines.push(`  ${pad(n)}'${ch[n]}',   // original: ${ICONS[n]}`);
+      }
+      if (remove.length) {
+        lines.push('// js/shared/icon-registry.js — ICON_OVERRIDES: remove these lines (back to the original)');
+        for (const n of remove) lines.push(`  ${n}`);
+      }
     } else {
       const ed = (window.TRIVENTUREX_EDITIONS || []).find(e => e.id === t);
       lines.push(`// game_editions/${t}/config.js — ICONS block (${ed?.name || t})`);
@@ -404,6 +457,18 @@ function renderOut() {
       const v = ch[n];
       const p = /^([a-z0-9-]+):/.exec(v)?.[1];
       if (p && !['emoji', 'file', 'url'].includes(p) && !have.has(p)) needSets.add(p);
+    }
+    lines.push('');
+  }
+  const adopted = Object.keys(saved.adopt).filter(n => n in ICONS && plannedOverride(n));
+  if (adopted.length) {
+    lines.push('// js/shared/icon-registry.js — make these the original: change them in ICONS,');
+    lines.push('// and remove them from ICON_OVERRIDES');
+    for (const n of adopted) {
+      const v = plannedOverride(n);
+      lines.push(`  ${pad(n)}'${v}',   // was ${ICONS[n]}`);
+      const p = /^([a-z0-9-]+):/.exec(v)?.[1];
+      if (p && p !== 'emoji' && !have.has(p)) needSets.add(p);
     }
     lines.push('');
   }
@@ -436,7 +501,7 @@ function renderOut() {
   };
   $('clear').onclick = () => {
     if (!confirm('Clear every change on this page?')) return;
-    saved = { changes: {}, emojiSets: {} }; save(); open = null; render();
+    saved = { changes: {}, emojiSets: {}, adopt: {} }; save(); open = null; render();
   };
   render();
 })();

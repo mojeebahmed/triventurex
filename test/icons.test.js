@@ -12,7 +12,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { execFileSync } = require('node:child_process');
 const { glyphKey, findEmoji } = require('../js/shared/icons.js');
-const { ICONS, BADGES, BADGE_COLORS } = require('../js/shared/icon-registry.js');
+const { ICONS, ICON_OVERRIDES, BADGES, BADGE_COLORS } = require('../js/shared/icon-registry.js');
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -97,17 +97,34 @@ describe('edition icons at run time', () => {
     assert.match(w.icon('rulesScoring'), /<svg /);
     assert.equal(w.iconText('tileBadDeed'), ICONS.tileBadDeed.slice(6), 'not overridden: engine default');
   });
+
+  it('lookup order: edition → ICON_OVERRIDES → the original ICONS', () => {
+    const w = iconWorld();
+    vm.runInContext(`ICON_OVERRIDES.tileSkip = 'emoji:🚫'; ICON_OVERRIDES.tileGoodDeed = 'emoji:🌟';
+      var CONFIG = { EDITION_ICONS: { tileGoodDeed: 'emoji:⚽' } };`, w);
+    assert.equal(w.iconText('tileSkip'), '🚫', 'override wins over the original');
+    assert.equal(w.iconText('tileGoodDeed'), '⚽', 'the edition wins over an override');
+    assert.equal(w.iconText('tileBadDeed'), ICONS.tileBadDeed.slice(6), 'no override: the original');
+    assert.equal(w.iconText('toString'), '', 'not fooled by object properties');
+  });
 });
 
 describe('the registry', () => {
   const data = vm.runInContext('TX_ICON_DATA', iconWorld());   // a const is not a property of the sandbox
 
   it('every entry is "<set>:<icon>"', () => {
-    for (const [name, v] of Object.entries(ICONS)) assert.match(v, /^[a-z0-9-]+:.+$/, name);
+    for (const [name, v] of Object.entries({ ...ICONS, ...ICON_OVERRIDES })) assert.match(v, /^[a-z0-9-]+:.+$/, name);
+  });
+
+  it('ICON_OVERRIDES only overrides names that exist, with a different icon', () => {
+    for (const [name, v] of Object.entries(ICON_OVERRIDES)) {
+      assert.ok(name in ICONS, `ICON_OVERRIDES.${name}: no such icon name`);
+      assert.notEqual(v, ICONS[name], `ICON_OVERRIDES.${name} is the same as the original — remove the line`);
+    }
   });
 
   it('every line icon is bundled, and every emoji has its image (keycaps excepted)', () => {
-    for (const [name, v] of Object.entries(ICONS)) {
+    for (const [name, v] of [...Object.entries(ICONS), ...Object.entries(ICON_OVERRIDES)]) {
       if (v.startsWith('emoji:')) {
         const g = v.slice(6);
         if (/⃣/.test(g)) continue;                       // keycaps: no image in the set, device emoji
