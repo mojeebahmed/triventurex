@@ -39,18 +39,6 @@ function quizRound(questions, n = 10, rand = Math.random) {
 }
 
 /**
- * Flashcards "Not yet": put the card back a few places later, so it comes
- * round again soon (or at the end of a short deck). Returns a new deck
- * without the first card; `deck[0]` is the card just answered.
- */
-function requeue(deck, gap = 4) {
-  const [card, ...rest] = deck;
-  if (!card) return rest;
-  const at = Math.min(gap, rest.length);
-  return [...rest.slice(0, at), card, ...rest.slice(at)];
-}
-
-/**
  * True or false: a multiple-choice question shown with one option — the
  * correct one about half of the time. → [{ q, shown, isTrue }]
  */
@@ -98,6 +86,37 @@ function placesQuiz(landmarks, n = 10, rand = Math.random) {
   });
 }
 
+/** Split a list into groups of `size` (the last group may be shorter). */
+function chunk(list, size) {
+  const out = [];
+  for (let i = 0; i < (list || []).length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Double-sided print sheets: each page of `perPage` fronts is followed by a
+ * page with the backs, each row mirrored (left ↔ right). Printed on both sides
+ * and flipped on the long edge, every answer lands behind its own question.
+ * Empty slots are null, so the grid keeps its shape on the last page.
+ * → [{ fronts: [item|null…], backs: [item|null…] }]
+ */
+function printSheets(items, perPage = 8, cols = 2) {
+  return chunk(items || [], perPage).map(page => {
+    const fronts = [...page, ...Array(perPage - page.length).fill(null)];
+    const backs = chunk(fronts, cols).flatMap(row => [...row].reverse());
+    return { fronts, backs };
+  });
+}
+
+/**
+ * Text size for a card with a fixed size: 'l' for short questions, 'm', or
+ * 's' for long ones (question + options), so every card fits its box.
+ */
+function textSize(q) {
+  const len = _acPlain(q.q).length + (q.opts || []).reduce((n, o) => n + _acPlain(o).length + 6, 0);
+  return len <= 90 ? 'l' : len <= 170 ? 'm' : 's';
+}
+
 /** Reviewer progress for an edition. `reviewed` / `marked` are the stored id maps. */
 function reviewStats(questions, reviewed = {}, marked = {}) {
   const ids = new Set((questions || []).map(q => String(q.id)));
@@ -107,6 +126,6 @@ function reviewStats(questions, reviewed = {}, marked = {}) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { shuffled, answerText, correctIndex, isMulti, quizRound, requeue, trueFalseItems,
-                     matchPairs, speedPool, placesQuiz, reviewStats };
+  module.exports = { shuffled, answerText, correctIndex, isMulti, quizRound, trueFalseItems,
+                     matchPairs, speedPool, placesQuiz, reviewStats, chunk, printSheets, textSize };
 }

@@ -74,7 +74,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/shared/stats.js` — end-screen stats + awards from the history (G13)
 - `js/shared/questions.js` — question tree / filter / marked-questions report (G14 + G19), topic keys
 - `js/shared/marks.js` — 🚩 marked questions + reviewed ticks (localStorage), shared by the host page and the Academy
-- `js/shared/academy.js` — Academy rounds (true/false, match pairs, places quiz, flashcard requeue, review stats); pure, unit-tested
+- `js/shared/academy.js` — Academy rounds (true/false, match pairs, places quiz, flashcard sets via `chunk`, double-sided `printSheets` with mirrored backs, `textSize` for fixed-size cards, review stats); pure, unit-tested
 - `js/shared/path-design.js` — drawing board paths: cells, runs, checks, template export (G20)
 
 `js/host/` (the controller was one 2000-line game.js before A4):
@@ -233,7 +233,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 Note: `move_to_landmark` (named, absolute) is still handled in ui.js for backwards compatibility but no longer used in any edition's deed CSV.
 
-- **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Every edition must give each mode content (test/academy.test.js)
+- **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Question cards in every mode share ONE look (css/academy.css `.ac-qcard` group: white inside, `--green` top accent, gold for answer sides) — reuse it, don't restyle per mode. Printed cards have fixed mm sizes (double-sided 90 × 62 mm, fold-over 90 × 124 mm folded in the middle). Every edition must give each mode content (test/academy.test.js)
 
 ## Next work / ideas
 - Sound effects — and with them **read aloud** in the Academy (Web Speech) for children who can't read yet

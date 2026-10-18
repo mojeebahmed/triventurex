@@ -41,13 +41,6 @@ describe('basics', () => {
     assert.equal(A.quizRound(Q, 0, seeded()).length, Q.length);
     assert.equal(A.quizRound(Q, 50, seeded()).length, Q.length);
   });
-
-  it('requeue: "Not yet" puts the card a few places later, or last in a short deck', () => {
-    assert.deepEqual(A.requeue(['a', 'b', 'c', 'd', 'e', 'f'], 3), ['b', 'c', 'd', 'a', 'e', 'f']);
-    assert.deepEqual(A.requeue(['a', 'b'], 4), ['b', 'a']);
-    assert.deepEqual(A.requeue(['a'], 4), ['a']);
-    assert.deepEqual(A.requeue([], 4), []);
-  });
 });
 
 describe('true or false', () => {
@@ -89,6 +82,28 @@ describe('speed round + places', () => {
       assert.equal(r.options[r.answer], r.landmark.name);
       assert.ok(!r.options.includes('NoPhoto'));
     }
+  });
+});
+
+describe('flashcard sets + print sheets', () => {
+  it('chunk: groups of n, the last one shorter', () => {
+    assert.deepEqual(A.chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+    assert.deepEqual(A.chunk([], 8), []);
+  });
+
+  it('printSheets: backs are each row mirrored, so answers land behind their questions', () => {
+    const sheets = A.printSheets(['a', 'b', 'c', 'd', 'e'], 4, 2);
+    assert.equal(sheets.length, 2);
+    assert.deepEqual(sheets[0].fronts, ['a', 'b', 'c', 'd']);
+    assert.deepEqual(sheets[0].backs,  ['b', 'a', 'd', 'c']);
+    assert.deepEqual(sheets[1].fronts, ['e', null, null, null], 'last page keeps the grid shape');
+    assert.deepEqual(sheets[1].backs,  [null, 'e', null, null]);
+  });
+
+  it('textSize: smaller text for longer questions', () => {
+    assert.equal(A.textSize({ q: 'Capital of France?', opts: ['Paris', 'Rome'] }), 'l');
+    assert.equal(A.textSize({ q: 'x'.repeat(150), opts: [] }), 'm');
+    assert.equal(A.textSize({ q: 'x'.repeat(120), opts: ['y'.repeat(30), 'y'.repeat(30)] }), 's');
   });
 });
 

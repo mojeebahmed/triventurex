@@ -125,54 +125,58 @@ registerMode({
 
 // ── 🃏 Flashcards ───────────────────────────────────────────────────────────────
 
+/** Cards per set: 4×2, 3×3 or one big card. */
+const FLASH_LAYOUTS = [{ n: 8, cols: 4, label: '8 cards (4 × 2)' }, { n: 9, cols: 3, label: '9 cards (3 × 3)' }, { n: 1, cols: 1, label: '1 card' }];
+let _flashSize = 8;
+
 registerMode({
   id: 'flashcards', icon: '🃏', label: 'Flashcards', filter: true,
-  hint: 'Guess the answer, then turn the card over',
+  hint: 'A set of cards: guess each answer, then turn the card over',
   render(main, questions) {
-    let deck = quizRound(questions, 0);
-    let flipped = false, known = 0;
-    const total = deck.length;
-    const draw = () => {
-      if (!total) { main.innerHTML = emptyHtml('No cards for this choice.'); return; }
-      if (!deck.length) {
-        main.innerHTML = `<div class="ac-summary"><div class="ac-stars">🎉</div><h2>All ${total} cards done!</h2>
-          <p>You knew them all in the end.</p><button type="button" class="btn btn-primary" data-action="again">Shuffle and start again</button></div>`;
-        return;
-      }
-      const q = deck[0];
-      main.innerHTML = `
-        <div class="ac-bar"><span class="qx-count">🃏 ${deck.length} card${deck.length === 1 ? '' : 's'} left · 😊 ${known} known</span>
-          <span class="ac-spacer"></span><span class="ac-hint">Tap the card or press Space to turn it</span></div>
-        <button type="button" class="ac-card ${flipped ? 'flipped' : ''}" data-action="flip" aria-label="Turn the card">
-          <div class="ac-card-meta">${_diffTag(q)} · ${_where(q)}</div>
+    let sets, s, flipped;
+    const start = () => { sets = chunk(quizRound(questions, 0), _flashSize); s = 0; flipped = new Set(); draw(); };
+    const card = q => {
+      const open = flipped.has(q.id);
+      return `<button type="button" class="ac-qcard ac-flash ${open ? 'flipped' : ''}" data-flip="${q.id}" aria-pressed="${open}">
+          <div class="ac-card-meta">${_diffTag(q)}${_flashSize === 1 ? ` · ${_where(q)}` : ''}</div>
           <div class="ac-card-q">${q.q}</div>
-          ${_optsHtml(q)}
-          ${flipped
-            ? `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>${_note(q)}`
-            : `<div class="ac-card-turn">🤔 What is your answer? Tap to see it</div>`}
-        </button>
+          ${open ? `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>${_note(q)}`
+                 : `${_optsHtml(q)}<div class="ac-card-turn">🤔 Tap to see the answer</div>`}
+        </button>`;
+    };
+    const draw = () => {
+      if (!sets.length) { main.innerHTML = emptyHtml('No cards for this choice.'); return; }
+      const set = sets[s];
+      const last = s === sets.length - 1;
+      main.innerHTML = `
+        <div class="ac-bar">
+          <span class="qx-count">🃏 Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned</span>
+          <span class="ac-spacer"></span>
+          <select id="ac-flash-size" class="settings-select" title="How many cards at a time">
+            ${FLASH_LAYOUTS.map(l => `<option value="${l.n}" ${l.n === _flashSize ? 'selected' : ''}>${l.label}</option>`).join('')}
+          </select>
+          <button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? '🙈 Hide all' : '🔄 Turn all'}</button>
+        </div>
+        <div class="ac-flash-grid" style="--cols:${FLASH_LAYOUTS.find(l => l.n === _flashSize).cols}">${set.map(card).join('')}</div>
         <div class="ac-actions">
-          ${flipped
-            ? `<button type="button" class="btn btn-secondary" data-action="notyet">🔁 Not yet</button>
-               <button type="button" class="btn btn-primary" data-action="knew">😊 I knew it</button>`
-            : `<button type="button" class="btn btn-primary" data-action="flip">Turn the card</button>`}
+          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>← Previous set</button>
+          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? '🔀 Shuffle and start again' : 'Next set →'}</button>
         </div>`;
+      main.querySelector('#ac-flash-size').onchange = e => { _flashSize = Number(e.target.value); start(); };
     };
-    const act = a => {
-      if (a === 'flip')   flipped = !flipped;
-      if (a === 'knew')   { deck = deck.slice(1); known++; flipped = false; }
-      if (a === 'notyet') { deck = requeue(deck); flipped = false; }
-      if (a === 'again')  { deck = quizRound(questions, 0); known = 0; flipped = false; }
-      draw();
+    main.onclick = e => {
+      const c = e.target.closest('[data-flip]');
+      if (c) { const id = Number(c.dataset.flip); flipped.has(id) ? flipped.delete(id) : flipped.add(id); draw(); return; }
+      const a = e.target.closest('[data-action]')?.dataset.action;
+      const set = sets[s];
+      if (a === 'all')   flipped = flipped.size === set.length ? new Set() : new Set(set.map(q => q.id));
+      if (a === 'next')  { s++; flipped = new Set(); main.scrollTop = 0; }
+      if (a === 'prev')  { s--; flipped = new Set(); main.scrollTop = 0; }
+      if (a === 'again') { start(); return; }
+      if (a) draw();
     };
-    main.onclick = e => { const b = e.target.closest('[data-action]'); if (b) act(b.dataset.action); };
-    const key = e => {
-      if (e.target.closest('input, select, textarea')) return;
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); act('flip'); }
-    };
-    document.addEventListener('keydown', key);
-    onLeaveMode(() => { document.removeEventListener('keydown', key); main.onclick = null; });
-    draw();
+    onLeaveMode(() => { main.onclick = null; });
+    start();
   },
 });
 
@@ -455,30 +459,65 @@ registerMode({
 // ── 🖨️ Print cards ─────────────────────────────────────────────────────────────
 
 const PRINT_MAX = 300;
+let _printStyle = 'duplex';   // 'duplex' = questions on one side, answers on the back | 'fold' = fold-over cards
+
+/** The question side of a printed card (fixed size; text shrinks for long questions). */
+function _printFront(q) {
+  if (!q) return `<div class="ac-print-card empty"></div>`;
+  return `<div class="ac-qcard ac-print-card ac-print-front fs-${textSize(q)}">
+      <div class="ac-card-meta">${esc(CONFIG.GAME?.editionIcon ?? '')} ${esc(CONFIG.GAME?.editionName ?? '')} · ${_diffTag(q)} · #${q.id}</div>
+      <div class="ac-card-q">${q.q}</div>${_optsHtml(q)}
+    </div>`;
+}
+
+/** The answer side: the question in small type (to check), the answer and the note. */
+function _printBack(q) {
+  if (!q) return `<div class="ac-print-card empty"></div>`;
+  return `<div class="ac-qcard ac-print-card ac-print-back">
+      <div class="ac-card-meta">#${q.id} · ${q.q}</div>
+      <div class="ac-card-a">✅ ${esc(answerText(q))}</div>
+      ${q.note ? `<div class="ac-print-note">${q.note}</div>` : ''}
+    </div>`;
+}
 
 registerMode({
   id: 'print', icon: '🖨️', label: 'Print cards', filter: true,
   hint: 'Print the chosen questions as cards to cut out',
   render(main, questions) {
     const cards = questions.slice(0, PRINT_MAX);
-    const name = CONFIG.GAME?.editionName ?? '';
-    main.innerHTML = `
-      <div class="ac-bar ac-no-print">
-        <span class="qx-count">🖨️ ${cards.length} card${cards.length === 1 ? '' : 's'}${questions.length > PRINT_MAX ? ` (the first ${PRINT_MAX} — choose a topic to print the rest)` : ''}</span>
-        <span class="ac-spacer"></span>
-        <button type="button" class="btn btn-primary btn-small" data-action="print" ${cards.length ? '' : 'disabled'}>🖨️ Print</button>
-      </div>
-      <p class="ac-hint ac-no-print">Cut along the solid lines and fold each card on the dashed line — question on the front, answer on the back.</p>
-      ${cards.length ? `<div class="ac-print-grid">${cards.map(q => `
-        <div class="ac-print-card">
-          <div class="ac-print-front">
-            <div class="ac-card-meta">${esc(CONFIG.GAME?.editionIcon ?? '')} ${esc(name)} · ${_diffTag(q)}</div>
-            <div class="ac-card-q">${q.q}</div>${_optsHtml(q)}
-          </div>
-          <div class="ac-print-back">✅ ${esc(answerText(q))}${q.note ? `<div class="ac-print-note">${q.note}</div>` : ''}</div>
-        </div>`).join('')}</div>` : emptyHtml('No questions to print.')}`;
+    const draw = () => {
+      let pages = '';
+      if (_printStyle === 'duplex') {
+        pages = printSheets(cards, 8, 2).map((sheet, i) => `
+          <div class="ac-sheet"><div class="ac-sheet-label ac-no-print">Page ${2 * i + 1} · questions</div>
+            <div class="ac-sheet-grid">${sheet.fronts.map(_printFront).join('')}</div></div>
+          <div class="ac-sheet back"><div class="ac-sheet-label ac-no-print">Page ${2 * i + 2} · answers (back of page ${2 * i + 1})</div>
+            <div class="ac-sheet-grid">${sheet.backs.map(_printBack).join('')}</div></div>`).join('');
+      } else {
+        pages = chunk(cards, 4).map((page, i) => `
+          <div class="ac-sheet fold"><div class="ac-sheet-label ac-no-print">Page ${i + 1}</div>
+            <div class="ac-sheet-grid">${page.map(q => `
+              <div class="ac-fold-card">${_printFront(q)}<div class="ac-fold-line"></div>${_printBack(q)}</div>`).join('')}</div></div>`).join('');
+      }
+      main.innerHTML = `
+        <div class="ac-bar ac-no-print">
+          <span class="qx-count">🖨️ ${cards.length} card${cards.length === 1 ? '' : 's'}${questions.length > PRINT_MAX ? ` (the first ${PRINT_MAX} — choose a topic to print the rest)` : ''}</span>
+          <span class="ac-spacer"></span>
+          <select id="ac-print-style" class="settings-select">
+            <option value="duplex" ${_printStyle === 'duplex' ? 'selected' : ''}>Double-sided: answers on the back</option>
+            <option value="fold" ${_printStyle === 'fold' ? 'selected' : ''}>Fold-over cards</option>
+          </select>
+          <button type="button" class="btn btn-primary btn-small" data-action="print" ${cards.length ? '' : 'disabled'}>🖨️ Print</button>
+        </div>
+        <p class="ac-hint ac-no-print">${_printStyle === 'duplex'
+          ? 'Print on <b>both sides</b>, flipping on the <b>long edge</b>, at 100% scale (no "fit to page"). Each answer lands right behind its question — cut along the card lines.'
+          : 'Print at 100% scale. Cut out each card, then fold it on the dashed line: question on the front, answer on the back.'}</p>
+        ${cards.length ? pages : emptyHtml('No questions to print.')}`;
+      main.querySelector('#ac-print-style').onchange = e => { _printStyle = e.target.value; draw(); };
+    };
     main.onclick = e => { if (e.target.closest('[data-action="print"]')) window.print(); };
     onLeaveMode(() => { main.onclick = null; });
+    draw();
   },
 });
 

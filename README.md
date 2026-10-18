@@ -334,15 +334,15 @@ id,text,kind,note
 
 **🚩 Reporting questions:** a question card on the host has *🚩 Report this question* (with an optional note) — for a wrong answer, a typo or an unclear question. The setup screen's **📚 Questions** tab lists every question by category › subcategory › topic, with search, a difficulty filter and *Show answers*. Mark or unmark questions there too, filter *🚩 Marked only*, and **📋 Copy marked list** to fix them in `questions.csv` (marks are kept per edition until you clear them).
 
-**🎓 Triventurex Academy** (`academy.html`, or `http://<host>:3000/academy`; also 🎓 Academy in the 📚 Questions tab): learn an edition's questions before playing. Works opened from disk too. Pick the edition at the top and what to learn on the left (topic tree, difficulty, search); then choose a mode:
+**🎓 Triventurex Academy** (`academy.html`, or `http://<host>:3000/academy`; also 🎓 Academy in the 📚 Questions tab): learn an edition's questions before playing. Works opened from disk too. Pick the edition at the top and what to learn on the left (topic tree, difficulty, search); then choose a mode. Every mode shows questions on the same white cards with the edition's colour:
 - **📚 Explore**: every question with its answer and note; 🚩 mark one as wrong / unclear (the same marks as in the game, in the same browser)
-- **🃏 Flashcards**: guess, turn the card, then *😊 I knew it* or *🔁 Not yet* (that card comes back a few cards later)
+- **🃏 Flashcards**: a set of 8 (4 × 2), 9 (3 × 3) or 1 card in random order — guess, tap a card to turn it (or 🔄 Turn all), then *Next set →*
 - **✏️ Quiz**: rounds of 5 / 10 / 20 with a score and the questions to look at again
 - **🧩 Match**: tap a question, then its answer
 - **✔️ True or false**: is the answer shown right?
 - **⚡ Speed round**: as many as you can in 60 seconds
 - **🗺️ Places**: the edition's landmarks with photos and descriptions, and a *🧭 Where am I?* game
-- **🖨️ Print cards**: the chosen questions as fold-over cards (question on the front, answer on the back)
+- **🖨️ Print cards**: the chosen questions as same-size cards — **double-sided** (8 per A4 page, answers on the next page, mirrored so each lands behind its question; print on both sides, flip on the long edge, 100% scale) or **fold-over** (4 per page, fold line in the middle of every card)
 - **🔍 Review**: for reviewers — tick each question as reviewed, mark problems with a note, see progress, **📋 Copy report**
 
 **Undo:** while a space card is open, Undo cancels just that turn (back to before the roll). Between turns, it undoes the last turn or GM change.

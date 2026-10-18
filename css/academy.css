@@ -51,32 +51,57 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-empty { max-width: 520px; margin: 40px auto; text-align: center; color: var(--text-muted); }
 .ac-empty p:first-child { font-weight: 700; color: var(--text); margin-bottom: 6px; }
 
-/* Cards and panels */
-.ac-card, .ac-panel {
-  display: block; width: 100%; max-width: 680px; margin: 0 auto; text-align: left;
-  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-  padding: 22px 24px; box-shadow: 0 6px 24px rgba(0,0,0,.07); font: inherit; color: var(--text);
+/* ── One look for every question card ──────────────────────────────────────────
+   White inside, the edition's colour as a top accent, same border, corners,
+   shadow and type in every mode (Explore, Review, Flashcards, Quiz, True or
+   false, Speed, Match, Places, missed lists, printed cards). */
+.ac-qcard, .ac-panel, .ac-match, .ac-missed li, .ac-place, body.academy .qx-item {
+  background: #fff; color: var(--text); text-align: left;
+  border: 1px solid var(--border); border-top: 4px solid var(--green); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
 }
-.ac-card { cursor: pointer; min-height: 260px; border-top: 6px solid var(--gold); transition: transform .15s; }
-.ac-card:hover { transform: translateY(-2px); }
-.ac-card.flipped { border-top-color: var(--green); }
-.ac-card-meta { font-size: .75rem; color: var(--text-muted); margin-bottom: 8px; }
-.ac-card-q { font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
-.ac-card-turn { margin-top: 26px; color: var(--text-muted); font-size: .9rem; text-align: center; }
-.ac-card-a { margin-top: 18px; font-size: 1.15rem; font-weight: 700; color: var(--green-dark, var(--green)); }
-.ac-note { margin-top: 10px; font-size: .9rem; color: var(--text-muted); line-height: 1.4; }
-.ac-answer { color: var(--green-dark, var(--green)); font-weight: 700; margin-top: 2px; }
-.ac-opts { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
-.ac-opts li { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; }
-.ac-opts b { color: var(--text-muted); margin-right: 4px; }
+.ac-card-meta, body.academy .qx-meta { font-size: .74rem; color: var(--text-muted); margin-bottom: 6px; }
+.ac-card-q, body.academy .qx-q { font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+/* The answer: the same green box everywhere */
+.ac-card-a, .ac-answer, body.academy .qx-answer {
+  margin-top: 10px; padding: 8px 12px; border-radius: 10px;
+  background: var(--green-light); color: var(--green-dark, var(--green)); font-weight: 700;
+}
+.ac-note, body.academy .qx-note-text { margin-top: 8px; font-size: .86rem; font-weight: 400; color: var(--text-muted); line-height: 1.4; }
+.ac-opts { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.ac-opts li { padding: 5px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .92rem; background: #fff; }
+.ac-opts b, body.academy .qx-opts b { color: var(--text-muted); margin-right: 4px; }
 .ac-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px auto 0; max-width: 680px; }
 .ac-actions .btn { min-width: 150px; }
+
+/* Explore / Review list items */
+body.academy .qx-item { padding: 12px 16px; margin-bottom: 10px; }
+body.academy .qx-item.marked { border-top-color: var(--danger); box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+body.academy .qx-item.show-answers .qx-correct { color: var(--green-dark, var(--green)); }
+
+/* Single panels: quiz, true or false, speed round, where am I */
+.ac-panel { display: block; width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 24px; font: inherit; }
+.ac-panel .ac-card-q { font-size: 1.2rem; }
+
+/* Flashcards: a grid of cards (4 × 2, 3 × 3 or one) */
+.ac-flash-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 14px; }
+.ac-flash {
+  display: flex; flex-direction: column; min-height: 190px; padding: 14px 16px;
+  font: inherit; cursor: pointer; transition: transform .15s, box-shadow .15s;
+}
+.ac-flash:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.1); }
+.ac-flash.flipped { border-top-color: var(--gold); }
+.ac-flash .ac-opts li { font-size: .82rem; padding: 3px 8px; }
+.ac-flash-grid[style*="--cols:1"] { max-width: 680px; margin: 0 auto; }
+.ac-flash-grid[style*="--cols:1"] .ac-flash { min-height: 280px; padding: 22px 24px; }
+.ac-flash-grid[style*="--cols:1"] .ac-card-q { font-size: 1.25rem; }
+.ac-card-turn { margin-top: auto; padding-top: 12px; color: var(--text-muted); font-size: .8rem; text-align: center; }
 
 /* Answer buttons (quiz, speed, places) */
 .ac-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .ac-choice {
   text-align: left; font: inherit; font-size: .98rem; padding: 12px 14px; cursor: pointer;
-  border: 2px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text);
+  border: 2px solid var(--border); border-radius: 12px; background: #fff; color: var(--text);
 }
 .ac-choice:hover:not(:disabled) { border-color: var(--green); background: var(--green-light); }
 .ac-choice b { color: var(--text-muted); margin-right: 4px; }
@@ -86,7 +111,7 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-choice:disabled { cursor: default; }
 
 /* True or false */
-.ac-statement { margin-top: 14px; font-size: 1.1rem; padding: 12px 14px; background: var(--green-light); border-radius: 10px; }
+.ac-statement { margin-top: 14px; font-size: 1.1rem; padding: 12px 14px; background: #FFF8E1; border: 1px dashed var(--gold); border-radius: 10px; }
 .ac-tf .btn { font-size: 1.05rem; padding: 12px 26px; color: #fff; }
 .ac-true { background: #2E7D32; }
 .ac-false { background: var(--danger); }
@@ -100,17 +125,16 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-speed-track { max-width: 680px; height: 6px; margin: 0 auto 14px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .ac-speed-track div { height: 100%; background: var(--gold); transition: width 1s linear; }
 
-/* Match pairs */
+/* Match pairs: question cards on the left, answer cards on the right */
 .ac-match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 860px; margin: 0 auto; }
 .ac-match-col { display: flex; flex-direction: column; gap: 8px; }
 .ac-match-col h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
-.ac-match {
-  text-align: left; font: inherit; font-size: .92rem; padding: 12px; min-height: 56px; cursor: pointer;
-  border: 2px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text);
-}
-.ac-match:hover:not(:disabled) { border-color: var(--green); }
-.ac-match.picked { border-color: var(--gold); background: #FFF8E1; box-shadow: 0 0 0 3px rgba(249,168,37,.25); }
-.ac-match.done { border-color: #2E7D32; background: #E8F5E9; opacity: .6; cursor: default; }
+.ac-match { font: inherit; font-size: .92rem; padding: 12px 14px; min-height: 56px; cursor: pointer; }
+.ac-match[data-side="q"] { font-weight: 700; }
+.ac-match[data-side="a"] { border-top-color: var(--gold); }
+.ac-match:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(0,0,0,.1); }
+.ac-match.picked { background: #FFF8E1; box-shadow: 0 0 0 3px rgba(249,168,37,.35); }
+.ac-match.done { border-color: #2E7D32; border-top-color: #2E7D32; background: #E8F5E9; opacity: .6; cursor: default; }
 .ac-match.shake { border-color: var(--danger); animation: ac-shake .35s; }
 @keyframes ac-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
@@ -119,20 +143,19 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-summary h2 { font-size: 2rem; margin: 6px 0; }
 .ac-summary p { color: var(--text-muted); margin-bottom: 14px; }
 .ac-stars { font-size: 2.4rem; }
-.ac-summary + h3, .ac-missed { max-width: 680px; margin-left: auto; margin-right: auto; }
 .ac-main h3 { margin: 18px auto 8px; max-width: 680px; font-size: .95rem; }
-.ac-missed { list-style: none; padding: 0; display: grid; gap: 8px; }
-.ac-missed li { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.ac-missed { list-style: none; padding: 0; display: grid; gap: 10px; max-width: 680px; margin: 0 auto; }
+.ac-missed li { padding: 12px 16px; font-weight: 700; }
 
 /* Places */
 .ac-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.ac-place { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ac-place { overflow: hidden; }
 .ac-place summary { list-style: none; cursor: pointer; }
 .ac-place summary::-webkit-details-marker { display: none; }
 .ac-place img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
-.ac-place summary span { display: block; padding: 8px 10px; font-weight: 700; font-size: .9rem; }
-.ac-place p { padding: 0 10px 10px; font-size: .84rem; color: var(--text-muted); line-height: 1.4; }
-.ac-where-img { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 12px; }
+.ac-place summary span { display: block; padding: 8px 12px; font-weight: 700; font-size: .92rem; }
+.ac-place p { padding: 0 12px 12px; font-size: .84rem; color: var(--text-muted); line-height: 1.4; }
+.ac-where-img { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 10px; }
 .ac-credits { margin-top: 14px; }
 
 /* Review */
@@ -140,17 +163,44 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-progress-bar { flex: 1 1 200px; height: 10px; border-radius: 5px; background: var(--border); overflow: hidden; }
 .ac-progress-bar div { height: 100%; background: var(--green); }
 .ac-reviewed { display: inline-flex; align-items: center; gap: 5px; font-size: .85rem; font-weight: 600; cursor: pointer; }
-.qx-item.reviewed { border-left: 4px solid var(--green); }
-.qx-item.reviewed.marked { border-left-color: var(--danger); }
+body.academy .qx-item.reviewed { border-left: 4px solid var(--green); }
+body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
 
-/* Print cards: on screen a preview; on paper two cards per row, fold line in the middle */
-.ac-print-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-.ac-print-card { border: 1.5px solid var(--text); border-radius: 6px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
-.ac-print-front { padding: 12px; min-height: 120px; border-bottom: 1.5px dashed var(--text-muted); }
-.ac-print-front .ac-card-q { font-size: 1rem; }
-.ac-print-front .ac-opts li { padding: 2px 6px; font-size: .85rem; }
-.ac-print-back { padding: 12px; font-weight: 700; color: #1B5E20; }
-.ac-print-note { font-weight: 400; color: #555; font-size: .82rem; margin-top: 4px; }
+/* ── Print cards ─────────────────────────────────────────────────────────────────
+   Fixed sizes in mm, so every card — and every fold line — is the same.
+   Double-sided: A4 pages of 2 × 4 cards (90 × 62 mm); the next page holds the
+   answers, each row mirrored, so they land behind their questions when
+   printed on both sides (flip on the long edge).
+   Fold-over: 2 × 2 cards of 90 × 124 mm, folded exactly in the middle. */
+.ac-sheet {
+  width: 210mm; min-height: 297mm; margin: 0 auto 18px; padding: 12mm 15mm; background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+}
+.ac-sheet-label { font-size: .75rem; color: var(--text-muted); margin: -6mm 0 3mm; }
+.ac-sheet-grid { display: grid; grid-template-columns: 90mm 90mm; grid-auto-rows: 62mm; gap: 0; justify-content: center; }
+.ac-sheet.fold .ac-sheet-grid { grid-auto-rows: 124mm; }
+.ac-print-card {
+  height: 62mm; overflow: hidden; padding: 4mm 5mm; border-radius: 3mm; box-shadow: none;
+  border: .3mm solid #999; border-top: 1.6mm solid var(--green);
+  break-inside: avoid; page-break-inside: avoid;
+}
+.ac-print-card.empty { border: .3mm dashed #ddd; background: #fff; }
+.ac-print-card .ac-card-meta { font-size: 7.5pt; margin-bottom: 1.5mm; }
+.ac-print-front .ac-card-q { font-size: 12pt; }
+.ac-print-front.fs-m .ac-card-q { font-size: 10.5pt; }
+.ac-print-front.fs-s .ac-card-q { font-size: 9pt; }
+.ac-print-front .ac-opts { grid-template-columns: 1fr 1fr; gap: 1.2mm; margin-top: 2mm; }
+.ac-print-front .ac-opts li { font-size: 8.5pt; padding: .8mm 1.6mm; border-radius: 1.5mm; }
+.ac-print-front.fs-s .ac-opts li { font-size: 7.5pt; }
+.ac-print-back { border-top-color: var(--gold); }
+.ac-print-back .ac-card-meta { font-size: 7pt; max-height: 9mm; overflow: hidden; }
+.ac-print-back .ac-card-a { font-size: 12pt; margin-top: 2mm; padding: 2mm 3mm; }
+.ac-print-note { font-size: 8pt; color: #555; margin-top: 2mm; line-height: 1.3; }
+/* Fold-over: front half + back half (upside down, so it reads right after folding) */
+.ac-fold-card { position: relative; height: 124mm; }
+.ac-fold-card .ac-print-card { height: 62mm; border-radius: 0; }
+.ac-fold-card .ac-print-back { transform: rotate(180deg); }
+.ac-fold-line { position: absolute; left: 0; right: 0; top: 62mm; border-top: .4mm dashed #666; z-index: 1; }
 
 @media (max-width: 720px) {
   .ac-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
@@ -158,15 +208,20 @@ body.ac-no-filter .ac-side { display: none; }
   .ac-side { border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
   .ac-main { padding: 12px 12px 32px; }
   .ac-choices, .ac-match-grid { grid-template-columns: 1fr; }
-  .ac-card-q { font-size: 1.08rem; }
+  .ac-flash-grid { grid-template-columns: repeat(min(var(--cols, 4), 2), minmax(0, 1fr)); gap: 10px; }
+  .ac-flash { min-height: 150px; padding: 10px 12px; }
+  .ac-flash .ac-card-q { font-size: .95rem; }
+  .ac-card-q { font-size: 1.05rem; }
   .ac-edition .settings-select { min-width: 0; }
+  .ac-sheet { transform-origin: top left; zoom: .45; }
 }
 
 @media print {
+  @page { size: A4; margin: 0; }
   body.academy { height: auto; overflow: visible; display: block; background: #fff; }
   .ac-top, .ac-modes, .ac-side, .ac-no-print, #ac-export { display: none !important; }
   .ac-body { display: block; }
   .ac-main { overflow: visible; padding: 0; }
-  .ac-print-grid { grid-template-columns: 1fr 1fr; gap: 6mm; }
-  .ac-print-back { transform: rotate(180deg); }   /* reads the right way up after folding */
+  .ac-sheet { margin: 0; box-shadow: none; zoom: 1; break-after: page; page-break-after: always; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
