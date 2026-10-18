@@ -102,7 +102,7 @@ function _showCardMode({ spaceType, spaceName, playerName, deedText, deedEffect,
   } else if (spaceType === 'skip') {
     body = 'This player will skip their next turn.';
   } else if (spaceType === 'finish') {
-    body = `${icon('celebrate')} Reached the finish!`;
+    body = `${icon('celebrate')} Reached ${esc(_finish())}!`;
   } else if (deedText) {
     body = `<em>${deedText}</em>`;
     if (deedEffect) {
@@ -259,27 +259,56 @@ const SPACE_META = {
   finish:    { icon: 'tileFinish',   label: 'Finish!'    },
 };
 
-/** Use the edition the host sent: its icons, and its names for the tiles. */
+const ENGINE_LABELS = Object.fromEntries(Object.entries(SPACE_META).map(([t, m]) => [t, m.label]));
+
+// The game being played, as the host describes it (host_game / sync_state → `edition`)
+let _edition = { name: '', icon: '', pointsName: '', finishLabel: '', board: {} };
+
+const _pts    = () => _edition.pointsName || 'pts';
+const _finish = () => _edition.finishLabel || 'the finish';
+const _tile   = type => (SPACE_META[type]?.label || type).toLowerCase();
+
+/** Use the game the host sent: the edition's icons, words and tile names, and the board. */
 function _applyEdition(edition) {
   if (!edition) return;
+  _edition = { ..._edition, ...edition, board: edition.board || {} };
   CONFIG.EDITION_ICONS = edition.icons || null;
-  for (const [type, label] of Object.entries(edition.labels || {})) {
-    if (SPACE_META[type]) SPACE_META[type].label = label;
+  for (const [type, m] of Object.entries(SPACE_META)) m.label = edition.labels?.[type] || ENGINE_LABELS[type];
+  _renderGameInfo();
+}
+
+/** The edition banner on the lobby and game screens: big icon, edition, Triventurex, board. */
+function _renderGameInfo() {
+  const b = _edition.board || {};
+  const length = b.length ? b.length[0].toUpperCase() + b.length.slice(1) + ' game' : '';
+  const board = [length, b.spaces ? `${b.spaces} spaces` : '', b.name].filter(Boolean).join(' · ');
+  for (const el of document.querySelectorAll('.game-info')) {
+    el.hidden = !_edition.name;
+    el.innerHTML = `
+      <span class="game-info-icon">${entryHtml(_edition.icon) || icon('appLogo')}</span>
+      <span class="game-info-text">
+        <span class="game-info-app">${icon('appLogo')} Triventurex</span>
+        <span class="game-info-name">${esc(_edition.name)}</span>
+        ${board ? `<span class="game-info-board">${esc(board)}</span>` : ''}
+      </span>`;
   }
+  const pts = _edition.pointsName;
+  document.getElementById('game-own-score-label').textContent = pts ? pts[0].toUpperCase() + pts.slice(1) : 'Score';
 }
 
 const EFFECT_LABELS = {
-  score_add:             (v) => `+${v} points`,
-  score_remove:          (v) => `−${v} points`,
+  score_add:             (v) => `+${v} ${_pts()}`,
+  score_remove:          (v) => `−${v} ${_pts()}`,
   move_forward:          (v) => `Move forward ${v} space${v !== 1 ? 's' : ''}`,
   move_back:             (v) => `Move back ${v} space${v !== 1 ? 's' : ''}`,
   move_to_landmark:      (_, lm) => `Go to: ${lm}`,
-  move_to_next_landmark: () => 'Advance to next landmark',
+  move_to_next_landmark: (_, lm) => lm ? `Go to: ${lm}` : `Advance to the next ${_tile('landmark')}`,
+  move_to_prev_landmark: (_, lm) => lm ? `Back to: ${lm}` : `Back to the last ${_tile('landmark')}`,
   skip_turn:             () => 'Skip your next turn',
   extra_turn:            () => 'Roll again!',
-  all_players_gain:      (v) => `Everyone +${v} points`,
-  all_players_lose:      (v) => `Everyone −${v} points`,
-  protection:            () => 'Next bad deed cancelled',
+  all_players_gain:      (v) => `Everyone +${v} ${_pts()}`,
+  all_players_lose:      (v) => `Everyone −${v} ${_pts()}`,
+  protection:            () => `Next ${_tile('bad_deed')} cancelled`,
 };
 
 // ── Render game view from state_update ────────────────────────────────────────
@@ -349,7 +378,7 @@ function renderGameView({ playerStates, currentPlayerIndex, turnPhase, phase }) 
         </div>
         <span class="other-name">${esc(p.name)}${p.finished ? ' ' + icon('finished') : ''}${p.disconnected ? ' ' + icon('disconnected') : ''}${p.inactive ? ' ' + icon('sittingOut') : ''}</span>
         <span class="other-pos">pos ${p.position ?? 0}</span>
-        <span class="other-score">${p.score ?? 0} pts</span>
+        <span class="other-score">${p.score ?? 0} ${esc(_pts())}</span>
         <div class="other-active-indicator ${isActive ? '' : 'inactive'}"></div>
       </div>`;
   }).join('');
@@ -406,7 +435,8 @@ TX_NET.on('error', ({ message, msg }) => {
   showError(text);
 });
 
-TX_NET.on('joined', ({ gameId, playerId, phase, players, rejoinToken }) => {
+TX_NET.on('joined', ({ gameId, playerId, phase, players, rejoinToken, edition }) => {
+  _applyEdition(edition);
   _myId   = playerId;
   _gameId = gameId;
   TX_NET.setGameId(gameId);
@@ -575,10 +605,10 @@ TX_NET.on('turn_result', ({ playerName, scoreDelta, newPosition, spaceType }) =>
     return;
   }
   let parts = [];
-  if (scoreDelta > 0)  parts.push(`+${scoreDelta} pts`);
-  if (scoreDelta < 0)  parts.push(`${scoreDelta} pts`);
+  if (scoreDelta > 0)  parts.push(`+${scoreDelta} ${esc(_pts())}`);
+  if (scoreDelta < 0)  parts.push(`${scoreDelta} ${esc(_pts())}`);
   if (spaceType === 'skip_turn') parts.push('skip next turn');
-  if (spaceType === 'finish')    parts.push('reached the finish!');
+  if (spaceType === 'finish')    parts.push(`reached ${esc(_finish())}!`);
   const summary = parts.length ? parts.join(', ') : 'no change';
   _addActivity('stats', `<strong>${esc(name)}</strong>: ${summary}`);
 });

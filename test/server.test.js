@@ -262,26 +262,57 @@ describe('sync_state', () => {
     assert.equal(hostUpdates.length, 0);
   });
 
-  it("passes the edition's icons and tile names to phones, cleaned", async () => {
+  it("passes the game's details (edition words, icons, board) to phones, cleaned", async () => {
     const { host, gameId, players, room } = await setupGame({ phones: 1 });
     const phoneUpdate = once(players[0].socket, 'state_update');
     host.emit('sync_state', { gameId, playerStates: hostView(room), edition: {
+      name: 'Football Quest', icon: 'emoji:⚽', pointsName: 'Goals', finishLabel: 'The Final',
       icons: {
         tileGoodDeed: 'emoji:⚽', tileLandmark: 'url:game_editions/x/icons/a.svg', back: 'lucide:arrow-left',
         bad1: 'url:javascript:alert(1)', bad2: '<img onerror=x>', 'bad key': 'emoji:⚽', bad3: 42,
       },
       labels: { good_deed: 'Good Play', bad_deed: 'x'.repeat(41) },
+      board: { length: 'medium', name: 'Wide spiral', spaces: 48 },
     } });
     const { edition } = await phoneUpdate;
     assert.deepEqual(edition, {
+      name: 'Football Quest', icon: 'emoji:⚽', pointsName: 'Goals', finishLabel: 'The Final',
       icons: { tileGoodDeed: 'emoji:⚽', tileLandmark: 'url:game_editions/x/icons/a.svg', back: 'lucide:arrow-left' },
       labels: { good_deed: 'Good Play' },
+      board: { length: 'medium', name: 'Wide spiral', spaces: 48 },
     });
 
     // a sync without an edition keeps the last one
     const next = once(players[0].socket, 'state_update');
     host.emit('sync_state', { gameId, currentPlayerIndex: 0 });
     assert.deepEqual((await next).edition, edition);
+  });
+
+  it('cleans bad game details', async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 1 });
+    const phoneUpdate = once(players[0].socket, 'state_update');
+    host.emit('sync_state', { gameId, playerStates: hostView(room), edition: {
+      name: 'n'.repeat(60), icon: 'javascript:alert(1)', pointsName: 7,
+      board: { length: 'huge', name: 3, spaces: -1 },
+    } });
+    const { edition } = await phoneUpdate;
+    assert.equal(edition.name.length, 40);
+    assert.equal(edition.icon, '');
+    assert.equal(edition.pointsName, '');
+    assert.deepEqual(edition.board, { length: '', name: '', spaces: 0 });
+  });
+
+  it('phones joining the lobby get the game details from host_game', async () => {
+    const host = await connect();
+    host.emit('host_game', { editionId: 'football-quest', gameLength: 'short', pathIndex: 'random', isGMOnly: true,
+      edition: { name: 'Football Quest', pointsName: 'Goals', board: { length: 'short' } } });
+    const { gameId } = await once(host, 'hosted');
+    const phone = await connect();
+    phone.emit('join_game', { gameId, playerName: 'P' });
+    const { edition } = await once(phone, 'joined');
+    assert.equal(edition.name, 'Football Quest');
+    assert.equal(edition.pointsName, 'Goals');
+    assert.equal(edition.board.length, 'short');
   });
 });
 

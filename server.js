@@ -81,18 +81,32 @@ function cleanProfile({ name, token, color } = {}, fallbackName) {
 }
 
 /**
- * The edition block the host sends for phones (icons + tile names). Host-owned
- * data, but it is drawn on phones, so keep it to the expected shape: names are
- * identifiers, icons an emoji / '<set>:<icon>' / one of the edition's own pictures.
+ * The game details the host sends for phones: the edition's name, icon, words
+ * and icons, and the board. Host-owned, but drawn on phones — so keep it to the
+ * expected shape: short strings, identifier keys, icons an emoji /
+ * '<set>:<icon>' / one of the editions' own pictures.
  */
+const ICON_VALUE = /^(emoji:|url:game_editions\/|[a-z0-9-]+:[a-z0-9-]+$)/;
 function cleanEdition(edition) {
   if (!edition || typeof edition !== 'object') return null;
+  const text = (v, max) => typeof v === 'string' ? v.slice(0, max) : '';
   const pick = (obj, ok, max) => Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {})
     .filter(([k, v]) => /^[A-Za-z0-9_]{1,40}$/.test(k) && typeof v === 'string' && v.length <= max && ok(v))
     .slice(0, 300));
+  const board = edition.board && typeof edition.board === 'object' ? edition.board : {};
+  const icon = text(edition.icon, 200);
   return {
-    icons:  pick(edition.icons, v => /^(emoji:|url:game_editions\/|[a-z0-9-]+:[a-z0-9-]+$)/.test(v), 200),
-    labels: pick(edition.labels, () => true, 40),
+    name:        text(edition.name, 40),
+    icon:        ICON_VALUE.test(icon) ? icon : '',
+    pointsName:  text(edition.pointsName, 20),
+    finishLabel: text(edition.finishLabel, 40),
+    icons:       pick(edition.icons, v => ICON_VALUE.test(v), 200),
+    labels:      pick(edition.labels, () => true, 40),
+    board: {
+      length: ['short', 'medium', 'long'].includes(board.length) ? board.length : '',
+      name:   text(board.name, 40),
+      spaces: Number.isInteger(board.spaces) && board.spaces >= 0 && board.spaces <= 999 ? board.spaces : 0,
+    },
   };
 }
 
@@ -229,7 +243,7 @@ io.on('connection', (socket) => {
   console.log(`[connect]    socket=${socket.id}`);
 
   // ── host_game ──────────────────────────────────────────────────────────────
-  socket.on('host_game', ({ editionId, gameLength, pathIndex, hostPlayer, isGMOnly }) => {
+  socket.on('host_game', ({ editionId, gameLength, pathIndex, hostPlayer, isGMOnly, edition }) => {
     const gameId = generateGameId();
     console.log(`[host_game]  socket=${socket.id} gameId=${gameId} edition=${editionId} length=${gameLength} gmOnly=${isGMOnly}`);
 
@@ -259,6 +273,7 @@ io.on('connection', (socket) => {
       editionId,
       gameLength,
       pathIndex,
+      edition:             cleanEdition(edition),
       phase:               'lobby',
       players,
       currentPlayerIndex:  0,
@@ -298,6 +313,7 @@ io.on('connection', (socket) => {
       playerId,
       phase:       room.phase,
       players:     publicPlayers(room.players),
+      edition:     room.edition ?? null,
       rejoinToken,                              // only ever sent to its owner
     });
 

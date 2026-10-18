@@ -41,6 +41,7 @@ function _hostNetworkGame() {
     pathIndex,
     hostPlayer,
     isGMOnly,
+    edition: _phoneEdition(),
   });
 }
 
@@ -318,11 +319,30 @@ function _syncStateToServer() {
   });
 }
 
-/** What phones need of the edition to look like it: its icons and tile names. */
+/**
+ * What phones need to look like this game: the edition's name, icon, words
+ * (points, finish, tile names) and icons, and which board is played. Sent with
+ * host_game (lobby) and every sync_state.
+ */
 function _phoneEdition() {
+  const g = CONFIG.GAME || {};
   const labels = {};
   for (const [type, info] of Object.entries(CONFIG.SPACE_INFO || {})) if (info?.label) labels[type] = info.label;
-  return { icons: CONFIG.EDITION_ICONS || {}, labels };
+  const setup = _isNetworkGame ? state : (_pendingNetworkSetup || state);
+  const tpl = Number.isInteger(setup.pathIndex) ? CONFIG.PATH_TEMPLATES[setup.gameLength]?.[setup.pathIndex] : null;
+  return {
+    name:        g.editionName || '',
+    icon:        iconEntry(g.editionIcon) || (isEmoji(g.editionIcon) ? `emoji:${g.editionIcon}` : ''),
+    pointsName:  g.pointsName || '',
+    finishLabel: g.finishLabel || '',
+    icons:       CONFIG.EDITION_ICONS || {},
+    labels,
+    board: {
+      length: setup.gameLength || '',
+      name:   tpl ? ((tpl.name || '').split('—').pop().trim() || tpl.name || '') : '',
+      spaces: _isNetworkGame ? (state.board?.length || 0) : 0,
+    },
+  };
 }
 
 /**

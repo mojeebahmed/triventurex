@@ -85,6 +85,12 @@ function emojiHtml(glyph) {
 function icon(nameOrEmoji) {
   const e = iconEntry(nameOrEmoji);
   if (!e) return isEmoji(nameOrEmoji) ? emojiHtml(nameOrEmoji) : '';
+  return entryHtml(e);
+}
+
+/** HTML for a registry entry ('emoji:🎲', 'lucide:undo-2', 'url:<path>'); '' if it can't be drawn. */
+function entryHtml(e) {
+  e = String(e || '');
   if (e.startsWith('emoji:')) return emojiHtml(e.slice(6));
   if (e.startsWith('url:')) return `<img class="tx-emoji tx-picture" src="${_escAttr(e.slice(4))}" alt="" draggable="false" decoding="async">`;
   const svg = _iconsData()?.ui?.[e];            // line icons are bundled by id ('lucide:undo-2')
@@ -161,4 +167,4 @@ function startIcons(doc = typeof document !== 'undefined' ? document : null) {
   }).observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['data-icon'] });
 }
 
-if (typeof module !== 'undefined') module.exports = { glyphKey, findEmoji, isEmoji, iconEntry, iconText, icon, EMOJI_RE };
+if (typeof module !== 'undefined') module.exports = { glyphKey, findEmoji, isEmoji, iconEntry, iconText, icon, entryHtml, EMOJI_RE };
