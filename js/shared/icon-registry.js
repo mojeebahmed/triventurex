@@ -194,8 +194,9 @@ const ICONS = {
 };
 
 /**
- * Badges players can pick (data, not icons by name): the host's badge picker
- * shows BADGES; default players take the first eight; phones show PHONE_BADGES.
+ * Badges players can pick (data, not icons by name): the badge pickers on the
+ * host and on phones show BADGES and BADGE_COLORS; default players take the
+ * first eight badges (colours: CONFIG.PLAYERS.defaults).
  */
 const BADGES = [
   '🚀','⭐','⚡','🎯','🏆','🌙','🦋','🎪',
@@ -208,6 +209,13 @@ const BADGES = [
   '🌸','🌻','🌴','🍁','🌵','🌊','⛰️','🌋',
   '🐼','🐸','🐵','🐧','🐞','🐙','🐝','🦜',
 ];
-const PHONE_BADGES = ['🌟','⚡','🔥','💎','🏆','🎯','🚀','🌙','🍀','🎲','🎸','🏅','🦁','🐉','🌊','🌺'];
+const BADGE_COLORS = [
+  '#E53935', '#C62828', '#1565C0', '#0D47A1', '#2E7D32', '#00838F',
+  '#F9A825', '#E65100', '#6A1B9A', '#37474F', '#AD1457', '#00695C',
+  '#7B1FA2', '#512DA8', '#3949AB', '#1E88E5', '#039BE5', '#00ACC1',   // violet, deep purple, indigo, blues, cyan
+  '#00897B', '#43A047', '#7CB342', '#C0CA33', '#FDD835', '#FFB300',   // turquoise, greens, lime, yellow, amber
+  '#FB8C00', '#F4511E', '#8D6E63', '#757575', '#546E7A', '#D81B60',   // oranges, brown, greys, pink
+  '#EC407A', '#5E35B1', '#00C853', '#00BFA5', '#FF4081', '#651FFF',   // pinks, royal purple, neon green, aqua, electric purple
+];
 
-if (typeof module !== 'undefined') module.exports = { ICONS, BADGES, PHONE_BADGES };
+if (typeof module !== 'undefined') module.exports = { ICONS, BADGES, BADGE_COLORS };

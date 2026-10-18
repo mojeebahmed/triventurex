@@ -12,7 +12,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { execFileSync } = require('node:child_process');
 const { glyphKey, findEmoji } = require('../js/shared/icons.js');
-const { ICONS, BADGES, PHONE_BADGES } = require('../js/shared/icon-registry.js');
+const { ICONS, BADGES, BADGE_COLORS } = require('../js/shared/icon-registry.js');
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -116,7 +116,17 @@ describe('the registry', () => {
         assert.ok(data.ui[v], `${name}: line icon ${v} not bundled (npm run build:icons)`);
       }
     }
-    for (const b of [...BADGES, ...PHONE_BADGES]) assert.ok(data.emoji.includes(glyphKey(b)), `badge ${b}`);
+    for (const b of BADGES) assert.ok(data.emoji.includes(glyphKey(b)), `badge ${b}`);
+  });
+
+  it('host and phones offer the same badges and colours', () => {
+    assert.equal(new Set(BADGES).size, BADGES.length, 'no duplicate badges');
+    assert.equal(new Set(BADGE_COLORS).size, BADGE_COLORS.length, 'no duplicate colours');
+    for (const c of BADGE_COLORS) assert.match(c, /^#[0-9A-F]{6}$/, c);   // the server only accepts hex colours
+    const player = fs.readFileSync(path.join(ROOT, 'js/player/player.js'), 'utf8');
+    assert.match(player, /const TOKENS = BADGES;/);
+    assert.match(player, /const COLORS = BADGE_COLORS;/);
+    assert.match(fs.readFileSync(path.join(ROOT, 'js/shared/config.js'), 'utf8'), /colors: BADGE_COLORS/);
   });
 
   it('engine code has no raw emoji or icon symbols — use icon(name) / iconText(name)', () => {

@@ -314,7 +314,15 @@ function _syncStateToServer() {
     turnPhase:          state.turnPhase,
     finishCount:        state.finishCount,
     phase:              state.phase,
+    edition:            _phoneEdition(),
   });
+}
+
+/** What phones need of the edition to look like it: its icons and tile names. */
+function _phoneEdition() {
+  const labels = {};
+  for (const [type, info] of Object.entries(CONFIG.SPACE_INFO || {})) if (info?.label) labels[type] = info.label;
+  return { icons: CONFIG.EDITION_ICONS || {}, labels };
 }
 
 /**

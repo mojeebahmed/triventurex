@@ -22,6 +22,8 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed
+- **Phones look like the edition**: the host sends the edition's icons and tile names with the game state, so a phone shows ⚽ *Good Play* in Football Quest instead of the engine's ✅ *Good Deed*.
+- **Same badge picker on phones**: phones offer the same 72 badges and 36 colours as the host's picker (was 16 badges, 12 colours).
 - **Edition icons in one place**: each edition sets the icons it changes in an `ICONS` block in its `config.js` (edition → engine lookup), instead of `icon` fields scattered over `SPACE_INFO` and `AWARDS`. Values can be an emoji, any installed Iconify set's icon, or the edition's own picture (`file:icons/x.svg`). `check:content` validates the block. All five editions moved over; nothing looks different.
 - **Icons by name**: the engine's ~450 hard-coded emoji and symbols are now named icons in `js/shared/icon-registry.js`, used through `icon()` / `iconText()` / `data-icon`. A test keeps raw icons out of engine code and checks every name exists. No visible change. Badge lists live in the registry (the phone and host no longer keep separate copies).
 - Marked questions moved from js/host/storage.js to js/shared/marks.js (shared with the Academy).

@@ -261,6 +261,28 @@ describe('sync_state', () => {
     await settle();
     assert.equal(hostUpdates.length, 0);
   });
+
+  it("passes the edition's icons and tile names to phones, cleaned", async () => {
+    const { host, gameId, players, room } = await setupGame({ phones: 1 });
+    const phoneUpdate = once(players[0].socket, 'state_update');
+    host.emit('sync_state', { gameId, playerStates: hostView(room), edition: {
+      icons: {
+        tileGoodDeed: 'emoji:⚽', tileLandmark: 'url:game_editions/x/icons/a.svg', back: 'lucide:arrow-left',
+        bad1: 'url:javascript:alert(1)', bad2: '<img onerror=x>', 'bad key': 'emoji:⚽', bad3: 42,
+      },
+      labels: { good_deed: 'Good Play', bad_deed: 'x'.repeat(41) },
+    } });
+    const { edition } = await phoneUpdate;
+    assert.deepEqual(edition, {
+      icons: { tileGoodDeed: 'emoji:⚽', tileLandmark: 'url:game_editions/x/icons/a.svg', back: 'lucide:arrow-left' },
+      labels: { good_deed: 'Good Play' },
+    });
+
+    // a sync without an edition keeps the last one
+    const next = once(players[0].socket, 'state_update');
+    host.emit('sync_state', { gameId, currentPlayerIndex: 0 });
+    assert.deepEqual((await next).edition, edition);
+  });
 });
 
 // ── Removing / leaving (B5) ───────────────────────────────────────────────────

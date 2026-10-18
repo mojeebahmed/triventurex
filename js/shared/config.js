@@ -243,45 +243,7 @@ const CONFIG = {
       { name: 'Player 8', color: '#37474F', token: BADGES[7] },
     ],
 
-    colors: [
-      // Existing
-      '#E53935', '#C62828',
-      '#1565C0', '#0D47A1',
-      '#2E7D32',
-      '#00838F',
-      '#F9A825',
-      '#E65100',
-      '#6A1B9A',
-      '#37474F',
-      '#AD1457',
-      '#00695C',
-
-      // New vibrant additions
-      '#7B1FA2', // Violet
-      '#512DA8', // Deep Purple
-      '#3949AB', // Indigo
-      '#1E88E5', // Bright Blue
-      '#039BE5', // Sky Blue
-      '#00ACC1', // Cyan
-      '#00897B', // Turquoise
-      '#43A047', // Emerald
-      '#7CB342', // Lime Green
-      '#C0CA33', // Lime
-      '#FDD835', // Yellow
-      '#FFB300', // Amber
-      '#FB8C00', // Orange
-      '#F4511E', // Deep Orange
-      '#8D6E63', // Brown
-      '#757575', // Grey
-      '#546E7A', // Blue Grey
-      '#D81B60', // Pink
-      '#EC407A', // Bright Pink
-      '#5E35B1', // Royal Purple
-      '#00C853', // Neon Green
-      '#00BFA5', // Aqua
-      '#FF4081', // Hot Pink
-      '#651FFF', // Electric Purple
-    ],
+    colors: BADGE_COLORS, // js/shared/icon-registry.js
 
     tokens: BADGES,     // js/shared/icon-registry.js
   },

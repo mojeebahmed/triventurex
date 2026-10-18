@@ -6,12 +6,12 @@
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TOKENS = PHONE_BADGES;   // js/shared/icon-registry.js
-const COLORS = [
-  '#E53935','#8E24AA','#1E88E5','#00897B',
-  '#43A047','#FB8C00','#F4511E','#6D4C41',
-  '#546E7A','#D81B60','#3949AB','#00ACC1',
-];
+const TOKENS = BADGES;         // the same badges and colours as the host's picker
+const COLORS = BADGE_COLORS;   // (js/shared/icon-registry.js)
+// The phone doesn't load an edition or config.js: the host sends the edition's
+// icons and tile labels with every state update (`edition` in state_update), and
+// icon() reads CONFIG.EDITION_ICONS — so the phone shows the edition's icons.
+const CONFIG = { EDITION_ICONS: null };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LS_IDENTITY = 'triventurex_player_identity';
 const LS_SESSION  = 'triventurex_game_session';
@@ -259,6 +259,15 @@ const SPACE_META = {
   finish:    { icon: 'tileFinish',   label: 'Finish!'    },
 };
 
+/** Use the edition the host sent: its icons, and its names for the tiles. */
+function _applyEdition(edition) {
+  if (!edition) return;
+  CONFIG.EDITION_ICONS = edition.icons || null;
+  for (const [type, label] of Object.entries(edition.labels || {})) {
+    if (SPACE_META[type]) SPACE_META[type].label = label;
+  }
+}
+
 const EFFECT_LABELS = {
   score_add:             (v) => `+${v} points`,
   score_remove:          (v) => `−${v} points`,
@@ -416,7 +425,8 @@ TX_NET.on('joined', ({ gameId, playerId, phase, players, rejoinToken }) => {
   }
 });
 
-TX_NET.on('rejoined', ({ gameId, playerId, phase, players, playerStates, currentPlayerIndex, turnPhase, finishCount }) => {
+TX_NET.on('rejoined', ({ gameId, playerId, phase, players, playerStates, currentPlayerIndex, turnPhase, finishCount, edition }) => {
+  _applyEdition(edition);
   _myId   = playerId;
   _gameId = gameId;
   TX_NET.setGameId(gameId);
@@ -513,6 +523,7 @@ TX_NET.on('roll_result', async ({ roll }) => {
 });
 
 TX_NET.on('state_update', (data) => {
+  _applyEdition(data.edition);
   renderGameView(data);
 });
 

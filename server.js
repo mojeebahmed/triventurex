@@ -80,6 +80,22 @@ function cleanProfile({ name, token, color } = {}, fallbackName) {
   };
 }
 
+/**
+ * The edition block the host sends for phones (icons + tile names). Host-owned
+ * data, but it is drawn on phones, so keep it to the expected shape: names are
+ * identifiers, icons an emoji / '<set>:<icon>' / one of the edition's own pictures.
+ */
+function cleanEdition(edition) {
+  if (!edition || typeof edition !== 'object') return null;
+  const pick = (obj, ok, max) => Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {})
+    .filter(([k, v]) => /^[A-Za-z0-9_]{1,40}$/.test(k) && typeof v === 'string' && v.length <= max && ok(v))
+    .slice(0, 300));
+  return {
+    icons:  pick(edition.icons, v => /^(emoji:|url:game_editions\/|[a-z0-9-]+:[a-z0-9-]+$)/.test(v), 200),
+    labels: pick(edition.labels, () => true, 40),
+  };
+}
+
 // Fields that exist only on the server — stripped from everything sent out.
 // rejoinToken in particular lets whoever holds it take over that player's seat.
 const SERVER_ONLY_FIELDS = ['socketId', 'rejoinToken', 'awaitingHostSync'];
@@ -100,6 +116,7 @@ function publicState(room) {
     turnPhase:          room.turnPhase,
     finishCount:        room.finishCount,
     phase:              room.phase,
+    edition:            room.edition ?? null,
   };
 }
 
@@ -383,7 +400,7 @@ io.on('connection', (socket) => {
   });
 
   // ── sync_state ─────────────────────────────────────────────────────────────
-  socket.on('sync_state', ({ gameId, playerStates, currentPlayerIndex, turnPhase, finishCount, phase }) => {
+  socket.on('sync_state', ({ gameId, playerStates, currentPlayerIndex, turnPhase, finishCount, phase, edition }) => {
     console.log(`[sync_state] socket=${socket.id} gameId=${gameId} turnPhase=${turnPhase}`);
 
     const room = rooms.get(gameId);
@@ -413,6 +430,7 @@ io.on('connection', (socket) => {
     if (turnPhase)                        room.turnPhase          = turnPhase;
     if (finishCount !== undefined)        room.finishCount        = finishCount;
     if (phase)                            room.phase              = phase;
+    if (edition)                          room.edition            = cleanEdition(edition);
     if (phase === 'ended') scheduleRoomExpiry(room, ROOM_TTL.endedMs, 'game ended');
     else if (phase === 'playing') cancelRoomExpiry(room);   // e.g. a rematch in the same room
 
