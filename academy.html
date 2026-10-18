@@ -7,6 +7,7 @@
   <title>Triventurex Academy</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/academy.css">
+  <link rel="stylesheet" href="css/help.css">
 </head>
 <body class="academy">
 
@@ -19,6 +20,7 @@
     </label>
     <span class="ac-spacer"></span>
     <a class="btn btn-secondary btn-small" href="index.html"><i data-icon="playGame"></i> Play the game</a>
+    <button type="button" class="help-btn" onclick="openHelp(academyHelpTopic())" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
   </header>
 
   <nav id="ac-modes" class="ac-modes" role="tablist"></nav>
@@ -45,6 +47,7 @@
   <script src="js/shared/icon-registry.js"></script>
   <script src="js/shared/icons-data.js"></script>
   <script src="js/shared/icons.js"></script>
+  <script src="js/shared/help.js"></script>
   <script src="js/shared/config.js"></script>
   <script src="js/shared/edition.js"></script>
   <script src="js/shared/questions.js"></script>

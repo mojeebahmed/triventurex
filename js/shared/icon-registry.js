@@ -47,6 +47,7 @@ const ICONS = {
   rulesTopics:     'lucide:tags',
 
   // ── Lobby, game screen, GM panel ────────────────────────────────────────────
+  help:            'lucide:circle-help',      // the ? help button on every page (js/shared/help.js)
   back:            'lucide:arrow-left',
   forward:         'lucide:arrow-right',      // Start Game → in the lobby, Join Game →, Next →
   tvDisplay:       'lucide:cast',             // open the TV display page

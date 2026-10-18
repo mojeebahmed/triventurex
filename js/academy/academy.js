@@ -127,6 +127,9 @@ function _renderModeTabs() {
              aria-selected="${m.id === ac.mode}" title="${esc(m.hint || '')}">${icon(m.icon)} ${esc(m.label)}</button>`).join('');
 }
 
+/** The help for the mode on screen (js/shared/help.js); each links to the Academy's general help. */
+const academyHelpTopic = () => (HELP[`academy-${ac.mode}`] ? `academy-${ac.mode}` : 'academy');
+
 function showMode(id) {
   const mode = AC_MODES.find(m => m.id === id) || AC_MODES[0];
   if (_acCleanup) { try { _acCleanup(); } catch {} _acCleanup = null; }
@@ -157,6 +160,7 @@ function copyText(text, okMessage) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
+  startHelp(academyHelpTopic);   // ? button + the ? key (js/shared/help.js)
   const id = _pickEditionId();
   if (!id) { document.getElementById('ac-main').innerHTML = emptyHtml('No editions found.'); return; }
   await _loadEdition(id);

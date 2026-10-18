@@ -45,6 +45,7 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
 - `test/html-structure.test.js` — every `<div>` in index.html / player.html / academy.html is closed, the host screens are top-level (a missing `</div>` once hid the board), and academy.html loads only shared + academy scripts
 - `test/icons.test.js` — icons: `icon()` / `iconText()`, edition → `ICON_OVERRIDES` → `ICONS` lookup, valid registry, host and phones offer the same badges + colours, no raw emoji/icon symbols in engine code, every icon name used exists, bundles up to date, every page loads the icon scripts in order
+- `test/help.test.js` — the in-game help: a topic for every setup tab, Academy mode and phone view; every icon, word and link exists; markup renders safely
 - `test/academy.test.js` — Academy rounds (js/shared/academy.js) + every edition gives each mode content
 - `test/socket-events.test.js` — every `TX_NET.on('…')` event is in socket-client.js's forward list
 - `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
@@ -77,6 +78,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/shared/edition.js` — `mergeEditionConfig`, `applyEditionColors` — host + TV display
 - `js/shared/stats.js` — end-screen stats + awards from the history (G13)
 - `js/shared/questions.js` — question tree / filter / marked-questions report (G14 + G19), topic keys
+- `js/shared/help.js` — the in-game help: all help text (`HELP` topics), `openHelp(topic)`, `startHelp(topicFn)` (? key, Esc, first-visit glow); shared by host, phone and Academy (+ `css/help.css`)
 - `js/shared/marks.js` — 🚩 marked questions + reviewed ticks (localStorage), shared by the host page and the Academy
 - `js/shared/academy.js` — Academy rounds (true/false, match pairs, places quiz, flashcard sets via `chunk`, double-sided `printSheets` with mirrored backs, `textSize` for fixed-size cards, review stats); pure, unit-tested
 - `js/shared/path-design.js` — drawing board paths: cells, runs, checks, template export (G20)
@@ -96,6 +98,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - `js/host/category-filter.js` — 3-level question topic tree (Rules tab → Topics)
 - `js/host/edition-loader.js` — `loadEdition`, edition picker, branding (merge + colours via shared/edition.js)
 - `js/host/storage.js` — saved game, remembered preferences, custom boards, marked questions (localStorage)
+- `js/host/help-host.js` — `hostHelpTopic()`: which help the host's ? opens (setup tab, lobby, open card, GM controls, game log, game)
 - `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
 
 Player page, TV page, Academy + server:
@@ -239,6 +242,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 
 Note: `move_to_landmark` (named, absolute) is still handled in ui.js for backwards compatibility but no longer used in any edition's deed CSV.
 
+- **In-game help**: one ? button per screen (host setup card, lobby card, board zoom + presentation controls; phone: floating bottom-right; Academy header) and the ? key. All text is in `HELP` in js/shared/help.js — one topic per setup tab, lobby, game (+ cards, game log, GM controls), phone view and Academy mode, plus a shared *How to play*; `more` links related topics. Text uses a small markup (`##`, `- `, `**bold**`), `{icon:name}` (registry names — no raw emoji) and the edition's words `{points} {finish} {question} {action} {good} {bad} {landmark} {skip} {edition}` (`helpWords(CONFIG)`; the phone passes words from the host's `edition` block). **When you add or change a screen, tab, mode or control, update its help topic**; test/help.test.js checks that every setup tab and Academy mode has a topic and every icon / word / link exists
 - **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Question cards in every mode share ONE look (css/academy.css `.ac-qcard` group: white inside, `--green` top accent, gold for answer sides) — reuse it, don't restyle per mode. Printed cards have fixed mm sizes (double-sided 90 × 62 mm, fold-over 90 × 124 mm folded in the middle). Every edition must give each mode content (test/academy.test.js)
 
 - **Icons** (developer guide):

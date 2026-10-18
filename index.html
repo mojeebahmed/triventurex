@@ -6,6 +6,7 @@
   <link rel="icon" href="data:,"> <!-- no favicon: avoids a 404 on every load -->
   <title>Triventurex</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/help.css">
 </head>
 <body>
 
@@ -14,6 +15,7 @@
   ═══════════════════════════════════════════════ -->
   <div id="setup-screen" class="screen">
     <div class="setup-container">
+      <button type="button" class="help-btn help-corner" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
 
       <h1 class="game-title" id="brand-engine">Triventurex</h1>
       <p class="game-edition-label" id="brand-edition"></p>
@@ -246,6 +248,7 @@
   ═══════════════════════════════════════════════ -->
   <div id="lobby-screen" class="screen">
     <div class="lobby-container">
+      <button type="button" class="help-btn help-corner" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
       <div id="lobby-game-info" class="lobby-game-info"></div>
       <h1 id="lobby-title"><i data-icon="hosting"></i> Hosting Game</h1>
       <!-- How phones join (G11): scan, or type the address + Game ID -->
@@ -317,12 +320,14 @@
           <button onclick="zoomIn()"    title="Zoom in" aria-label="Zoom in"><i data-icon="zoomIn"></i></button>
           <button onclick="togglePresentation()" class="zoom-present-btn"
                   title="Presentation mode — full screen for a TV (P)" aria-label="Presentation mode"><i data-icon="presentation"></i></button>
+          <button type="button" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
         </div>
 
         <!-- Presentation mode (G15): the only controls left on the TV -->
         <div id="present-controls">
           <button type="button" id="present-gm-btn" onclick="togglePresentGM()"
                   title="GM controls, game log, manual dice" aria-pressed="false" aria-label="GM controls"><i data-icon="gmControls"></i></button>
+          <button type="button" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
           <button type="button" onclick="exitPresentation()" title="Leave presentation mode (Esc)" aria-label="Leave presentation mode"><i data-icon="close"></i></button>
         </div>
 
@@ -502,6 +507,7 @@
   <script src="js/shared/icon-registry.js"></script>
   <script src="js/shared/icons-data.js"></script>
   <script src="js/shared/icons.js"></script>
+  <script src="js/shared/help.js"></script>
   <script src="js/shared/config.js"></script>
   <script src="js/shared/board.js"></script>
   <script src="js/shared/players.js"></script>
@@ -530,6 +536,7 @@
   <script src="js/host/presentation.js"></script>
   <script src="js/host/net-host.js"></script>
   <script src="js/host/turn-flow.js"></script>
+  <script src="js/host/help-host.js"></script>
   <script src="js/host/game.js"></script>
 
 </body>

@@ -115,6 +115,27 @@ function _showCardMode({ spaceType, spaceName, playerName, deedText, deedEffect,
   _setActionMode('card');
 }
 
+// ── Help ──────────────────────────────────────────────────────────────────────
+
+/** The HELP topic for the view on screen (js/shared/help.js). */
+function phoneHelpTopic() {
+  const view = document.querySelector('.view.active')?.id;
+  return { 'join-view': 'phone-join', 'lobby-view': 'phone-lobby', 'game-view': 'phone-game' }[view] || 'how-to-play';
+}
+
+/** The words help uses, from the game the host sent (the phone has no edition loaded). */
+function _phoneHelpWords() {
+  const w = helpWords(null);
+  if (_edition.name) w.edition = _edition.name;
+  if (_edition.pointsName && _edition.pointsName !== 'pts') w.points = _edition.pointsName;
+  if (_edition.finishLabel) w.finish = _edition.finishLabel;
+  const types = { question: 'question', action: 'action', good: 'good_deed', bad: 'bad_deed', landmark: 'landmark', skip: 'skip' };
+  for (const [k, t] of Object.entries(types)) if (SPACE_META[t]) w[k] = SPACE_META[t].label.replace(/!$/, '');
+  return w;
+}
+
+function openPhoneHelp() { openHelp(phoneHelpTopic(), { words: _phoneHelpWords() }); }
+
 // ── Views ─────────────────────────────────────────────────────────────────────
 
 function showView(id) {
@@ -698,6 +719,7 @@ function leaveAndReset() {
 
 (function init() {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
+  startHelp(phoneHelpTopic, { get words() { return _phoneHelpWords(); } });
   // Try to restore saved identity
   const saved = _loadIdentity();
   if (saved) {

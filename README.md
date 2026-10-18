@@ -92,6 +92,7 @@ Triventurex/
 │   │   ├── utils.js              esc(): HTML escaping for player-supplied text
 │   │   ├── icon-registry.js      Every icon by name (ICONS, ICON_OVERRIDES) + badges and badge colours
 │   │   ├── icons.js              icon() / iconText(), data-icon placeholders, emoji → bundled images
+│   │   ├── help.js               In-game help: all help text + the help window (? button / ? key)
 │   │   ├── icons-data.js         Generated: bundled line icons (npm run build:icons)
 │   │   ├── players.js            Player model: create, move, score, sort
 │   │   ├── turn.js               Pure turn logic: next player, undo snapshots, history rows
@@ -122,6 +123,7 @@ Triventurex/
 │   │   ├── question-explorer.js  Setup tab 📚 Questions + 🚩 report during play
 │   │   ├── board-designer.js     Setup tab ✏️ Boards: draw, save, play a board
 │   │   ├── presentation.js       📺 Presentation mode
+│   │   ├── help-host.js          Which help the host's ? button opens (setup tab, lobby, game)
 │   │   └── storage.js            Saved game, preferences, custom boards, marked questions
 │   ├── player/
 │   │   └── player.js             Phone screen logic
@@ -135,6 +137,7 @@ Triventurex/
 │
 ├── css/styles.css                All styling (colours driven by edition config)
 ├── css/academy.css               Academy page styling
+├── css/help.css                  The ? help button and help window (host, phones, Academy)
 ├── images/                       Setup screen game-length illustrations; emoji/ = bundled Fluent Emoji images
 ├── scripts/                      Node-only dev tooling: content build + checker, icon bundler, review sheet, Wikimedia Commons image tool (not served)
 ├── tools/icon-picker.html        Try other icons for the engine or an edition → a list of changes to apply
@@ -328,6 +331,8 @@ id,text,kind,note
 
 ## Gameplay summary
 
+New to the game? Press the **?** button on any screen (or the ? key) — it explains what you can do there, in the edition's own words.
+
 1. The setup screen has four tabs: **🎲 New game**, **⚙️ Rules**, **📚 Questions** and **✏️ Boards**. On *New game*: ① edition → ② game length → ③ board (🎲 Random or a path, shown as thumbnails) → ④ players. Each choice moves on to the next step; collapsed steps show what's chosen, and the footer shows the whole setup next to **Start**. Next time everything is pre-filled with your last choices, so it's usually just Start.
 2. On your turn, roll the dice. Your token hops to a space and its event triggers:
    - **Question**: choose Easy (+1) or Hard (+2), answer, then the GM reveals the answer
@@ -423,6 +428,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - ~310 automated tests — details in `CHANGELOG.md`
 
 ### Unreleased (2026-10)
+- **Help on every screen**: a ? button opens help for the screen you are on (setup tabs, lobby, game, phone, every Academy mode), with *How to play* for everyone
 - **🎓 Triventurex Academy** (academy.html): explore, flashcards, quiz, match, true or false, speed round, places, print cards and a reviewer mode
 - **Icons**: Fluent Emoji (game symbols) and Lucide (controls) everywhere, used by name; editions change icons in one `ICONS` block; `tools/icon-picker.html` to try other icons
 - **Phones**: the same badges and colours as the host; the edition's words, icons and tile names; an edition banner on the phone and host lobby
