@@ -222,6 +222,7 @@ window.addEventListener('resize', () => { if (_board) fitBoardInView(); });
 
 // Start: ?game=ID from the host's "Open TV display" link, otherwise ask
 (() => {
+  startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   const id = new URLSearchParams(location.search).get('game');
   if (!TX_NET.connect()) { _message('Open this page from the game server (node server.js).'); return; }
   if (id) joinDisplay(id); else showDisplayScreen('d-join');

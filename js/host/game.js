@@ -247,6 +247,7 @@ function rematch() {
 // ── Bootstrap ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   // Validate saved edition against the registry — if the ID no longer exists
   // (e.g. folder was renamed), fall back to the first registered edition.
   const savedRaw     = (() => { try { return localStorage.getItem('triventurex_edition'); } catch { return null; } })();

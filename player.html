@@ -493,6 +493,12 @@
       z-index: 999;
     }
     #error-toast.visible { display: block; }
+  
+    /* ── Icons (js/shared/icons.js): bundled emoji images + control line icons ───── */
+    img.tx-emoji { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -0.22em; object-fit: contain; margin: 0 .03em; }
+    .tx-icon { display: inline-flex; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+    .tx-icon svg { width: 100%; height: 100%; display: block; }
+    
   </style>
 </head>
 <body>
@@ -674,6 +680,8 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/shared/utils.js"></script>
+  <script src="js/shared/icons-data.js"></script>
+  <script src="js/shared/icons.js"></script>
   <script src="js/shared/dice.js"></script>
   <script src="js/shared/turn.js"></script>
   <script src="js/shared/socket-client.js"></script>

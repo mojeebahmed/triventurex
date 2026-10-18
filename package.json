@@ -7,13 +7,17 @@
     "start": "node server.js",
     "test": "node --test \"test/**/*.test.js\"",
     "build:content": "node scripts/build-content.js",
-    "check:content": "node scripts/build-content.js --check"
+    "check:content": "node scripts/build-content.js --check",
+    "build:icons": "node scripts/build-icons.js",
+    "check:icons": "node scripts/build-icons.js --check"
   },
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
+    "@iconify-json/fluent-emoji-flat": "1.2.6",
+    "@iconify-json/lucide": "1.2.146",
     "socket.io-client": "^4.8.3"
   }
 }

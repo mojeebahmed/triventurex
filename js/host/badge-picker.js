@@ -65,7 +65,7 @@ function openBadgeModal(target) {
       <span class="picker-label">Icon</span>
       <div class="picker-grid picker-tokens">
         ${tokens.map(tok =>
-          `<div class="picker-token ${tok === p.token ? 'selected' : ''}"
+          `<div class="picker-token ${tok === p.token ? 'selected' : ''}" data-token="${esc(tok)}"
                onclick="selectBadgeToken('${tok}')">${tok}</div>`
         ).join('')}
       </div>
@@ -146,7 +146,7 @@ function selectBadgeToken(token) {
   const badge = t.setupEl();
   if (badge) badge.querySelector('.token-emoji').textContent = token;
   document.getElementById('badge-modal-body')?.querySelectorAll('.picker-token')
-    .forEach(el => el.classList.toggle('selected', el.textContent === token));
+    .forEach(el => el.classList.toggle('selected', el.dataset.token === token));   // emoji are drawn as images, so not textContent
   _renderBadgePreview();
 }
 

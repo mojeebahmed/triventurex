@@ -57,11 +57,12 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~410, a few seconds): server, turn flow, board generation, rules, stats, content
+npm test                  # all tests (~430, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
 node scripts/review-sheet.js <edition>                 # printable question review sheet (REVIEW.md) for someone without the game
+npm run build:icons                                    # bundle the emoji (Fluent Flat) and control icons (Lucide) the game uses — run after adding an emoji
 ```
 
 - **`CHANGELOG.md`**: what changed, release by release
@@ -423,3 +424,12 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - Online multiplayer (beyond local Wi-Fi)
 
 Decided against (2026-10): endgame pacing rules (the GM can move a player or set the dice) and streaks / wagers / a final round.
+
+---
+
+## Credits
+
+- **Emoji**: [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (Flat), MIT License — bundled in `images/emoji/` (licence in `images/emoji/LICENSE.txt`)
+- **Control icons**: [Lucide](https://lucide.dev), ISC License — bundled in `js/shared/icons-data.js`
+- **Landmark photos**: Wikimedia Commons — authors and licences in each edition's `CREDITS.md`
+- **QR codes**: qrcode-generator by Kazuhiko Arase, MIT License (`js/vendor/qrcode.js`)

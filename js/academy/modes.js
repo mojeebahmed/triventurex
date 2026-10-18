@@ -137,7 +137,7 @@ registerMode({
     const start = () => { sets = chunk(quizRound(questions, 0), _flashSize); s = 0; flipped = new Set(); draw(); };
     const card = q => {
       const open = flipped.has(q.id);
-      return `<button type="button" class="ac-qcard ac-flash ${open ? 'flipped' : ''}" data-flip="${q.id}" aria-pressed="${open}">
+      return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''}" data-flip="${q.id}" aria-pressed="${open}">
           <div class="ac-card-meta">${_diffTag(q)}${_flashSize === 1 ? ` · ${_where(q)}` : ''}</div>
           <div class="ac-card-q">${q.q}</div>
           ${open ? `<div class="ac-card-a">✅ ${esc(answerText(q))}</div>${_note(q)}`
@@ -199,7 +199,7 @@ registerMode({
       if (multi) {
         body = `<div class="ac-choices">${q.opts.map((o, k) => {
           const cls = answered === null ? '' : k === correctIndex(q) ? 'right' : k === answered ? 'wrong' : 'dim';
-          return `<button type="button" class="ac-choice ${cls}" data-choice="${k}" ${answered !== null ? 'disabled' : ''}><b>${LETTERS[k]}</b> ${o}</button>`;
+          return `<button type="button" data-content class="ac-choice ${cls}" data-choice="${k}" ${answered !== null ? 'disabled' : ''}><b>${LETTERS[k]}</b> ${o}</button>`;
         }).join('')}</div>`;
       } else if (answered === null) {
         body = `<div class="ac-actions"><button type="button" class="btn btn-primary" data-action="reveal">Show the answer</button></div>`;
@@ -270,7 +270,7 @@ registerMode({
           <button type="button" class="btn btn-primary" data-action="again">New pairs</button></div>`;
         return;
       }
-      const card = (p, side) => `<button type="button" class="ac-match ${done.has(p.id) ? 'done' : ''} ${pick?.side === side && pick.id === p.id ? 'picked' : ''}"
+      const card = (p, side) => `<button type="button" data-content class="ac-match ${done.has(p.id) ? 'done' : ''} ${pick?.side === side && pick.id === p.id ? 'picked' : ''}"
           data-side="${side}" data-id="${p.id}" ${done.has(p.id) ? 'disabled' : ''}>${side === 'q' ? p.question : esc(p.answer)}</button>`;
       main.innerHTML = `
         <div class="ac-bar"><span class="qx-count">🧩 ${done.size} of ${pairs.length} matched · ${tries} tries</span>
@@ -433,7 +433,7 @@ registerMode({
           <img class="ac-where-img" src="${esc(r.landmark.image)}" alt="Which place is this?">
           <div class="ac-choices">${r.options.map((name, k) => {
             const cls = said === null ? '' : k === r.answer ? 'right' : k === said ? 'wrong' : 'dim';
-            return `<button type="button" class="ac-choice ${cls}" data-choice="${k}" ${said !== null ? 'disabled' : ''}>${esc(name)}</button>`;
+            return `<button type="button" data-content class="ac-choice ${cls}" data-choice="${k}" ${said !== null ? 'disabled' : ''}>${esc(name)}</button>`;
           }).join('')}</div>
           ${said !== null ? `<div class="ac-note">${esc(r.landmark.description || '')}</div>
             <div class="ac-actions"><button type="button" class="btn btn-primary" data-action="next">${i + 1 < round.length ? 'Next →' : 'See my score'}</button></div>` : ''}

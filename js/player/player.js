@@ -181,7 +181,7 @@ function _refreshJoinBadge() {
 function openBadgePicker() {
   // Render tokens
   document.getElementById('picker-tokens').innerHTML = TOKENS.map(t =>
-    `<div class="picker-token ${t === _myToken ? 'selected' : ''}"
+    `<div class="picker-token ${t === _myToken ? 'selected' : ''}" data-token="${esc(t)}"
          onclick="selectToken('${t}')">${t}</div>`
   ).join('');
 
@@ -206,7 +206,7 @@ function closeBadgePickerOutside(e) {
 function selectToken(t) {
   _myToken = t;
   document.querySelectorAll('.picker-token').forEach(el =>
-    el.classList.toggle('selected', el.textContent === t));
+    el.classList.toggle('selected', el.dataset.token === t));   // emoji are drawn as images, so not textContent
   _refreshJoinBadge();
 }
 
@@ -656,6 +656,7 @@ function leaveAndReset() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (function init() {
+  startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   // Try to restore saved identity
   const saved = _loadIdentity();
   if (saved) {

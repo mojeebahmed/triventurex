@@ -156,6 +156,7 @@ function copyText(text, okMessage) {
 // ── Start ───────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   const id = _pickEditionId();
   if (!id) { document.getElementById('ac-main').innerHTML = emptyHtml('No editions found.'); return; }
   await _loadEdition(id);

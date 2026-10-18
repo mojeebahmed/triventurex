@@ -61,6 +61,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 
 `js/shared/`:
 - `js/shared/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
+- `js/shared/icons.js` + generated `js/shared/icons-data.js` — draw emoji (Fluent Emoji Flat images) and control glyphs (Lucide line icons) the same on every device; `startIcons()` at each page's start
 - `js/shared/config.js` — engine settings (board, space types, zoom, animation, score, rule presets, awards, presentation)
 - `js/shared/rules.js` — per-game rules model (defaults → preset → changes), tile counts; pure, unit-tested
 - `js/shared/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
@@ -235,7 +236,10 @@ Note: `move_to_landmark` (named, absolute) is still handled in ui.js for backwar
 
 - **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Question cards in every mode share ONE look (css/academy.css `.ac-qcard` group: white inside, `--green` top accent, gold for answer sides) — reuse it, don't restyle per mode. Printed cards have fixed mm sizes (double-sided 90 × 62 mm, fold-over 90 × 124 mm folded in the middle). Every edition must give each mode content (test/academy.test.js)
 
+- **Icons**: content keeps plain emoji everywhere (CSVs, config.js, JS strings). `startIcons()` (js/shared/icons.js) swaps them in the page through one MutationObserver: any emoji → `<img class="tx-emoji" src="images/emoji/<code points>.svg">` (Fluent Emoji Flat, MIT); a glyph at the start/end of a CONTROL label (button, summary, [role=tab], .btn, .link-btn) that is in `scripts/icons.config.js` `controls` → inline Lucide SVG (`.tx-icon`, takes the text colour). `+`/`−` only when followed by a space or alone ("+1", "+30s" stay text). Opt out: `data-content` on a button that holds question content (Academy cards, answers), `.no-icons` for no conversion at all. `<option>`, `<title>`, inputs keep the device's emoji. **Never read an emoji back from the page's text** (`textContent` no longer contains it) — keep it in a `data-` attribute (badge pickers use `data-token`). New emoji or control glyph → `npm run build:icons` (writes images/emoji/*.svg + icons-data.js from the pinned @iconify-json dev dependencies); `npm test` fails when they are out of date. Overrides (few!): `scripts/icons.config.js`
+
 ## Next work / ideas
+- Icon override picker page in tools/ (compare our icons with other sets, produce the override list for scripts/icons.config.js)
 - Sound effects — and with them **read aloud** in the Academy (Web Speech) for children who can't read yet
 - Academy **progress tracking**: profiles, stars per topic, spaced repetition across days (see IDEAS.md)
 - **Cross-edition question mode**: on a question space the player picks an edition and topic, then gets a question from it
