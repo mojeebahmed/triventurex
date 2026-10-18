@@ -319,6 +319,22 @@ function _syncStateToServer() {
   });
 }
 
+/** The lobby's banner: the edition's icon and name under Triventurex, and the board — as phones show it. */
+function _renderLobbyGameInfo() {
+  const el = document.getElementById('lobby-game-info');
+  if (!el) return;
+  const e = _phoneEdition();
+  const len = e.board.length ? e.board.length[0].toUpperCase() + e.board.length.slice(1) + ' game' : '';
+  const board = [len, e.board.name || `${iconText('boardRandom')} Random board`].filter(Boolean).join(' · ');
+  el.innerHTML = `
+    <span class="lobby-game-info-icon">${entryHtml(e.icon) || icon('appLogo')}</span>
+    <span class="lobby-game-info-text">
+      <span class="lobby-game-info-app">${icon('appLogo')} Triventurex</span>
+      <span class="lobby-game-info-name">${esc(e.name || 'Triventurex')}</span>
+      <span class="lobby-game-info-board">${esc(board)}</span>
+    </span>`;
+}
+
 /**
  * What phones need to look like this game: the edition's name, icon, words
  * (points, finish, tile names) and icons, and which board is played. Sent with
@@ -460,6 +476,7 @@ function _initSocketHandlers() {
     _renderJoinCode();
     document.getElementById('net-game-id-label').textContent  = gameId;
     _renderLobbyPlayers(_lobbyPlayers);
+    _renderLobbyGameInfo();
     showScreen('lobby-screen');
   });
 

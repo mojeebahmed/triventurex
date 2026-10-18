@@ -2072,6 +2072,20 @@ body {
 
 /* ── Lobby: join by QR code (G11) ─────────────────────────────── */
 .lobby-container { max-width: 620px; }
+/* The edition banner (same look as the phones' lobby) */
+.lobby-game-info {
+  display: flex; align-items: center; gap: 16px; text-align: left;
+  margin: -6px 0 14px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.lobby-game-info:empty { display: none; }
+.lobby-game-info-icon { flex: none; display: flex; font-size: 3.4rem; line-height: 1; }
+.lobby-game-info-icon .tx-emoji { width: 64px; height: 64px; }
+.lobby-game-info-text { display: flex; flex-direction: column; min-width: 0; }
+.lobby-game-info-app  { font-size: .75rem; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
+.lobby-game-info-app .tx-emoji { width: 1em; height: 1em; vertical-align: -.1em; }
+.lobby-game-info-name { font-size: 1.6rem; font-weight: 900; line-height: 1.15; }
+.lobby-game-info-board { font-size: .85rem; color: var(--text-muted); }
+.lobby-container #lobby-title { font-size: 1.2rem; margin-bottom: 14px; }
 .lobby-join {
   display: flex; align-items: center; gap: 22px; text-align: left;
   background: var(--green); color: #fff; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px;
