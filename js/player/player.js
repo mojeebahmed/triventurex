@@ -322,7 +322,6 @@ const EFFECT_LABELS = {
   score_remove:          (v) => `−${v} ${_pts()}`,
   move_forward:          (v) => `Move forward ${v} space${v !== 1 ? 's' : ''}`,
   move_back:             (v) => `Move back ${v} space${v !== 1 ? 's' : ''}`,
-  move_to_landmark:      (_, lm) => `Go to: ${lm}`,
   move_to_next_landmark: (_, lm) => lm ? `Go to: ${lm}` : `Advance to the next ${_tile('landmark')}`,
   move_to_prev_landmark: (_, lm) => lm ? `Back to: ${lm}` : `Back to the last ${_tile('landmark')}`,
   skip_turn:             () => 'Skip your next turn',

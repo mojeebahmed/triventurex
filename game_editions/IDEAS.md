@@ -360,6 +360,11 @@ Then add a row to the overview table.
 
 ---
 
+## Improving existing editions
+
+- **More questions everywhere** — every edition should keep growing (Swab Quest 432; World Tour, Animal Safari and Prophets' Stories about 220 each). Add questions with new ids, never renumber.
+- **Football Quest revisit** — the first edition, built before the content target above. Only 92 questions, and its categories are flat and uneven (lower-case subcategories like *rules*, *players*, *general*). Rework it like the newer editions: 200+ questions, a clear category › subcategory › topic tree, notes with a fact for most answers; check the notes flagged in 2.1 (#66, #70, #73, #86).
+
 ## Future features (not editions)
 
 Ideas for the game and the 🎓 Academy, parked for later:
@@ -367,4 +372,9 @@ Ideas for the game and the 🎓 Academy, parked for later:
 - **Academy progress tracking** — family profiles (badge picker), stars and a mastery bar per topic, a daily streak, and spaced repetition that remembers across days which cards each player knows.
 - **Read aloud** — the Academy (and maybe question cards in the game) reads the question and the answer aloud with the browser's built-in voice, for children who can't read yet. Build it together with sound effects.
 - **Cross-edition question mode** — a game mode where a player who lands on a question space picks an edition and a topic, then gets a question from it. One board, every edition's questions.
+- **First-game walkthrough** — a short guided tour the first time the game screen opens: Roll Dice, the card, the scoreboard, GM controls — one at a time.
+- **Celebrate moments** — a short confetti / fanfare for reaching a landmark, finishing, or a hard question answered right. Build it with sound effects.
+- **Kids mode on the phone** — bigger buttons, pictures before words, a *Read it to me* button.
+- **Fun facts on the TV between turns** — a landmark's fact or a question's note while the next player rolls.
+- **Team mode** — teams share a token; questions go round the team members.
 

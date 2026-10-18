@@ -85,8 +85,11 @@ async function _onGame({ editionId, board, hopMs }) {
 }
 
 /** Players + turn. The host sends one per token hop, so a move shows step by step. */
-function _onLive({ players, currentPlayerIndex, turnPhase, phase }) {
+function _onLive({ players, currentPlayerIndex, turnPhase, phase, recap }) {
   if (!_board) return;
+  const recapEl = document.getElementById('turn-recap');
+  recapEl.innerHTML = recap?.text ? `<span class="turn-recap-label">Last turn</span> ${icon(recap.icon)} <span>${esc(recap.text)}</span>` : '';
+  recapEl.classList.toggle('hidden', !recap?.text);
   const before = new Map(_players.map(p => [p.id, p.position]));
   const moved  = players.find(p => before.has(p.id) && before.get(p.id) !== p.position);
   _players = players;
@@ -122,7 +125,7 @@ function _onLive({ players, currentPlayerIndex, turnPhase, phase }) {
   else if (document.getElementById('d-end').classList.contains('active')) showDisplayScreen('d-game');
 }
 
-let _end = null;   // { lines: {playerId: "3/5 questions · …"}, awards: [...] } (G13)
+let _end = null;   // { lines: {playerId: "3/5 questions · …"}, awards: [...], learned: html } (G13)
 
 function _showEnd(players) {
   const pts = CONFIG.GAME?.pointsName ?? 'pts';
@@ -136,6 +139,7 @@ function _showEnd(players) {
     <div class="d-award"><div class="d-award-icon">${icon(a.icon) || esc(a.icon)}</div>
       <div class="d-award-title">${esc(a.title)}</div><div class="d-award-who">${esc(a.who)}</div>
       <div class="d-award-why">${esc(a.text)}</div></div>`).join('');
+  document.getElementById('d-learned').innerHTML = _end?.learned || '';   // drawn by the host (its own content)
   showDisplayScreen('d-end');
 }
 

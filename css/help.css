@@ -49,13 +49,29 @@
 .help-head h2 { margin: 0; font-size: 1.2rem; flex: 1; }
 .help-head-icon { font-size: 26px; display: inline-flex; }
 .help-head-icon .tx-emoji, .help-head-icon svg { width: 28px; height: 28px; }
+.help-back {
+  border: 1px solid var(--border, #E0E0E0); background: var(--card, #fff); color: inherit; cursor: pointer;
+  border-radius: 999px; padding: 4px 10px 4px 8px; font-size: .85rem; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.help-back:hover { border-color: var(--green, #2E7D32); }
+.help-back .tx-icon svg { width: 16px; height: 16px; }
+.help-link-back { border-style: dashed; }
 .help-close {
   border: none; background: none; cursor: pointer; color: inherit;
   width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
 }
 .help-close:hover { background: rgba(0,0,0,.06); }
 .help-body { padding: 4px 18px 14px; overflow-y: auto; }
-.help-body h3 { font-size: .95rem; margin: 14px 0 4px; color: var(--green, #2E7D32); }
+.help-body h3 { font-size: .95rem; margin: 0 0 4px; color: var(--green, #2E7D32); }
+/* Each "## " part of a help page is its own box, so long pages read in chunks */
+.help-section {
+  margin: 12px 0; padding: 10px 14px 6px;
+  border: 1px solid var(--border, #E0E0E0); border-left: 4px solid var(--green, #2E7D32);
+  border-radius: 10px; background: rgba(0,0,0,.018);
+}
+.help-section p:first-of-type { margin-top: 4px; }
+.help-section ul { margin: 2px 0 6px; }
 .help-body p  { margin: 10px 0; }
 .help-body ul { margin: 6px 0; padding-left: 20px; }
 .help-body li { margin: 5px 0; }

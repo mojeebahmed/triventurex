@@ -289,6 +289,7 @@ function _finishTurn({ outcome = 'space' } = {}) {
     snapshot:    turn.snapshot,
     landedOn:    outcome === 'space' ? (turn.landedOn ?? null) : null,
     result:      turn.result ?? null,
+    outcome,
   }));
   renderHistoryPanel(state.history);
 

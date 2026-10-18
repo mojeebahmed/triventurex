@@ -55,8 +55,8 @@ describe('_parseQuestionsCSV', () => {
 
 describe('_parseDeedsCSV', () => {
   it('collects up to 3 alternative effects', () => {
-    const [d] = _parseDeedsCSV('type,text,effect,value,landmark,effect_2,value_2,landmark_2,effect_3,value_3,landmark_3,mood\n'
-      + 'good,Helped,score_add,2,,move_forward,3,,,,,kind\n');
+    const [d] = _parseDeedsCSV('type,text,effect,value,effect_2,value_2,effect_3,value_3,mood\n'
+      + 'good,Helped,score_add,2,move_forward,3,,,kind\n');
     assert.equal(d.effects.length, 2);
     assert.equal(d.effect, 'score_add');
     assert.equal(d.effects[1].value, 3);
@@ -74,14 +74,14 @@ describe('_parseActionsCSV', () => {
 // ── Content checker (scripts/content.js) ─────────────────────────────────────
 
 const QH = 'id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note\n';
-const DH = 'type,text,effect,value,landmark,effect_2,value_2,landmark_2,effect_3,value_3,landmark_3,mood\n';
+const DH = 'type,text,effect,value,effect_2,value_2,effect_3,value_3,mood\n';
 const check = parts => checkEdition(makeEdition(parts));
 const messages = list => list.map(p => `${p.file}:${p.line} ${p.message}`).join('\n');
 
 describe('content checker', () => {
   it('accepts valid content', () => {
     const r = check({ questionsCsv: QH + '1,Q?,multi,2,A,B,,,easy,c,s,t,\n2,Q2?,open,"Madrid, Spain",,,,,hard,c,s,t,\n',
-                      deedsCsv: DH + 'good,Nice.,score_add,2,,,,,,,,kind\n' });
+                      deedsCsv: DH + 'good,Nice.,score_add,2,,,,,kind\n' });
     assert.deepEqual(r.errors, []);
     assert.deepEqual(r.warnings, []);
   });
@@ -124,14 +124,14 @@ describe('content checker', () => {
   it('checks landmark effects against config.js LANDMARKS', () => {
     const config = { LANDMARKS: [{ name: 'Old Mill' }, { name: 'Bridge' }] };
     const r = check({ config, deedsCsv: DH
-      + 'bad,Go to the mill.,move_to_landmark,0,Old Mill,,,,,,,\n'
-      + 'bad,Go to the tower.,move_to_landmark,0,Tower,,,,,,,\n'
-      + 'good,Run to {landmark}!,move_to_next_landmark,5,,,,,,,,\n'
-      + 'good,Visit {landmark}.,score_add,1,,,,,,,,\n' });
-    assert.match(messages(r.errors), /deeds\.csv:3 landmark "Tower" is not in config\.js LANDMARKS/);
-    assert.match(messages(r.warnings), /deeds\.csv:4 move_to_next_landmark 5, but the edition only has 2 landmarks/);
-    assert.match(messages(r.warnings), /deeds\.csv:5 text uses \{landmark\}/);
-    assert.doesNotMatch(messages(r.errors), /:2 /, 'the valid landmark row is fine');
+      + 'bad,Back to {landmark}.,move_to_prev_landmark,1,,,,,\n'
+      + 'good,Run to {landmark}!,move_to_next_landmark,5,,,,,\n'
+      + 'good,Visit {landmark}.,score_add,1,,,,,\n'
+      + 'bad,Go to the tower.,move_to_landmark,0,,,,,\n' });
+    assert.match(messages(r.warnings), /deeds\.csv:3 move_to_next_landmark 5, but the edition only has 2 landmarks/);
+    assert.match(messages(r.warnings), /deeds\.csv:4 text uses \{landmark\}/);
+    assert.match(messages(r.errors), /deeds\.csv:5 unknown effect "move_to_landmark"/, 'the old named-landmark effect is gone');
+    assert.doesNotMatch(messages(r.errors) + messages(r.warnings), /deeds\.csv:2 /, 'the valid landmark row is fine');
   });
 
   it('checks action cards: kind, ids, empty text, column count', () => {

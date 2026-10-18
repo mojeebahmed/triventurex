@@ -65,7 +65,6 @@ function _deedLabel(card) {
     score_remove:           `−${n} ${pts}`,
     move_forward:           `${iconText('moveForward')} Move forward ${n}`,
     move_back:              `${iconText('moveBack')} Move back ${n}`,
-    move_to_landmark:       `${iconText('goToLandmark')} Go to: ${card.landmark}`,
     move_to_next_landmark:  `${iconText('goToLandmark')} ${lm ? `Advance to ${lm}` : 'Advance to next landmark'}`,
     move_to_prev_landmark:  `${iconText('goToLandmark')} ${lm ? `Back to ${lm}` : 'Back to previous landmark'}`,
     skip_turn:              `${iconText('tileSkip')} Skip next turn`,
@@ -111,7 +110,7 @@ function _pickActiveEffect(card) {
  * Returns null if every effect on the card is a landmark move.
  */
 function _pickNonLandmarkEffect(card) {
-  const LANDMARK_FX = new Set(['move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark']);
+  const LANDMARK_FX = new Set(['move_to_prev_landmark', 'move_to_next_landmark']);
   const alternatives = (card.effects || []).filter(e => !LANDMARK_FX.has(e.effect));
   if (alternatives.length) return alternatives[Math.floor(Math.random() * alternatives.length)];
   return null;
@@ -181,7 +180,7 @@ function _assignDeedsToSlots(deeds, slots, lmPositions, poolLength, spares = [])
       freeSlots.delete(chosen);
     } else {
       // No fully valid slot. Try an alternative effect from the card that does fit.
-      const LANDMARK_FX_SET = new Set(['move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark']);
+      const LANDMARK_FX_SET = new Set(['move_to_prev_landmark', 'move_to_next_landmark']);
       const alt = (deed.effects || []).find(e =>
         e.effect !== deed.effect &&
         !LANDMARK_FX_SET.has(e.effect) &&
@@ -719,6 +718,3 @@ function highlightSpace(spaceId) {
   }
 }
 
-function getLandmarkSpace(spaces, landmarkName) {
-  return spaces.find(s => s.type === 'landmark' && s.name === landmarkName);
-}

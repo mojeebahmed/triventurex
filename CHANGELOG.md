@@ -7,6 +7,10 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **Last turn**: one line at the top of the board (and on the TV) says what just happened — *Sara rolled 5 · Question: hard one, right · +2 Goals*.
+- **What we learned today** on the end screen (and the TV): three facts from the game's questions — right answers first — and the topics played.
+- **Print rules card** (Rules tab): a short card with this game's rules in the edition's words, two to an A4 page.
+- Help pages show each part as its own box, and a *Back* button returns to the help page you came from.
 - **Help on every screen**: a ? button (or the ? key) opens help for what is on screen — each setup tab, the lobby, the game (the open card, game log, GM controls), the phone's join / lobby / game views, and every Academy mode — with *How to play* linked from all of them. The help uses the edition's own words and icons (*Goals*, *Good Play*). The button glows until help has been opened once.
 - **One icon style everywhere**: emoji are drawn with Microsoft **Fluent Emoji Flat** and buttons / tabs with **Lucide** line icons, bundled with the game (works offline), so the host, phones, TV and Academy look the same on every device. Content keeps writing plain emoji; `npm run build:icons` bundles what is used (`scripts/icons.config.js` for the few overrides).
 - **🎓 Triventurex Academy** (`academy.html`, `/academy`; 🎓 Academy in the 📚 Questions tab): learn one edition's questions before playing — 📚 Explore, 🃏 Flashcards, ✏️ Quiz, 🧩 Match, ✔️ True or false, ⚡ Speed round, 🗺️ Places (with *Where am I?*), 🖨️ Print cards and 🔍 Review (reviewer ticks, progress and a copyable report). One filter (topics, difficulty, search) for every mode. Works opened from disk and from the server, on laptops and phones. 🚩 marks are shared with the game. Flashcards come in sets of 8 (4 × 2) or 9 (3 × 3) cards; every mode uses the same white question cards in the edition's colours; print cards are double-sided (answers mirrored on the back page) or fold-over, all the same size.
@@ -20,14 +24,16 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
 
 ### Fixed
+- Phones: a deed that moves to the next / previous landmark now names the landmark (the phone was sent the old named-landmark field, which is always empty).
 - ⚙️ Rules → Topics: a topic that appears under several categories (World Tour's "Europe", Animal Safari's "Africa") could not be switched off in one branch only. The selection is now kept per full path (category › subcategory › topic); saved selections carry over.
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).
 
 ### Changed
+- Removed the old `move_to_landmark` deed effect and the `landmark` CSV columns (no edition used them); landmark moves are `move_to_next_landmark` / `move_to_prev_landmark`.
 - **Phones look like the edition**: the host sends the game's details to phones — the edition's icons, tile names and words (*Goals*, *The Final*), so a phone shows ⚽ *Good Play · +2 Goals* in Football Quest. The lobby and game screens show the edition's icon and name under Triventurex, with the game length, number of spaces and board — and the host's lobby shows the same banner.
 - **Same badge picker on phones**: phones offer the same 72 badges and 36 colours as the host's picker (was 16 badges, 12 colours).
 - **Edition icons in one place**: each edition sets the icons it changes in an `ICONS` block in its `config.js` (edition → engine lookup), instead of `icon` fields scattered over `SPACE_INFO` and `AWARDS`. Values can be an emoji, any installed Iconify set's icon, or the edition's own picture (`file:icons/x.svg`). `check:content` validates the block. All five editions moved over; nothing looks different.
-- **Icons by name**: the engine's ~450 hard-coded emoji and symbols are now named icons in `js/shared/icon-registry.js`, used through `icon()` / `iconText()` / `data-icon`. A test keeps raw icons out of engine code and checks every name exists. No visible change. Badge lists live in the registry (the phone and host no longer keep separate copies).
+- **Icons by name**: the engine's hard-coded emoji and symbols are now named icons in `js/shared/icon-registry.js`, used through `icon()` / `iconText()` / `data-icon`. A test keeps raw icons out of engine code and checks every name exists. No visible change. Badge lists live in the registry (the phone and host no longer keep separate copies).
 - Marked questions moved from js/host/storage.js to js/shared/marks.js (shared with the Academy).
 - Landing on a landmark now gives **3** points by default (was 5): easy 1 · hard 2 · landmark 3. Applies to every edition; games saved earlier keep their rules.
 - New editions start from Swab Quest's board mix (the template's `SPACE_DISTRIBUTION`: 10% action / good / bad deeds, 8% landmarks, 5% skips; long boards 12% action). World Tour uses it too.

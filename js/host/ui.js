@@ -335,8 +335,8 @@ function _showQuestion(diff, player, onDone) {
                 <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
       actions: [
         { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
-          callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-        { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+          callback: () => { _noteQuestion(true, null, diff); addScore(player, pts); onDone(); } },
+        { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false, null, diff); onDone(); } },
         { label: 'Use physical card instead', icon: 'physicalCard', class: 'btn btn-secondary',
           callback: () => _showPhysicalCard(diff, player, pts, onDone) },
       ],
@@ -420,7 +420,7 @@ function _showPhoneAnswer(q, diff, pts, player, letter, onDone) {
   const letters = ['A', 'B', 'C', 'D'];
   const ptsName = CONFIG.GAME?.pointsName ?? 'pts';
   const right   = letter === q.answer;
-  _noteQuestion(right);
+  _noteQuestion(right, q, diff);
   _markAsked(diff, q.id);
   if (right) addScore(player, pts);
 
@@ -478,14 +478,17 @@ function _showQuestionWithAnswer(q, diff, pts, player, onDone) {
       ${reportQuestionHtml(q)}`,
     actions: [
       { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
-        callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+        callback: () => { _noteQuestion(true, q, diff); addScore(player, pts); onDone(); } },
+      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false, q, diff); onDone(); } },
     ],
   });
 }
 
 /** How the turn's question went — kept on the turn for the end-screen stats (G13). */
-function _noteQuestion(right) { if (state.turn) state.turn.result = { question: right }; }
+/** Remember how the turn's question went: right or not, which one, how hard (end-screen stats, recap, learned today). */
+function _noteQuestion(right, q = null, diff = null) {
+  if (state.turn) state.turn.result = { question: right, qid: q?.id ?? null, diff };
+}
 
 function _showPhysicalCard(diff, player, pts, onDone) {
   showModal({
@@ -495,8 +498,8 @@ function _showPhysicalCard(diff, player, pts, onDone) {
               <br><br>GM: award <strong>${pts} ${CONFIG.GAME?.pointsName ?? 'pts'}</strong> if correct.`,
     actions: [
       { label: `Correct (+${pts})`, icon: 'judgeCorrect', class: 'btn btn-primary',
-        callback: () => { _noteQuestion(true); addScore(player, pts); onDone(); } },
-      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false); onDone(); } },
+        callback: () => { _noteQuestion(true, null, diff); addScore(player, pts); onDone(); } },
+      { label: 'Incorrect', icon: 'judgeWrong', class: 'btn btn-secondary', callback: () => { _noteQuestion(false, null, diff); onDone(); } },
     ],
   });
 }
@@ -657,9 +660,6 @@ function _showDeedCard(space, player, onDone) {
     case 'move_back':
       effectDesc = `<div class="deed-effect deed-bad">${icon('moveBack')} Move back ${card.value} space${card.value !== 1 ? 's' : ''}</div>`;
       break;
-    case 'move_to_landmark':
-      effectDesc = `<div class="deed-effect ${isGood ? 'deed-good' : 'deed-bad'}">${icon('goToLandmark')} Go to: ${card.landmark}</div>`;
-      break;
     case 'move_to_prev_landmark':
     case 'move_to_next_landmark': {
       const rel = _resolveRelativeLandmark(card.effect, player.position, card.value);
@@ -760,14 +760,6 @@ function _applyDeedEffectOnly(card, player) {
     case 'move_back':
       movePlayer(player, window._gameBoard, -card.value);
       break;
-    case 'move_to_landmark': {
-      // Board generation guarantees the landmark is correctly positioned:
-      //   bad deed → landmark is behind player (backward move / penalty)
-      //   good deed → landmark is ahead of player (forward move / reward)
-      const target = getLandmarkSpace(window._gameBoard, card.landmark);
-      if (target) movePlayerToPosition(player, window._gameBoard, target.id);
-      break;
-    }
     case 'skip_turn':
       player.skipNextTurn = true;
       break;
@@ -839,6 +831,7 @@ function showEndScreen(players) {
       <div class="final-points">${p.score} ${CONFIG.GAME?.pointsName ?? 'pts'}</div>
     </div>`).join('');
   document.getElementById('end-awards').innerHTML = awardsHtml(awards, players);
+  document.getElementById('end-learned').innerHTML = learnedHtml(learnedToday(state.history, window.QUESTIONS_DATA || []));
   showScreen('end-screen');
 }
 
@@ -856,6 +849,24 @@ function endOfGameSummary(players, history) {
   const awards = gameAwards(stats, CONFIG.AWARDS, { minRolls: CONFIG.AWARD_MIN_ROLLS })
     .map(a => ({ ...a, text: awardText(a, labels) }));
   return { stats, awards };
+}
+
+/** "What we learned today": up to three facts from this game's questions, and the topics covered. */
+function learnedHtml(l) {
+  if (!l?.asked) return '';
+  const topics = l.topics.slice(0, 5).map(([t, n]) => `<span class="learned-topic">${esc(t)} <b>${n}</b></span>`).join('');
+  const facts = l.facts.map(f => `
+    <div class="learned-card">
+      <div class="learned-q">${f.q}</div>
+      <div class="learned-a">${icon('answer')} ${f.answer}</div>
+      ${f.note ? `<div class="learned-note">${icon('note')} ${f.note}</div>` : ''}
+      <div class="learned-who">${f.right ? `${icon('resultRight')} ${esc(f.playerName)} knew it` : `${esc(f.playerName)} learned it`}</div>
+    </div>`).join('');
+  return `
+    <div class="awards-title">${icon('academyLogo')} What we learned today</div>
+    <div class="learned-summary">${l.asked} question${l.asked === 1 ? '' : 's'} · ${l.right} answered right</div>
+    ${topics ? `<div class="learned-topics">${topics}</div>` : ''}
+    ${facts ? `<div class="learned-grid">${facts}</div>` : ''}`;
 }
 
 /** "3/5 questions · 1/2 actions · avg 3.4 · 38 spaces", each with its icon (empty parts left out). */
@@ -905,7 +916,30 @@ function _spaceIcon(type) {
   return icon(CONFIG.SPACE_INFO[type]?.icon ?? (type === 'gm' ? 'historyGm' : '')) || '•';
 }
 
+/** The words the turn recap uses, from this edition. */
+function recapWords() {
+  const labels = Object.fromEntries(Object.entries(CONFIG.SPACE_INFO || {}).map(([t, i]) => [t, (i?.label || t).replace(/!$/, '')]));
+  return { points: CONFIG.GAME?.pointsName, finish: CONFIG.GAME?.finishLabel, labels };
+}
+
+/** The latest turn in one line, as { icon, text } — or null before the first turn. */
+const lastTurnRecap = history => turnRecap(history?.at(-1), recapWords());
+
+/** "What just happened": the last turn in one line, at the top of the board (and on the TV). */
+function renderTurnRecap(history) {
+  const el = document.getElementById('turn-recap');
+  if (!el) return;
+  el.innerHTML = turnRecapHtml(lastTurnRecap(history));
+  el.classList.toggle('hidden', !el.innerHTML);
+}
+
+/** HTML for a recap ({ icon, text }) — shared with the TV display. */
+function turnRecapHtml(r) {
+  return r ? `<span class="turn-recap-label">Last turn</span> ${icon(r.icon)} <span>${esc(r.text)}</span>` : '';
+}
+
 function renderHistoryPanel(history) {
+  renderTurnRecap(history);
   const list    = document.getElementById('history-list');
   const undoBtn = document.getElementById('undo-btn');
   if (!list) return;

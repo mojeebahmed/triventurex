@@ -115,10 +115,12 @@ describe('turn pipeline', () => {
   it('history records where the roll landed and how it went (G13 stats)', async () => {
     const w = makeWorld();
     w.rollWith(3); await w.run('handleRoll()');
-    w.run('state.turn.result = { question: true }');   // what ui.js notes on ✅ Correct
+    w.run("state.turn.result = { question: true, qid: 7, diff: 'hard' }");   // what ui.js notes on ✅ Correct
     w.log.spaces[0].onDone();
     assert.equal(w.run('state.history[0].landedOn'), 'question');
     assert.equal(w.run('state.history[0].result.question'), true);
+    assert.equal(w.run('state.history[0].result.qid'), 7, 'which question — for "what we learned today"');
+    assert.equal(w.run('state.history[0].outcome'), 'space', 'for the turn recap');
   });
 
   it('ignores a second roll while a turn is in progress', async () => {
@@ -180,6 +182,7 @@ describe('skipped turns', () => {
     await w.run('handleRoll()');
     w.log.modals.at(-1).actions[0].callback();
     assert.equal(w.run('state.history[0].spaceType'), 'skip');
+    assert.equal(w.run('state.history[0].outcome'), 'skip');
     assert.equal(w.run('state.currentPlayerIndex'), 1);
     w.run('undoLastMove()');
     assert.equal(w.run('state.players[0].skipNextTurn'), true);

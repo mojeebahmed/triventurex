@@ -21,9 +21,9 @@ const { _csvSplit, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = requ
 const EDITIONS_DIR = path.join(__dirname, '..', 'game_editions');
 
 const EFFECTS = new Set(['score_add', 'score_remove', 'move_forward', 'move_back',
-  'move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark', 'skip_turn',
+  'move_to_prev_landmark', 'move_to_next_landmark', 'skip_turn',
   'extra_turn', 'all_players_gain', 'all_players_lose', 'protection']);
-const LANDMARK_EFFECTS = new Set(['move_to_prev_landmark', 'move_to_next_landmark', 'move_to_landmark']);
+const LANDMARK_EFFECTS = new Set(['move_to_prev_landmark', 'move_to_next_landmark']);
 const ACTION_KINDS = new Set(['act', 'explain', 'sound']); // keep in sync with CONFIG.ACTION_KINDS
 
 /**
@@ -150,9 +150,6 @@ function checkEdition(ed) {
       if (!d.effects.length) err(f, n, 'no effect');
       for (const e of d.effects) {
         if (!EFFECTS.has(e.effect)) { err(f, n, `unknown effect "${e.effect}"`); continue; }
-        if (e.effect === 'move_to_landmark' && !landmarks.includes(e.landmark)) {
-          err(f, n, `landmark "${e.landmark ?? ''}" is not in config.js LANDMARKS`);
-        }
         if ((e.effect === 'move_to_prev_landmark' || e.effect === 'move_to_next_landmark')) {
           if (!landmarks.length) err(f, n, `${e.effect} needs LANDMARKS in config.js (there are none)`);
           else if (e.value > landmarks.length) warn(f, n, `${e.effect} ${e.value}, but the edition only has ${landmarks.length} landmarks`);

@@ -6,7 +6,8 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { HELP, helpWords, helpHtml } = require('../js/shared/help.js');
+const { HELP, helpWords, helpHtml, rulesCardHtml } = require('../js/shared/help.js');
+const { defaultRules } = require('../js/shared/rules.js');
 const { ICONS } = require('../js/shared/icon-registry.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -56,7 +57,12 @@ describe('help markup', () => {
 
   it('paragraphs, headings, bullets, bold, icons and words', () => {
     const html = helpHtml('Hello **you**.\n\n## Spaces\n- {icon:tileSkip} **{skip}**\n- two', { ...helpWords(null), skip: 'Red Card' }, plain);
-    assert.equal(html, '<p>Hello <strong>you</strong>.</p><h3>Spaces</h3><ul><li>[tileSkip] <strong>Red Card</strong></li><li>two</li></ul>');
+    assert.equal(html, '<p>Hello <strong>you</strong>.</p><section class="help-section"><h3>Spaces</h3><ul><li>[tileSkip] <strong>Red Card</strong></li><li>two</li></ul></section>');
+  });
+
+  it('each heading starts its own section box', () => {
+    const html = helpHtml('Intro\n## A\ntext a\n## B\n- b', helpWords(null), plain);
+    assert.equal(html, '<p>Intro</p><section class="help-section"><h3>A</h3><p>text a</p></section><section class="help-section"><h3>B</h3><ul><li>b</li></ul></section>');
   });
 
   it("uses the edition's words", () => {
@@ -75,5 +81,28 @@ describe('help markup', () => {
 
   it('leaves unknown {words} alone', () => {
     assert.equal(helpHtml('{nope}', helpWords(null), plain), '<p>{nope}</p>');
+  });
+});
+
+describe('rules card', () => {
+  const config = { SCORE_VALUES: { question_easy: 1, question_hard: 2, landmark: 3 }, TIMER: { question: 30, action: 90 } };
+  const words = helpWords({ GAME: { pointsName: 'Goals', finishLabel: 'The Final', editionName: 'Football Quest' }, SPACE_INFO: { good_deed: { label: 'Good Play' } } });
+
+  it("uses this game's points and the edition's words", () => {
+    const html = rulesCardHtml({ rules: defaultRules(config), bonus: [10, 6, 3, 1], words, edition: { name: 'Football Quest' } });
+    for (const s of ['Football Quest', 'The Final', 'Goals', 'Good Play', 'easy <b>+1</b> or hard <b>+2</b>', '1st <b>+10</b>', '<b>+3</b>', 'Roll the exact number']) {
+      assert.ok(html.includes(s), s);
+    }
+  });
+
+  it('follows the rules: always easy, no going backwards, no bonus', () => {
+    const R = defaultRules(config);
+    R.questions.difficulty = 'easy'; R.board.noBackwards = true; R.turns.exactFinish = false;
+    const html = rulesCardHtml({ rules: R, bonus: [], words });
+    assert.ok(html.includes('always easy <b>+1</b>'));
+    assert.ok(html.includes('No going backwards'));
+    assert.ok(html.includes('no bonus'));
+    assert.ok(!html.includes('Roll the exact number'));
+    assert.ok(!html.includes('move back'));
   });
 });

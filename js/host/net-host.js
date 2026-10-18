@@ -234,6 +234,7 @@ function _displayLive() {
     currentPlayerIndex: state.currentPlayerIndex,
     turnPhase: state.turnPhase,
     phase: state.phase,
+    recap: typeof lastTurnRecap === 'function' ? lastTurnRecap(state.history) : null,   // "what just happened" (plain text; the TV escapes it)
   });
 }
 
@@ -272,6 +273,7 @@ function _displayEnd() {
   _toDisplay('end', {
     lines:  Object.fromEntries(stats.map(s => [s.id, statLine(s)])),
     awards: awards.map(a => ({ icon: a.icon, title: a.title, text: a.text, who: a.playerIds.map(name).join(' & ') })),
+    learned: typeof learnedHtml === 'function' ? learnedHtml(learnedToday(state.history, window.QUESTIONS_DATA || [])) : '',
   });
 }
 
@@ -438,7 +440,7 @@ function _emitSpaceCard(space, player) {
     card.deedText     = space.deed.text;
     card.deedEffect   = space.deed.effect;
     card.deedValue    = space.deed.value;
-    card.deedLandmark = space.deed.landmark;
+    card.deedLandmark = space.deed.resolvedLandmark ?? null;   // where a landmark move goes (board.js)
   }
   TX_NET.emitSpaceCard(_networkGameId, card);
 }

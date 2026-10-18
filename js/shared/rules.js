@@ -33,7 +33,7 @@ const FINISH_BONUS_CHOICES = {
 };
 
 // Deed effects removed by "No going backwards"
-const BACKWARD_EFFECTS = new Set(['move_back', 'move_to_prev_landmark', 'move_to_landmark', 'skip_turn']);
+const BACKWARD_EFFECTS = new Set(['move_back', 'move_to_prev_landmark', 'skip_turn']);
 
 /**
  * Today's behaviour, from the engine config merged with the active edition.
@@ -252,11 +252,11 @@ function deedCardsForBoard(cards, rules) {
   const firstOnly = rules?.board?.deedEffects === 'first';
   const out = [];
   for (const card of cards || []) {
-    let effects = card.effects?.length ? card.effects : [{ effect: card.effect, value: card.value ?? 0, landmark: card.landmark ?? null }];
+    let effects = card.effects?.length ? card.effects : [{ effect: card.effect, value: card.value ?? 0 }];
     if (noBack) effects = effects.filter(e => !BACKWARD_EFFECTS.has(e.effect));
     if (!effects.length) continue;
     if (firstOnly) effects = [effects[0]];
-    out.push({ ...card, effects, effect: effects[0].effect, value: effects[0].value, landmark: effects[0].landmark ?? null });
+    out.push({ ...card, effects, effect: effects[0].effect, value: effects[0].value });
   }
   return out;
 }

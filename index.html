@@ -145,6 +145,8 @@
             <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select></label>
           <span id="rules-changed" class="rules-changed"></span>
           <span class="rules-foot-spacer"></span>
+          <button type="button" class="btn btn-secondary btn-small" onclick="printRulesCard()"
+                  title="A short card with these rules, in this edition's words — two to a page, to keep with the game"><i data-icon="print"></i> Print rules card</button>
           <button type="button" id="rules-reset-btn" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()"
                   title="Undo your changes — back to the preset's settings"><i data-icon="reset"></i> Reset to preset</button>
           <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()"
@@ -303,6 +305,8 @@
         </div>
         <!-- Game ID badge -->
         <div id="game-id-badge"></div>
+        <!-- What just happened: the last turn in one line (turnRecap in js/shared/turn.js) -->
+        <div id="turn-recap" class="turn-recap hidden" aria-live="polite"></div>
         <!-- Dice result overlay — appears briefly on the board after each roll -->
         <div id="dice-overlay">
           <div class="dice-overlay-card">
@@ -474,6 +478,7 @@
       <p id="end-screen-message">All players have reached the finish!</p>
       <div id="final-scores"></div>
       <div id="end-awards"></div>
+      <div id="end-learned" class="end-learned"></div>
       <div class="end-actions">
         <button id="rematch-btn" class="btn btn-primary btn-large"><i data-icon="rematch"></i> Rematch</button>
         <button id="play-again-btn" class="btn btn-secondary btn-large">New game setup</button>

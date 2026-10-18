@@ -955,6 +955,18 @@ body {
 .award-card:nth-child(4) { animation-delay: .24s; } .award-card:nth-child(n+5) { animation-delay: .32s; }
 .award-icon   { font-size: 1.8rem; line-height: 1.1; }
 .award-title  { font-weight: 800; font-size: .9rem; margin-top: 4px; }
+/* What we learned today (end screen + TV) */
+.end-learned:empty { display: none; }
+.learned-summary { color: var(--text-muted); font-size: .88rem; margin-bottom: 8px; }
+.learned-topics  { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.learned-topic   { background: var(--green-light, #E8F5E9); color: var(--green); border-radius: 999px; padding: 3px 10px; font-size: .8rem; font-weight: 600; }
+.learned-grid    { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; text-align: left; }
+.learned-card    { background: #FFFDF5; border: 1.5px solid #F2E6B8; border-radius: 14px; padding: 12px; animation: modalIn .3s ease both; }
+.learned-q       { font-weight: 700; font-size: .9rem; margin-bottom: 6px; }
+.learned-a       { font-weight: 800; color: var(--green); font-size: .9rem; }
+.learned-note    { font-size: .8rem; color: var(--text-muted); margin-top: 6px; }
+.learned-who     { font-size: .75rem; color: var(--text-muted); margin-top: 8px; }
+.learned-card .tx-emoji { width: 1.1em; height: 1.1em; vertical-align: -.15em; }
 .award-who    { font-weight: 700; color: var(--green); font-size: .95rem; }
 .award-why    { font-size: .75rem; color: var(--text-muted); }
 
@@ -1098,6 +1110,27 @@ body {
 .hs-neg { color: var(--danger); }
 
 /* ── Game ID badge ───────────────────────────────────────────── */
+/* What just happened: the last turn in one line, top centre of the board (host + TV) */
+.turn-recap {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
+  max-width: min(720px, calc(100% - 180px));
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 16px;
+  background: rgba(255,255,255,.94); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,.15);
+  font-size: .92rem; font-weight: 600; line-height: 1.3;
+  pointer-events: none; animation: recapIn .35s ease both;
+}
+.turn-recap.hidden { display: none; }
+.turn-recap > span:last-child { overflow-wrap: anywhere; }   /* long lines wrap — the whole turn stays readable */
+.turn-recap .tx-emoji { width: 1.3em; height: 1.3em; flex: none; }
+.turn-recap-label {
+  flex: none; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text-muted);
+}
+@keyframes recapIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.presenting .turn-recap { font-size: 1.15rem; top: 14px; }
+#d-game .turn-recap { font-size: 1.2rem; top: 16px; }
+
 #game-id-badge {
   position: absolute;
   top: 10px;

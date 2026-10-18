@@ -69,6 +69,7 @@
     .d-podium .d-pts { margin-left: auto; color: var(--green); }
     .d-podium .d-chip > div:not(.score-token) { text-align: left; }
     .d-stats { font-size: .9rem; font-weight: 500; color: var(--text-muted); }
+    .d-learned { margin-top: 24px; text-align: center; }
     .d-awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 24px; }
     .d-award { background: #FAFAFA; border: 2px solid #EEE; border-radius: 18px; padding: 16px 12px; animation: modalIn .35s ease both; }
     .d-award:nth-child(2) { animation-delay: .1s; } .d-award:nth-child(3) { animation-delay: .2s; } .d-award:nth-child(n+4) { animation-delay: .3s; }
@@ -129,6 +130,7 @@
           <div id="dice-overlay-name"></div>
         </div>
       </div>
+      <div id="turn-recap" class="turn-recap hidden" aria-live="polite"></div>
       <div id="modal-overlay" class="hidden">
         <div id="modal">
           <div id="modal-icon"></div>
@@ -169,6 +171,7 @@
       <div class="d-sub" id="d-end-msg"></div>
       <div class="d-podium" id="d-podium"></div>
       <div class="d-awards" id="d-awards"></div>
+      <div class="end-learned d-learned" id="d-learned"></div>
     </div>
   </div>
 

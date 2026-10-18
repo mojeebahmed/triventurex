@@ -429,6 +429,7 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 
 ### Unreleased (2026-10)
 - **Help on every screen**: a ? button opens help for the screen you are on (setup tabs, lobby, game, phone, every Academy mode), with *How to play* for everyone
+- **Last turn** line on the board (what just happened), **What we learned today** on the end screen, and a printable **rules card** (Rules tab)
 - **🎓 Triventurex Academy** (academy.html): explore, flashcards, quiz, match, true or false, speed round, places, print cards and a reviewer mode
 - **Icons**: Fluent Emoji (game symbols) and Lucide (controls) everywhere, used by name; editions change icons in one `ICONS` block; `tools/icon-picker.html` to try other icons
 - **Phones**: the same badges and colours as the host; the edition's words, icons and tile names; an edition banner on the phone and host lobby
@@ -439,7 +440,8 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - *Steal*: others answer when the active player gets a phone question wrong
 - Content review: the draft action cards in both editions, and the Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
 - More editions: same engine, different content. Ideas and sizing in `game_editions/IDEAS.md`; start from `game_editions/template/`
-- Football Quest subcategory/topic structure
+- More questions in every edition, and a Football Quest revisit (more questions, a proper category structure)
+- First-game walkthrough; celebrations (landmark, finish, hard question); kids mode on the phone (bigger buttons, read aloud); fun facts on the TV between turns
 - Team mode
 - Online multiplayer (beyond local Wi-Fi)
 

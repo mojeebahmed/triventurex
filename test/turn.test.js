@@ -7,7 +7,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   isTurnEligible, nextTurnIndex, takeSnapshot, restoreFromSnapshot,
-  indexAfterRemoval, makeHistoryEntry,
+  indexAfterRemoval, makeHistoryEntry, turnRecap,
 } = require('../js/shared/turn.js');
 
 /** Minimal player for these tests. */
@@ -159,5 +159,46 @@ describe('makeHistoryEntry', () => {
     const e = makeHistoryEntry({ player: P(0), posBefore: 0, scoreBefore: 0, snapshot: null });
     assert.equal(e.roll, 0);
     assert.equal(e.spaceType, 'unknown');
+  });
+});
+
+describe('turnRecap — "what just happened"', () => {
+  const words = { points: 'Goals', finish: 'The Final', labels: { question: 'Question', action: 'Action', good_deed: 'Good Play', bad_deed: 'Foul Play', landmark: 'Stadium', skip: 'Red Card' } };
+  const e = o => ({ roll: 4, playerName: 'Sara', spaceType: 'question', landedOn: 'question', spaceName: null,
+                    posBefore: 3, posAfter: 7, scoreBefore: 2, scoreAfter: 2, result: null, outcome: 'space', ...o });
+
+  it('a question: difficulty, right or not, points', () => {
+    assert.deepEqual(turnRecap(e({ result: { question: true, diff: 'hard' }, scoreAfter: 4 }), words),
+      { icon: 'tileQuestion', text: 'Sara rolled 4 · Question: hard one, right · +2 Goals' });
+    assert.equal(turnRecap(e({ result: { question: false, diff: 'easy' } }), words).text, 'Sara rolled 4 · Question: easy one, not this time');
+  });
+
+  it('an action card', () => {
+    assert.equal(turnRecap(e({ landedOn: 'action', spaceType: 'action', result: { action: false } }), words).text, 'Sara rolled 4 · Action: nobody guessed');
+  });
+
+  it('a card that moves the player on, to a landmark', () => {
+    const r = turnRecap(e({ landedOn: 'good_deed', spaceType: 'landmark', spaceName: 'Wembley', posAfter: 10, scoreAfter: 5 }), words);
+    assert.deepEqual(r, { icon: 'tileGoodDeed', text: 'Sara rolled 4 · Good Play · forward 3 to Wembley · +3 Goals' });
+    assert.equal(turnRecap(e({ landedOn: 'bad_deed', spaceType: 'question', posAfter: 5, scoreAfter: 1 }), words).text,
+      'Sara rolled 4 · Foul Play · back 2 · −1 Goals');
+  });
+
+  it('a landmark by roll, the finish, a skip space', () => {
+    assert.equal(turnRecap(e({ landedOn: 'landmark', spaceType: 'landmark', spaceName: 'Maracanã', scoreAfter: 5 }), words).text,
+      'Sara rolled 4 · Stadium: Maracanã · +3 Goals');
+    assert.equal(turnRecap(e({ landedOn: 'finish', spaceType: 'finish', scoreAfter: 12 }), words).text, 'Sara rolled 4 · reached The Final! · +10 Goals');
+    assert.equal(turnRecap(e({ landedOn: 'skip', spaceType: 'skip' }), words).text, 'Sara rolled 4 · Red Card — misses the next turn');
+  });
+
+  it('skipped turns, exact-finish blocks and GM changes', () => {
+    assert.equal(turnRecap(e({ roll: 0, outcome: 'skip', spaceType: 'skip', posAfter: 3 }), words).text, 'Sara missed this turn');
+    assert.equal(turnRecap(e({ roll: 5, outcome: 'blocked', posAfter: 3 }), words).text, 'Sara rolled 5 — needs the exact number to reach The Final');
+    assert.deepEqual(turnRecap(e({ spaceType: 'gm', spaceName: 'GM: +2 Goals' }), words), { icon: 'historyGm', text: 'GM: +2 Goals (Sara)' });
+  });
+
+  it('no entry, no recap; older saves without landedOn / outcome still read', () => {
+    assert.equal(turnRecap(null), null);
+    assert.equal(turnRecap(e({ landedOn: undefined, outcome: undefined }), words).text, 'Sara rolled 4 · Question');
   });
 });

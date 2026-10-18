@@ -77,30 +77,27 @@ function _parseQuestionsCSV(text) {
  * Parse deeds.csv into the DEEDS_DATA format.
  *
  * CSV columns (header row required):
- *   type, text, effect, value, landmark, effect_2, value_2, landmark_2,
- *   effect_3, value_3, landmark_3, mood
+ *   type, text, effect, value, effect_2, value_2, effect_3, value_3, mood
  *
  * type   = "good" or "bad"
- * effect = score_add | score_remove | move_forward | move_back | move_to_landmark |
+ * effect = score_add | score_remove | move_forward | move_back | move_to_prev_landmark |
  *          move_to_next_landmark | skip_turn | extra_turn | all_players_gain |
  *          all_players_lose | protection
- * value  = number of points or spaces (0 for landmark-targeting effects)
- * landmark = landmark name (only for move_to_landmark, otherwise blank)
- * effect_2/value_2/landmark_2 — optional second effect for variable rewards
- * effect_3/value_3/landmark_3 — optional third effect for variable rewards
+ * value  = number of points or spaces (landmark moves: 1 = the nearest landmark)
+ * effect_2/value_2 — optional second effect for variable rewards
+ * effect_3/value_3 — optional third effect for variable rewards
  * mood   = flavour tag (e.g. blessing, social, challenge, reflection, funny, risk)
  */
 function _parseDeedsCSV(text) {
   return _parseCSV(text)
     .filter(r => r.type && r.text && r.effect)
     .map((r, i) => {
-      const buildEffect = (eff, val, lm) =>
-        eff ? { effect: eff, value: parseFloat(val) || 0, landmark: lm || null } : null;
+      const buildEffect = (eff, val) => eff ? { effect: eff, value: parseFloat(val) || 0 } : null;
 
       const effects = [
-        buildEffect(r.effect,   r.value,   r.landmark),
-        buildEffect(r.effect_2, r.value_2, r.landmark_2),
-        buildEffect(r.effect_3, r.value_3, r.landmark_3),
+        buildEffect(r.effect,   r.value),
+        buildEffect(r.effect_2, r.value_2),
+        buildEffect(r.effect_3, r.value_3),
       ].filter(Boolean);
 
       return {
@@ -110,7 +107,6 @@ function _parseDeedsCSV(text) {
         effects,                        // all possible effects (for variable rewards)
         effect:   effects[0]?.effect,   // primary (used as default)
         value:    effects[0]?.value  ?? 0,
-        landmark: effects[0]?.landmark ?? null,
         mood:     r.mood || '',
       };
     });

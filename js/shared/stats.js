@@ -85,4 +85,43 @@ function awardText(award, labels = {}) {
     .replace('{points}', labels.points ?? 'pts');
 }
 
-if (typeof module !== 'undefined') module.exports = { gameStats, gameAwards, awardText };
+/** A question's answer as text: the option for a multiple-choice letter, else the answer itself. */
+function answerOf(q) {
+  const i = ['A', 'B', 'C', 'D'].indexOf(q.answer);
+  return q.opts?.length && i >= 0 ? (q.opts[i] ?? q.answer) : q.answer;
+}
+
+/**
+ * "What we learned today" for the end screen: from the questions asked in the
+ * game (history entries with result.question + result.qid, see _noteQuestion).
+ *   facts   up to `max` questions, each once — answered right first, then
+ *           those with a fact (note) first, in game order: [{ id, q, answer, note, right, playerName }]
+ *   topics  [[name, count]] — the subcategory (else category) of every question asked, most first
+ *   asked / right  how many questions were asked / answered right (physical cards included)
+ * Text is the edition's own (it may hold a little HTML, like the question cards).
+ */
+function learnedToday(history, questions, { max = 3 } = {}) {
+  const byId = new Map((questions || []).map(q => [q.id, q]));
+  const asked = [];
+  for (const e of history || []) {
+    const r = e.result;
+    if (e.spaceType === 'gm' || typeof r?.question !== 'boolean') continue;
+    asked.push({ q: r.qid != null ? byId.get(r.qid) : null, right: r.question, playerName: e.playerName });
+  }
+  const seen = new Set();
+  const once = asked.filter(a => a.q && !seen.has(a.q.id) && seen.add(a.q.id));
+  const facts = once
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => (y.a.right - x.a.right) || (!!y.a.q.note - !!x.a.q.note) || (x.i - y.i))
+    .slice(0, max)
+    .map(({ a }) => ({ id: a.q.id, q: a.q.q, answer: answerOf(a.q), note: a.q.note || '', right: a.right, playerName: a.playerName }));
+  const counts = new Map();
+  for (const { q } of asked) {
+    const topic = q && (q.subcat || q.cat);
+    if (topic) counts.set(topic, (counts.get(topic) || 0) + 1);
+  }
+  const topics = [...counts].sort((a, b) => b[1] - a[1]);
+  return { asked: asked.length, right: asked.filter(a => a.right).length, facts, topics };
+}
+
+if (typeof module !== 'undefined') module.exports = { gameStats, gameAwards, awardText, learnedToday, answerOf };

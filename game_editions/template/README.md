@@ -39,8 +39,8 @@ Found a wrong or unclear question while playing? Use 🚩 on the question card o
 |---|---|
 | `type` | `good` or `bad` |
 | `text` | Card text read aloud. `{landmark}` is replaced by the landmark the card moves to. |
-| `effect`, `value`, `landmark` | The card's effect (see below). The `landmark` columns are optional — only the old `move_to_landmark` effect uses them, so most editions leave them out. |
-| `effect_2/3`, `value_2/3`, `landmark_2/3` | Optional alternatives. One effect is picked at random each game. |
+| `effect`, `value` | The card's effect (see below). |
+| `effect_2/3`, `value_2/3` | Optional alternatives. One effect is picked at random each game. |
 | `mood` | Optional flavour tag (blessing, social, challenge, reflection, funny, risk…) |
 
 ### Effects
@@ -50,7 +50,6 @@ Found a wrong or unclear question while playing? Use 🚩 on the question card o
 | `score_add` / `score_remove` | points gained / lost |
 | `move_forward` / `move_back` | spaces moved |
 | `move_to_next_landmark` / `move_to_prev_landmark` | which landmark: 1 = nearest ahead / behind, 2 = the one after, … (needs `LANDMARKS` in config.js) |
-| `move_to_landmark` | ignored. Put the exact landmark name from `LANDMARKS` in the `landmark` column. Old style — still works, but no edition uses it; prefer the next / previous landmark effects. |
 | `skip_turn` | ignored (use 0). The player skips their next turn. |
 | `extra_turn` | ignored (use 0). The player rolls again. |
 | `all_players_gain` / `all_players_lose` | points for every player |

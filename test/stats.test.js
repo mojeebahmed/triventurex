@@ -5,7 +5,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { gameStats, gameAwards, awardText } = require('../js/shared/stats.js');
+const { gameStats, gameAwards, awardText, learnedToday, answerOf } = require('../js/shared/stats.js');
 
 const players = [{ id: 0 }, { id: 1 }, { id: 2 }];
 /** A history entry: player, roll, where it landed, score/position changes. */
@@ -89,5 +89,37 @@ describe('gameAwards', () => {
     assert.equal(awardText({ text: '+{n} {points} in one turn', value: 7 }, { points: 'Sawab' }), '+7 Sawab in one turn');
     assert.equal(awardText({ text: '{n} turn{s} skipped', value: 1 }), '1 turn skipped');
     assert.equal(awardText({ text: '{n} turn{s} skipped', value: 2 }), '2 turns skipped');
+  });
+});
+
+describe('learnedToday — what we learned today', () => {
+  const Q = [
+    { id: 1, q: 'Capital of France?', opts: [], answer: 'Paris', subcat: 'Capitals', cat: 'Geo', note: '' },
+    { id: 2, q: 'Largest ocean?', opts: ['Atlantic', 'Pacific'], answer: 'B', subcat: 'Nature', cat: 'Geo', note: 'It covers a third of the Earth' },
+    { id: 3, q: 'Tallest mountain?', opts: [], answer: 'Everest', subcat: '', cat: 'Geo', note: 'Over 8,800 m' },
+    { id: 4, q: 'Longest river?', opts: [], answer: 'The Nile', subcat: 'Nature', cat: 'Geo', note: '' },
+  ];
+  const asked = (qid, right, who = 'Sara') => ({ playerName: who, spaceType: 'question', result: { question: right, qid, diff: 'easy' } });
+
+  it('right answers first, then ones with a fact, each question once, at most 3', () => {
+    const l = learnedToday([asked(4, false), asked(1, true), asked(3, false), asked(2, true, 'Ali'), asked(1, true)], Q);
+    assert.deepEqual(l.facts.map(f => f.id), [2, 1, 3]);
+    assert.deepEqual(l.facts[0], { id: 2, q: 'Largest ocean?', answer: 'Pacific', note: 'It covers a third of the Earth', right: true, playerName: 'Ali' });
+    assert.equal(l.asked, 5);
+    assert.equal(l.right, 3);
+  });
+
+  it('topics: the subcategory (else category) of every question asked, most first', () => {
+    assert.deepEqual(learnedToday([asked(2, true), asked(4, false), asked(3, true)], Q).topics, [['Nature', 2], ['Geo', 1]]);
+  });
+
+  it('physical cards count, but have no fact; GM entries and other turns are ignored', () => {
+    const l = learnedToday([{ spaceType: 'question', result: { question: true, qid: null } }, { spaceType: 'gm', result: { question: true, qid: 1 } }, { result: { action: true } }], Q);
+    assert.deepEqual(l, { asked: 1, right: 1, facts: [], topics: [] });
+  });
+
+  it('answerOf: the option for a letter, else the answer', () => {
+    assert.equal(answerOf(Q[1]), 'Pacific');
+    assert.equal(answerOf(Q[0]), 'Paris');
   });
 });

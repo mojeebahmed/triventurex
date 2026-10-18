@@ -370,8 +370,12 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 - **Sound effects** — dice roll, correct answer, finish fanfare, deed card reveal
 - **Steal** — when the active player answers wrong on their phone, others can answer for points
 - **Content review** — the draft action cards (both editions) and the Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — use the 📚 Questions tab to mark and export them
-- **More Swab Quest questions** — currently 432; target 600+ across all topics
-- **Football Quest subcategories/topics** — currently flat; could add `Clubs / International / History` structure
+- **More questions in every edition** — Swab Quest has 432, World Tour, Animal Safari and Prophets' Stories about 220 each; all of them should grow over time
+- **Football Quest revisit** — the first edition's content: only 92 questions with a flat, uneven category structure. Rework the questions and give them a proper category › subcategory › topic structure like the newer editions
+- **First-game walkthrough** — a short guided tour of the game screen in the first game
+- **Celebrate moments** — confetti / fanfare for a landmark, a finish, a hard question answered right
+- **Kids mode on the phone** — bigger buttons, pictures before words, *Read it to me*
+- **Fun facts on the TV between turns** — a landmark fact or question note while waiting
 
 ### Medium-term
 - **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour, Animal Safari and Prophets' Stories are done)
