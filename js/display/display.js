@@ -39,7 +39,7 @@ async function _useEdition(editionId) {
     el.onload = el.onerror = resolve;
     document.head.appendChild(el);
   });
-  mergeEditionConfig(CONFIG, window.EDITION_CONFIG);
+  mergeEditionConfig(CONFIG, window.EDITION_CONFIG, editionId);
   applyEditionColors(CONFIG);
   _editionId = editionId;
   const g = CONFIG.GAME || {};

@@ -68,7 +68,7 @@ npm run build:icons                                    # bundle the icons the ga
 - **`CHANGELOG.md`**: what changed, release by release
 - **`TRIVENTUREX-DESIGN.md`**: design decisions and how the pieces fit together
 - **`game_editions/IDEAS.md`**: ideas for new editions, content targets per edition, and how an edition is built
-- **Icons**: engine code uses icons by name — `icon('undo')`, `<i data-icon="undo"></i>` — from `js/shared/icon-registry.js` (Lucide line icons for controls, Fluent Emoji Flat for game symbols). New icon: add a name there and run `npm run build:icons`. Details in `CLAUDE.md` → Icons
+- **Icons**: an edition changes icons in one `ICONS` block in its `config.js` (`tileGoodDeed: '⚽'`) — see `game_editions/template/README.md`. Engine code uses icons by name — `icon('undo')`, `<i data-icon="undo"></i>` — from `js/shared/icon-registry.js` (Lucide line icons for controls, Fluent Emoji Flat for game symbols). New icon: add a name there and run `npm run build:icons`. Details in `CLAUDE.md` → Icons
 - **`CLAUDE.md`**: detailed architecture rules and invariants (also the brief for AI assistants)
 
 ---

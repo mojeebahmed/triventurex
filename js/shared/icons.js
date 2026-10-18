@@ -2,7 +2,9 @@
  * icons.js — draw icons from the sets bundled with the game, so they look the
  * same on every device (host, phones, TV, Academy).
  *
- * Engine code asks for icons BY NAME (js/shared/icon-registry.js):
+ * Engine code asks for icons BY NAME (js/shared/icon-registry.js); the active
+ * edition can override any name in its config.js ICONS block (merged into
+ * CONFIG.EDITION_ICONS by js/shared/edition.js), so lookup is edition → engine:
  *   icon('undo')            → HTML: an inline line icon (Lucide) in the text colour,
  *                             or an emoji image (Fluent Emoji Flat)
  *   iconText('tileSkip')    → plain text for places that cannot hold HTML;
@@ -48,12 +50,17 @@ const isEmoji = s => { const e = findEmoji(s); return e.length === 1 && e[0].ind
 
 // ── By name ─────────────────────────────────────────────────────────────────────
 
-/** The registry entry for a name ('lucide:undo-2', 'emoji:🎲'), or null. */
+/**
+ * The entry for a name: the edition's override first, then the engine's
+ * registry. Entries: 'emoji:🎲', 'lucide:undo-2' (any '<set>:<icon>'), or
+ * 'url:<path>' (an edition's own picture). null for unknown names.
+ */
 function iconEntry(name) {
-  return (typeof ICONS !== 'undefined' && ICONS[name]) || null;
+  const ed = typeof CONFIG !== 'undefined' ? CONFIG.EDITION_ICONS : null;
+  return (ed && ed[name]) || (typeof ICONS !== 'undefined' && ICONS[name]) || null;
 }
 
-/** Plain text for an icon name or an emoji: the emoji, or '' for line icons and unknown names. */
+/** Plain text for an icon name or an emoji: the emoji, or '' for line icons, pictures and unknown names. */
 function iconText(nameOrEmoji) {
   const e = iconEntry(nameOrEmoji);
   if (e) return e.startsWith('emoji:') ? e.slice(6) : '';
@@ -79,7 +86,8 @@ function icon(nameOrEmoji) {
   const e = iconEntry(nameOrEmoji);
   if (!e) return isEmoji(nameOrEmoji) ? emojiHtml(nameOrEmoji) : '';
   if (e.startsWith('emoji:')) return emojiHtml(e.slice(6));
-  const svg = _iconsData()?.ui?.[nameOrEmoji];
+  if (e.startsWith('url:')) return `<img class="tx-emoji tx-picture" src="${_escAttr(e.slice(4))}" alt="" draggable="false" decoding="async">`;
+  const svg = _iconsData()?.ui?.[e];            // line icons are bundled by id ('lucide:undo-2')
   return svg ? `<span class="tx-icon" aria-hidden="true">${svg}</span>` : '';
 }
 

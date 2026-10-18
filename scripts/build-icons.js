@@ -19,6 +19,16 @@ const path = require('node:path');
 const { findEmoji, glyphKey } = require('../js/shared/icons.js');
 const config = require('./icons.config.js');
 const { ICONS, BADGES, PHONE_BADGES } = require('../js/shared/icon-registry.js');
+const { listEditions, loadEdition } = require('./content.js');
+
+/** Every icon id used: the engine registry plus each edition's ICONS block. */
+function iconIds() {
+  const ids = new Set(Object.values(ICONS));
+  for (const id of listEditions()) {
+    for (const v of Object.values(loadEdition(id).config.ICONS || {})) ids.add(String(v).trim());
+  }
+  return [...ids];
+}
 
 const ROOT = path.join(__dirname, '..');
 const EMOJI_DIR = path.join(ROOT, 'images', 'emoji');
@@ -104,11 +114,11 @@ for (const [key, glyph] of usedEmoji()) {
   usedSets.add(prefix);
 }
 
-const ui = {};                                   // name → SVG, for every non-emoji registry entry
-for (const [name, id] of Object.entries(ICONS)) {
-  if (id.startsWith('emoji:')) continue;
+const ui = {};                                   // icon id ('lucide:undo-2') → SVG, for every line / set icon in use
+for (const id of iconIds().sort()) {
+  if (id.startsWith('emoji:') || id.startsWith('file:') || !/^[a-z0-9-]+:/.test(id)) continue;   // emoji and pictures are files
   const { prefix, svg } = svgFor(id, 'lucide');
-  ui[name] = svg.replace('<svg ', '<svg aria-hidden="true" focusable="false" ');
+  ui[id] = svg.replace('<svg ', '<svg aria-hidden="true" focusable="false" ');
   usedSets.add(prefix);
 }
 
@@ -129,7 +139,7 @@ const data = [
   'const TX_ICON_DATA = {',
   `  // emoji with an image in images/emoji/ (file = code points, no FE0F)`,
   `  emoji: ${JSON.stringify(Object.keys(files).map(f => f.replace('.svg', '')).sort())},`,
-  `  // icon name → line icon SVG (names in js/shared/icon-registry.js)`,
+  `  // icon id → line icon SVG (used by the names in js/shared/icon-registry.js and editions' ICONS)`,
   '  ui: {',
   ...Object.entries(ui).map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)},`),
   '  },',

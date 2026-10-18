@@ -178,14 +178,24 @@ window.EDITION_CONFIG = {
     },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's
+  // (names: js/shared/icon-registry.js). A value is an emoji, '<set>:<icon>'
+  // (e.g. 'lucide:trophy') or 'file:icons/<picture>.svg' in this folder.
+  ICONS: {
+    tileFinish:   '🕌',
+    tileGoodDeed: '🌟',
+    tileBadDeed:  '💢',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
   // Optional — only specify types whose icon, label or colour differs from
   // the engine defaults in config.js SPACE_INFO.
   // The 'finish' label says "Finish" for this edition — other editions can change it.
   SPACE_INFO: {
-    finish: { icon: '🕌', label: 'Finish' },
-    good_deed: { icon: '🌟', label: 'Good Deed',  color: '#2E7D32' },
-    bad_deed:  { icon: '💢', label: 'Bad Deed',  color: '#C62828' },
+    finish: { label: 'Finish' },
+    good_deed: { label: 'Good Deed',  color: '#2E7D32' },
+    bad_deed:  { label: 'Bad Deed',  color: '#C62828' },
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────

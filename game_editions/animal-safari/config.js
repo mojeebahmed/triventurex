@@ -186,12 +186,32 @@ window.EDITION_CONFIG = {
     long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's
+  // (names: js/shared/icon-registry.js). A value is an emoji, '<set>:<icon>'
+  // (e.g. 'lucide:trophy') or 'file:icons/<picture>.svg' in this folder.
+  ICONS: {
+    tileFinish:         '🛖',
+    tileGoodDeed:       '🌿',
+    tileBadDeed:        '🐊',
+    tileLandmark:       '🏞️',
+    awardQuizMaster:    '🦉',
+    awardPerformer:     '🐒',
+    awardGoodDeeds:     '🌿',
+    awardBadDeeds:      '🐊',
+    awardExplorer:      '🔭',
+    awardBigTurn:       '🦘',
+    awardLuckyRoller:   '🐆',
+    awardUnluckyRoller: '🐌',
+    awardPatience:      '🦥',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
   SPACE_INFO: {
-    finish:    { icon: '🛖', label: 'Safari Lodge' },
-    good_deed: { icon: '🌿', label: 'Wildlife Hero', color: '#43A047' },
-    bad_deed:  { icon: '🐊', label: 'Safari Mishap', color: '#C62828' },
-    landmark:  { icon: '🏞️', label: 'Reserve',       color: '#F9A825' },
+    finish:    { label: 'Safari Lodge' },
+    good_deed: { label: 'Wildlife Hero', color: '#43A047' },
+    bad_deed:  { label: 'Safari Mishap', color: '#C62828' },
+    landmark:  { label: 'Reserve',       color: '#F9A825' },
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
@@ -236,15 +256,15 @@ window.EDITION_CONFIG = {
 
   // ── End-screen awards (G13) — rename any engine award (js/shared/config.js AWARDS)
   AWARDS: {
-    quizMaster:    { icon: '🦉', title: 'Wise Owl' },
-    performer:     { icon: '🐒', title: 'Cheeky Monkey' },
-    goodDeeds:     { icon: '🌿', title: 'Wildlife Hero' },
-    badDeeds:      { icon: '🐊', title: 'Croc Magnet' },
-    explorer:      { icon: '🔭', title: 'Safari Guide' },
-    bigTurn:       { icon: '🦘', title: 'Big Leap' },
-    luckyRoller:   { icon: '🐆', title: 'Cheetah Speed' },
-    unluckyRoller: { icon: '🐌', title: 'Snail Pace' },
-    patience:      { icon: '🦥', title: 'Slow as a Sloth' },
+    quizMaster:    { title: 'Wise Owl' },
+    performer:     { title: 'Cheeky Monkey' },
+    goodDeeds:     { title: 'Wildlife Hero' },
+    badDeeds:      { title: 'Croc Magnet' },
+    explorer:      { title: 'Safari Guide' },
+    bigTurn:       { title: 'Big Leap' },
+    luckyRoller:   { title: 'Cheetah Speed' },
+    unluckyRoller: { title: 'Snail Pace' },
+    patience:      { title: 'Slow as a Sloth' },
   },
 
 };

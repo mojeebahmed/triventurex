@@ -25,7 +25,7 @@ function _resetToEngineDefaults() {
   }
 }
 
-function _mergeEditionConfig() { mergeEditionConfig(CONFIG, window.EDITION_CONFIG); }
+function _mergeEditionConfig() { mergeEditionConfig(CONFIG, window.EDITION_CONFIG, _activeEditionId); }
 
 async function loadEdition(editionId) {
   if (!editionId) return;

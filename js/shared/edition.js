@@ -4,9 +4,26 @@
  * variables. Shared by the host page (edition-loader.js) and the TV display.
  */
 
+/**
+ * An edition's ICONS block as entries icon() understands: a bare emoji becomes
+ * 'emoji:…', 'file:<path>' becomes 'url:game_editions/<id>/<path>' (the edition's
+ * own picture). Other values ('emoji:…', '<set>:<icon>') stay as they are.
+ */
+function editionIcons(icons, editionId) {
+  const out = {};
+  for (const [name, v] of Object.entries(icons || {})) {
+    const s = String(v).trim();
+    if (s.startsWith('file:')) out[name] = `url:game_editions/${editionId}/${s.slice(5).replace(/^\.?\//, '')}`;
+    else out[name] = /^[a-z0-9-]+:/.test(s) ? s : `emoji:${s}`;
+  }
+  return out;
+}
+
 /** Merge an edition's config (window.EDITION_CONFIG) into the engine `config`. */
-function mergeEditionConfig(config, T) {
+function mergeEditionConfig(config, T, editionId = '') {
+  config.EDITION_ICONS = null;
   if (!T) return;
+  if (T.ICONS)               config.EDITION_ICONS = editionIcons(T.ICONS, editionId);
   if (T.GAME)                Object.assign(config.GAME,             T.GAME);
   if (T.COLORS)              Object.assign(config.COLORS,           T.COLORS);
   if (T.LANDMARKS)           config.LANDMARKS = T.LANDMARKS;
@@ -40,3 +57,5 @@ function applyEditionColors(config) {
     if (info.color) root.style.setProperty(`--c-${type.replace(/_/g, '-')}`, info.color);
   }
 }
+
+if (typeof module !== 'undefined') module.exports = { editionIcons, mergeEditionConfig };

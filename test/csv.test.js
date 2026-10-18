@@ -149,6 +149,38 @@ describe('content checker', () => {
   });
 });
 
+describe('edition icons (ICONS in config.js)', () => {
+  const os = require('node:os');
+  it('accepts engine names with an emoji, a bare emoji, a set icon or a picture in the folder', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-ed-'));
+    fs.mkdirSync(path.join(dir, 'icons')); fs.writeFileSync(path.join(dir, 'icons', 'cup.svg'), '<svg/>');
+    const r = checkEdition({ ...makeEdition({ config: { ICONS: {
+      tileGoodDeed: '⚽', tileBadDeed: 'emoji:🟥', rulesScoring: 'lucide:trophy', trophy: 'file:icons/cup.svg' } } }), dir });
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.warnings, []);
+  });
+
+  it('reports unknown names, non-emoji values, unknown set icons and missing pictures', () => {
+    const r = checkEdition({ ...makeEdition({ config: { ICONS: {
+      tileGoodDead: '⚽', tileBadDeed: 'red card', tileLandmark: 'lucide:no-such-icon',
+      awardExplorer: 'nosuchset:x', trophy: 'file:icons/missing.svg', finished: 'file:icons/a.gif' } } }), dir: os.tmpdir() });
+    const m = messages(r.errors);
+    assert.match(m, /unknown icon name "tileGoodDead"/);
+    assert.match(m, /ICONS\.tileBadDeed: "red card" is not a single emoji/);
+    assert.match(m, /ICONS\.tileLandmark: no icon "no-such-icon" in lucide/);
+    assert.match(m, /ICONS\.awardExplorer: icon set "nosuchset" is not installed/);
+    assert.match(m, /ICONS\.trophy: file "icons\/missing\.svg" not found/);
+    assert.match(m, /ICONS\.finished: "icons\/a\.gif" must be an \.svg, \.png/);
+  });
+
+  it('warns about old-style icons in SPACE_INFO and AWARDS', () => {
+    const r = checkEdition(makeEdition({ config: { SPACE_INFO: { good_deed: { icon: '⚽' } }, AWARDS: { explorer: { icon: '🏟️' } } } }));
+    const m = messages(r.warnings);
+    assert.match(m, /SPACE_INFO\.good_deed\.icon — set it as ICONS\.tileGoodDeed/);
+    assert.match(m, /AWARDS\.explorer\.icon — set it as ICONS\.awardExplorer/);
+  });
+});
+
 // ── Every edition in the repo ─────────────────────────────────────────────────
 
 for (const id of listEditions()) {

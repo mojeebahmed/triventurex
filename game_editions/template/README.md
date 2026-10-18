@@ -10,6 +10,8 @@ Starter folder for a new Triventurex edition.
 4. Run `npm run build:content <your-id>`. It checks the content and writes `questions.js` / `deeds.js` / `actions.js`. Those are the copies used when `index.html` is opened straight from disk. Never edit them by hand.
 5. Add your edition to `game_editions/editions.js`.
 
+**Icons:** set the icons your edition changes in one `ICONS` block in `config.js` — `tileGoodDeed: '⚽'`, `awardExplorer: '🏟️'`. Every other icon is the engine's. The names are listed (with what each is for) in `js/shared/icon-registry.js`. A value is an emoji, `'<set>:<icon>'` (e.g. `'lucide:trophy'`, any installed Iconify set), or `'file:icons/my-icon.svg'` for your own picture in the edition folder (SVG or PNG, square). `npm run check:content` reports unknown names and missing files; `npm run build:icons` bundles new line icons.
+
 `config.js` already has the standard board mix (`SPACE_DISTRIBUTION`, Swab Quest's values). For landmark photos, `node scripts/commons-image.js` finds free-licence photos on Wikimedia Commons and saves them cropped (800×600) with their credit; the whole process, with content targets, is in [`../IDEAS.md`](../IDEAS.md).
 
 `npm run check:content` checks every edition without writing anything. `npm test` runs the same checks.

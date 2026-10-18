@@ -53,11 +53,26 @@ window.EDITION_CONFIG = {
     long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's.
+  // Names: js/shared/icon-registry.js (tiles: tileFinish, tileGoodDeed,
+  // tileBadDeed, tileLandmark…; awards: awardQuizMaster, awardExplorer…).
+  // A value is an emoji, '<set>:<icon>' (e.g. 'lucide:trophy') or
+  // 'file:icons/<picture>.svg' — your own picture in this edition's folder.
+  // `npm run check:content` reports unknown names and missing files.
+  ICONS: {
+    tileFinish:   '🏁',     // your destination
+    // tileGoodDeed: '🌟',
+    // tileBadDeed:  '💢',
+    // tileLandmark: 'file:icons/landmark.svg',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
-  // Only specify what differs from the engine defaults in js/shared/config.js SPACE_INFO.
+  // Only specify what differs from the engine defaults in js/shared/config.js SPACE_INFO
+  // (labels and colours — icons go in ICONS above).
   // Must include `finish` to set the destination name for your edition.
   SPACE_INFO: {
-    finish: { icon: '🏁', label: 'Finish' },   // change label to your destination
+    finish: { label: 'Finish' },   // change label to your destination
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
@@ -74,8 +89,9 @@ window.EDITION_CONFIG = {
   },
 
   // ── Optional: rename end-screen awards (ids in js/shared/config.js AWARDS) ──
+  // (their icons go in ICONS above: awardQuizMaster, awardExplorer, …)
   // AWARDS: {
-  //   quizMaster: { icon: '🧠', title: 'Quiz master' },
+  //   quizMaster: { title: 'Quiz master' },
   //   explorer:   { title: 'Explorer', text: '{n} × {landmark}' },
   // },
 

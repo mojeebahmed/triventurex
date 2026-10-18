@@ -52,7 +52,7 @@ function loadEdition(id) {
     config = ctx.window.EDITION_CONFIG || {};
   }
   return { ...makeEdition({ id, config, questionsCsv: read('questions.csv'), deedsCsv: read('deeds.csv'),
-                           actionsCsv: read('actions.csv') }), dir };
+                           actionsCsv: read('actions.csv') }), dir, configJs };
 }
 
 /** The shared folder as an edition-like object: only actions.csv, generated as GENERAL_ACTIONS_DATA. */
@@ -184,7 +184,62 @@ function checkEdition(ed) {
     });
   }
 
+  checkIcons(ed, err, warn);
   return { errors, warnings };
+}
+
+// ── Icons (the edition's ICONS block in config.js) ────────────────────────────
+
+const { ICONS: ENGINE_ICONS } = require('../js/shared/icon-registry.js');
+const { isEmoji } = require('../js/shared/icons.js');
+const SPACE_ICON_NAMES = { start: 'tileStart', finish: 'tileFinish', question: 'tileQuestion', action: 'tileAction',
+  good_deed: 'tileGoodDeed', bad_deed: 'tileBadDeed', landmark: 'tileLandmark', skip: 'tileSkip' };
+const awardIconName = id => 'award' + id[0].toUpperCase() + id.slice(1);
+const PICTURE_EXT = /\.(svg|png|jpe?g|webp)$/i;
+
+/** Is '<set>:<icon>' an icon in an installed @iconify-json set? → null if fine, else why not. */
+function setIconProblem(id) {
+  const [prefix, name] = id.split(':');
+  let set;
+  try { set = require(`@iconify-json/${prefix}/icons.json`); }
+  catch { return `icon set "${prefix}" is not installed (npm i -D @iconify-json/${prefix})`; }
+  return set.icons[name] || set.aliases?.[name] ? null : `no icon "${name}" in ${prefix}`;
+}
+
+/**
+ * ICONS: every name must be one the engine uses (js/shared/icon-registry.js);
+ * every value an emoji, '<set>:<icon>' or 'file:<picture in the edition folder>'.
+ * Old-style icons in SPACE_INFO / AWARDS still work but get a warning.
+ */
+function checkIcons(ed, err, warn) {
+  const cfg = ed.config || {};
+  const lines = (ed.configJs || '').split('\n');
+  const lineOf = needle => { const i = lines.findIndex(l => l.includes(needle)); return i < 0 ? 0 : i + 1; };
+  const f = 'config.js';
+  for (const [name, raw] of Object.entries(cfg.ICONS || {})) {
+    const v = String(raw).trim();
+    const n = lineOf(`${name}:`);
+    if (!ENGINE_ICONS[name]) { err(f, n, `ICONS: unknown icon name "${name}" — the names are in js/shared/icon-registry.js`); continue; }
+    if (v.startsWith('file:')) {
+      const rel = v.slice(5).replace(/^\.?\//, '');
+      if (!PICTURE_EXT.test(rel)) err(f, n, `ICONS.${name}: "${rel}" must be an .svg, .png, .jpg or .webp picture`);
+      else if (ed.dir && !fs.existsSync(path.join(ed.dir, rel))) err(f, n, `ICONS.${name}: file "${rel}" not found in the edition folder`);
+    } else if (v.startsWith('emoji:') || !/^[a-z0-9-]+:/.test(v)) {
+      const e = v.startsWith('emoji:') ? v.slice(6) : v;
+      if (!isEmoji(e)) err(f, n, `ICONS.${name}: "${e}" is not a single emoji (or use '<set>:<icon>' / 'file:<picture>')`);
+    } else {
+      const problem = setIconProblem(v);
+      if (problem) err(f, n, `ICONS.${name}: ${problem}`);
+    }
+  }
+  for (const [type, info] of Object.entries(cfg.SPACE_INFO || {})) {
+    if (info?.icon !== undefined && SPACE_ICON_NAMES[type]) {
+      warn(f, lineOf(`${type}:`), `SPACE_INFO.${type}.icon — set it as ICONS.${SPACE_ICON_NAMES[type]} instead`);
+    }
+  }
+  for (const [id, a] of Object.entries(cfg.AWARDS || {})) {
+    if (a?.icon !== undefined) warn(f, lineOf(`${id}:`), `AWARDS.${id}.icon — set it as ICONS.${awardIconName(id)} instead`);
+  }
 }
 
 // ── Generated JS ──────────────────────────────────────────────────────────────

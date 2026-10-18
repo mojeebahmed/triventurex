@@ -186,12 +186,26 @@ window.EDITION_CONFIG = {
     long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's
+  // (names: js/shared/icon-registry.js). A value is an emoji, '<set>:<icon>'
+  // (e.g. 'lucide:trophy') or 'file:icons/<picture>.svg' in this folder.
+  ICONS: {
+    tileFinish:     '🏠',
+    tileGoodDeed:   '✈️',
+    tileBadDeed:    '🧳',
+    tileLandmark:   '📍',
+    awardGoodDeeds: '🤝',
+    awardBadDeeds:  '🧳',
+    awardExplorer:  '🗺️',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
   SPACE_INFO: {
-    finish:    { icon: '🏠', label: 'Home Again' },
-    good_deed: { icon: '✈️', label: 'Smooth Travels', color: '#00897B' },
-    bad_deed:  { icon: '🧳', label: 'Travel Trouble', color: '#C62828' },
-    landmark:  { icon: '📍', label: 'Wonder',         color: '#FFB300' },
+    finish:    { label: 'Home Again' },
+    good_deed: { label: 'Smooth Travels', color: '#00897B' },
+    bad_deed:  { label: 'Travel Trouble', color: '#C62828' },
+    landmark:  { label: 'Wonder',         color: '#FFB300' },
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
@@ -236,12 +250,12 @@ window.EDITION_CONFIG = {
 
   // ── End-screen awards (G13) — rename any engine award (js/shared/config.js AWARDS)
   AWARDS: {
-    quizMaster:    { icon: '🧠', title: 'Know-it-all Navigator' },
-    performer:     { icon: '🎭', title: 'Street Performer' },
-    goodDeeds:     { icon: '🤝', title: 'Friendly Traveller' },
-    badDeeds:      { icon: '🧳', title: 'Lost Luggage' },
-    explorer:      { icon: '🗺️', title: 'Globetrotter' },
-    patience:      { icon: '⏳', title: 'Delayed Flight' },
+    quizMaster:    { title: 'Know-it-all Navigator' },
+    performer:     { title: 'Street Performer' },
+    goodDeeds:     { title: 'Friendly Traveller' },
+    badDeeds:      { title: 'Lost Luggage' },
+    explorer:      { title: 'Globetrotter' },
+    patience:      { title: 'Delayed Flight' },
   },
 
 };

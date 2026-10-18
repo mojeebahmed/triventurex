@@ -79,6 +79,26 @@ describe('icons by name', () => {
   });
 });
 
+describe('edition icons at run time', () => {
+  const { editionIcons } = require('../js/shared/edition.js');
+
+  it('editionIcons: bare emoji → emoji:, file: → the edition folder, set icons unchanged', () => {
+    assert.deepEqual(editionIcons({ tileGoodDeed: '⚽', tileBadDeed: 'emoji:🟥', trophy: 'file:icons/cup.svg', rulesScoring: 'lucide:trophy' }, 'football-quest'), {
+      tileGoodDeed: 'emoji:⚽', tileBadDeed: 'emoji:🟥', trophy: 'url:game_editions/football-quest/icons/cup.svg', rulesScoring: 'lucide:trophy' });
+  });
+
+  it("the edition's ICONS win over the engine; other names stay the engine's", () => {
+    const w = iconWorld();
+    vm.runInContext(`var CONFIG = { EDITION_ICONS: ${JSON.stringify(editionIcons({ tileGoodDeed: '⚽', trophy: 'file:icons/cup.svg', rulesScoring: 'lucide:trophy' }, 'fq'))} };`, w);
+    assert.equal(w.iconText('tileGoodDeed'), '⚽');
+    assert.match(w.icon('tileGoodDeed'), /images\/emoji\/26bd\.svg/);
+    assert.match(w.icon('trophy'), /<img class="tx-emoji tx-picture" src="game_editions\/fq\/icons\/cup\.svg"/);
+    assert.equal(w.iconText('trophy'), '', 'a picture has no text form');
+    assert.match(w.icon('rulesScoring'), /<svg /);
+    assert.equal(w.iconText('tileBadDeed'), ICONS.tileBadDeed.slice(6), 'not overridden: engine default');
+  });
+});
+
 describe('the registry', () => {
   const data = vm.runInContext('TX_ICON_DATA', iconWorld());   // a const is not a property of the sandbox
 
@@ -93,7 +113,7 @@ describe('the registry', () => {
         if (/⃣/.test(g)) continue;                       // keycaps: no image in the set, device emoji
         assert.ok(data.emoji.includes(glyphKey(g)), `${name}: no image for ${g}`);
       } else {
-        assert.ok(data.ui[name], `${name}: line icon not bundled (npm run build:icons)`);
+        assert.ok(data.ui[v], `${name}: line icon ${v} not bundled (npm run build:icons)`);
       }
     }
     for (const b of [...BADGES, ...PHONE_BADGES]) assert.ok(data.emoji.includes(glyphKey(b)), `badge ${b}`);

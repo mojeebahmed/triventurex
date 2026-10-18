@@ -179,12 +179,28 @@ window.EDITION_CONFIG = {
     long:   { action: 0.12, good_deed: 0.10, bad_deed: 0.10, landmark: 0.08, skip: 0.05 },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's
+  // (names: js/shared/icon-registry.js). A value is an emoji, '<set>:<icon>'
+  // (e.g. 'lucide:trophy') or 'file:icons/<picture>.svg' in this folder.
+  ICONS: {
+    tileFinish:      '🕋',
+    tileGoodDeed:    '🌟',
+    tileBadDeed:     '📖',
+    tileLandmark:    '🕌',
+    awardQuizMaster: '📚',
+    awardGoodDeeds:  '🌟',
+    awardBadDeeds:   '📖',
+    awardExplorer:   '🧭',
+    awardPatience:   '🌱',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
   SPACE_INFO: {
-    finish:    { icon: '🕋', label: "Al-Ka'ba" },
-    good_deed: { icon: '🌟', label: 'Good Deed',       color: '#2E7D32' },
-    bad_deed:  { icon: '📖', label: 'Lesson to Learn', color: '#C62828' },
-    landmark:  { icon: '🕌', label: 'Blessed Place',   color: '#F9A825' },
+    finish:    { label: "Al-Ka'ba" },
+    good_deed: { label: 'Good Deed',       color: '#2E7D32' },
+    bad_deed:  { label: 'Lesson to Learn', color: '#C62828' },
+    landmark:  { label: 'Blessed Place',   color: '#F9A825' },
   },
 
   // ── Colour scheme (night sky and storybook gold) ────────────────────────────
@@ -223,12 +239,12 @@ window.EDITION_CONFIG = {
 
   // ── End-screen awards (G13) — rename any engine award (js/shared/config.js AWARDS)
   AWARDS: {
-    quizMaster: { icon: '📚', title: 'Storyteller' },
-    performer:  { icon: '🎭', title: 'Star of the Show' },
-    goodDeeds:  { icon: '🌟', title: 'Helper of All' },
-    badDeeds:   { icon: '📖', title: 'Still Learning' },
-    explorer:   { icon: '🧭', title: "Traveller of the Prophets' Lands" },
-    patience:   { icon: '🌱', title: 'Patient like Ayyub' },
+    quizMaster: { title: 'Storyteller' },
+    performer:  { title: 'Star of the Show' },
+    goodDeeds:  { title: 'Helper of All' },
+    badDeeds:   { title: 'Still Learning' },
+    explorer:   { title: "Traveller of the Prophets' Lands" },
+    patience:   { title: 'Patient like Ayyub' },
   },
 
 };

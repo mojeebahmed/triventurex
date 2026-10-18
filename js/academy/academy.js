@@ -52,7 +52,7 @@ async function _loadEdition(id) {
   window.QUESTIONS_DATA = [];
   await _loadScript(`game_editions/${id}/config.js`);
   await _loadScript(`game_editions/${id}/questions.js`);
-  mergeEditionConfig(CONFIG, window.EDITION_CONFIG);
+  mergeEditionConfig(CONFIG, window.EDITION_CONFIG, id);
   applyEditionColors(CONFIG);
   const name = CONFIG.GAME?.editionName ?? id;
   document.title = `${name} — Triventurex Academy`;

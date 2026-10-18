@@ -120,7 +120,8 @@ Every edition also gets 40 general action cards from `game_editions/shared/actio
 - `LANDMARKS` — array of `{ name, image, description }` objects (image path relative to `index.html`)
 - `BOARD_BACKGROUND` — image, overlay opacity, blur
 - `SPACE_DISTRIBUTION` — ratios per space type, optionally keyed by `short/medium/long` (the template has Swab Quest's mix as the standard)
-- `SPACE_INFO` — icon, label, colour overrides (e.g. Football Quest: "Good Play" / "Foul Play")
+- `SPACE_INFO` — label and colour overrides (e.g. Football Quest: "Good Play" / "Foul Play")
+- `ICONS` — the icons the edition changes, by engine name (`tileGoodDeed: '⚽'`); emoji, `'<set>:<icon>'` or `'file:icons/x.svg'` in the edition folder
 - `COLORS` — CSS custom properties (`--green`, `--gold`, `--bg`, etc.)
 - `SCORE_VALUES`, `FINISH_BONUS` — optional point overrides (the defaults for the rules)
 - `AWARDS` — optional new names for end-screen awards (Football Quest: "Football brain", "Groundhopper", …)

@@ -171,12 +171,26 @@ window.EDITION_CONFIG = {
     },
   },
 
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // Only the icons this edition changes; every other icon is the engine's
+  // (names: js/shared/icon-registry.js). A value is an emoji, '<set>:<icon>'
+  // (e.g. 'lucide:trophy') or 'file:icons/<picture>.svg' in this folder.
+  ICONS: {
+    tileFinish:    '🏆',
+    tileGoodDeed:  '⚽',
+    tileBadDeed:   '🟥',
+    tileLandmark:  '🏟️',
+    awardExplorer: '🏟️',
+    awardBigTurn:  '⚽',
+    awardBadDeeds: '🟥',
+  },
+
   // ── Space type overrides ────────────────────────────────────────────────────
   SPACE_INFO: {
-    finish:    { icon: '🏆', label: 'The Final' },
-    good_deed: { icon: '⚽', label: 'Good Play',  color: '#2E7D32' },
-    bad_deed:  { icon: '🟥', label: 'Foul Play',  color: '#C62828' },
-    landmark:  { icon: '🏟️', label: 'Stadium',    color: '#F57F17' },
+    finish:    { label: 'The Final' },
+    good_deed: { label: 'Good Play',  color: '#2E7D32' },
+    bad_deed:  { label: 'Foul Play',  color: '#C62828' },
+    landmark:  { label: 'Stadium',    color: '#F57F17' },
   },
 
   // ── Colour scheme ───────────────────────────────────────────────────────────
@@ -221,11 +235,11 @@ window.EDITION_CONFIG = {
 
   // ── End-screen awards (G13) — rename any engine award (js/shared/config.js AWARDS)
   AWARDS: {
-    quizMaster: { icon: '🧠', title: 'Football brain' },
-    performer:  { icon: '🎭', title: 'Man of the match' },
-    explorer:   { icon: '🏟️', title: 'Groundhopper' },
-    bigTurn:    { icon: '⚽', title: 'Match winner' },
-    badDeeds:   { icon: '🟥', title: 'Red card magnet' },
+    quizMaster: { title: 'Football brain' },
+    performer:  { title: 'Man of the match' },
+    explorer:   { title: 'Groundhopper' },
+    bigTurn:    { title: 'Match winner' },
+    badDeeds:   { title: 'Red card magnet' },
   },
 
 };
