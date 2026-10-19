@@ -9,7 +9,7 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ### Added
 - **Last turn**: one line at the top of the board (and on the TV) says what just happened — *Sara rolled 5 · Question: hard one, right · +2 Goals*.
 - **What we learned today** on the end screen (and the TV): three facts from the game's questions — right answers first — and the topics played.
-- **Print rules card** (Rules tab): a short card with this game's rules in the edition's words, two to an A4 page.
+- **Print rules card** (Rules tab): a short card with this game's rules in the edition's words, on one A4 page (print 2 pages per sheet for a smaller card).
 - Help pages show each part as its own box, and a *Back* button returns to the help page you came from.
 - **Help on every screen**: a ? button (or the ? key) opens help for what is on screen — each setup tab, the lobby, the game (the open card, game log, GM controls), the phone's join / lobby / game views, and every Academy mode — with *How to play* linked from all of them. The help uses the edition's own words and icons (*Goals*, *Good Play*). The button glows until help has been opened once.
 - **One icon style everywhere**: emoji are drawn with Microsoft **Fluent Emoji Flat** and buttons / tabs with **Lucide** line icons, bundled with the game (works offline), so the host, phones, TV and Academy look the same on every device. Content keeps writing plain emoji; `npm run build:icons` bundles what is used (`scripts/icons.config.js` for the few overrides).

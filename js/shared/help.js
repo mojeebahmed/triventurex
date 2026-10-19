@@ -79,7 +79,7 @@ Change how the game plays. Every change is saved straight away for this edition,
 - {icon:rulesTopics} **Topics**: tick the question topics to play with — great for young players or a themed night.
 
 ## Print
-{icon:print} **Print rules card**: a short card with these rules in this edition's words — two to a page, to cut out and keep with the game or hand to guests.
+{icon:print} **Print rules card**: a short card with these rules in this edition's words, on one page — print 2 pages per sheet for a smaller card to keep with the game or hand to guests.
 
 ## For developers
 {icon:copy} **Copy as preset** is for developers: it copies these settings to add them to the game as a new preset.`,
@@ -454,7 +454,7 @@ function startHelp(topicFn, opts = {}) {
 // ── Printable rules card ──────────────────────────────────────────────────────────
 
 /**
- * A short rules card for this game, as HTML (two copies fit on an A4 page):
+ * A short rules card for this game, as HTML (one A4 page):
  * the edition's words and this game's points and rules.
  *   rules  a game's rules (js/shared/rules.js)   bonus  finish bonus list ([10, 6, 3, 1])
  *   words  helpWords(CONFIG)   edition  { name, iconHtml }   iconFn  icon()

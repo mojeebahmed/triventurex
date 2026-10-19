@@ -923,7 +923,7 @@ body {
   background: var(--card);
   border-radius: 20px;
   padding: 36px;
-  max-width: 640px;
+  max-width: 760px;   /* ~20% wider than the setup card's 640: room for awards + what we learned */
   width: 92%;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
