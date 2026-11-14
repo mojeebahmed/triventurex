@@ -932,6 +932,28 @@ function renderTurnRecap(history) {
   if (!el) return;
   el.innerHTML = turnRecapHtml(lastTurnRecap(history));
   el.classList.toggle('hidden', !el.innerHTML);
+  fitTurnRecap();
+}
+
+/** Phones: the recap is one line across the board — a long one gets smaller
+ *  type (down to RECAP_MIN_PX), then loses its "Last turn" label, then ends in "…".
+ *  Bigger screens: the CSS size, wrapping. */
+const RECAP_MAX_PX = 13, RECAP_MIN_PX = 9;
+function fitTurnRecap() {
+  const el = document.getElementById('turn-recap');
+  if (!el) return;
+  el.style.fontSize = '';
+  el.classList.remove('no-label');
+  if (el.classList.contains('hidden') || !window.matchMedia?.(PHONE_GAME_QUERY).matches) return;
+  const text = el.lastElementChild;   // the sentence — it may shrink to "…", so measure it, not the box
+  const fits = () => {
+    for (let px = RECAP_MAX_PX; px >= RECAP_MIN_PX; px -= 0.5) {
+      el.style.fontSize = `${px}px`;
+      if (!text || text.scrollWidth <= text.clientWidth) return true;
+    }
+    return false;
+  };
+  if (!fits()) { el.classList.add('no-label'); fits(); }   // still too long: drop "Last turn" (the icon stays)
 }
 
 /** HTML for a recap ({ icon, text }) — shared with the TV display. */
@@ -1003,6 +1025,7 @@ function toggleLegend(force) {
 function startPhoneLayout() {
   const refit = () => {
     if (document.getElementById('game-screen')?.classList.contains('active')) fitBoardInView();
+    fitTurnRecap();
   };
   for (const q of [PHONE_GAME_QUERY, '(orientation: portrait)']) {
     window.matchMedia?.(q).addEventListener?.('change', () => setTimeout(refit, 60));

@@ -152,3 +152,15 @@ describe('space cards never hide their buttons', () => {
     }
   });
 });
+
+describe('last turn line on phones', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const ui = fs.readFileSync(path.join(__dirname, '..', 'js/host/ui.js'), 'utf8');
+
+  it('is one line across the board (fitTurnRecap shrinks a long one)', () => {
+    const phone = css.slice(css.indexOf('/* Last turn: one line across the board'));
+    assert.match(phone.slice(0, 400), /left: 6px; right: 6px; transform: none;[\s\S]*white-space: nowrap/);
+    assert.match(ui, /function renderTurnRecap[\s\S]*?fitTurnRecap\(\);/);
+    assert.match(ui, /const refit = \(\) => \{[\s\S]*?fitTurnRecap\(\);/);   // again when the phone turns
+  });
+});

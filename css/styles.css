@@ -1147,6 +1147,7 @@ body {
   color: var(--text-muted);
 }
 @keyframes recapIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes recapInPhone { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 body.presenting .turn-recap { font-size: 1.15rem; top: 14px; }
 #d-game .turn-recap { font-size: 1.2rem; top: 16px; }
 
@@ -2519,7 +2520,16 @@ img.tx-emoji { display: inline-block; width: 1.2em; height: 1.2em; vertical-alig
   #game-id-badge, #zoom-label, .zoom-present-btn { display: none; }
   #zoom-controls { right: 8px; bottom: 8px; padding: 4px 8px; gap: 2px; }
   #zoom-controls button { font-size: 1.15rem; padding: 6px 7px; }
-  .turn-recap { top: 6px; max-width: calc(100% - 16px); padding: 5px 10px; font-size: .78rem; gap: 6px; }
+  /* Last turn: one line across the board; fitTurnRecap (ui.js) shrinks a long one, then "…" */
+  .turn-recap {
+    top: 6px; left: 6px; right: 6px; transform: none; max-width: none;
+    justify-content: center; white-space: nowrap; overflow: hidden;
+    padding: 5px 10px; font-size: 13px; gap: 6px; border-radius: 12px;
+    animation-name: recapInPhone;
+  }
+  .turn-recap > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+  .turn-recap-label { font-size: .8em; }
+  .turn-recap.no-label .turn-recap-label { display: none; }
 
   /* Cards fit the smaller board area and scroll when long */
   /* Cards: smaller, so most fit without scrolling (the buttons always show) */
