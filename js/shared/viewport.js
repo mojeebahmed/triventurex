@@ -199,17 +199,21 @@ function fitBoardInView() {
   _applyBoardBackground();
 }
 
+/** Pan / zoom only for the board itself — not for a card (it scrolls), the zoom bar or the legend. */
+const _onBoard = e => !e.target.closest?.('#modal, #zoom-controls, #board-legend, #present-controls');
+
 function initPanZoom() {
   const vp = document.getElementById('board-viewport');
 
   vp.addEventListener('wheel', e => {
+    if (!_onBoard(e)) return;   // the wheel scrolls a long card
     e.preventDefault();
     const rect = vp.getBoundingClientRect();
     _zoomAt(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.12 : 1/1.12);
   }, { passive: false });
 
   vp.addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || !_onBoard(e)) return;
     _isPanning = true;
     _panOrigin = { x: e.clientX - view.x, y: e.clientY - view.y };
     vp.classList.add('panning');
@@ -226,6 +230,7 @@ function initPanZoom() {
   });
 
   vp.addEventListener('touchstart', e => {
+    if (!_onBoard(e)) { _isPanning = false; _lastTouchDist = null; return; }   // a finger on a card scrolls the card
     if (e.touches.length === 1) {
       _isPanning = true;
       _panOrigin = { x: e.touches[0].clientX - view.x, y: e.touches[0].clientY - view.y };
@@ -234,6 +239,7 @@ function initPanZoom() {
   }, { passive: true });
 
   vp.addEventListener('touchmove', e => {
+    if (!_onBoard(e)) return;
     e.preventDefault();
     if (e.touches.length === 1 && _isPanning) {
       view.x = e.touches[0].clientX - _panOrigin.x;

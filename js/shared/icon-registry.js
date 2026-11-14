@@ -55,6 +55,7 @@ const ICONS = {
   zoomIn:          'lucide:plus',
   zoomOut:         'lucide:minus',
   fitBoard:        'lucide:house',            // fit the board to the screen
+  boardLegend:     'lucide:info',             // phones: show / hide the board legend (zoom bar)
   close:           'lucide:x',
   gmControls:      'lucide:sliders-horizontal',
   gameLog:         'lucide:scroll-text',

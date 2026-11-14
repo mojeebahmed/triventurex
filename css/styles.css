@@ -874,7 +874,25 @@ body {
   animation: modalIn .18s ease;
   overflow: hidden;         /* clips the coloured header band */
   border-top: 4px solid var(--modal-accent, var(--green));
+  /* A long card never hides its buttons: #modal-body (header, title, content)
+     scrolls — with a shadow while there is more — and #modal-actions stays at the bottom */
+  display: flex; flex-direction: column;
+  max-height: calc(100% - 24px);
 }
+#modal-body {
+  flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  /* Scroll shadows: the covers (local) hide the shadows (scroll) at the ends */
+  background:
+    linear-gradient(var(--card) 30%, rgba(255,255,255,0)) center top,
+    linear-gradient(rgba(255,255,255,0), var(--card) 70%) center bottom,
+    radial-gradient(farthest-side at 50% 0, rgba(0,0,0,.2), rgba(0,0,0,0)) center top,
+    radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,.2), rgba(0,0,0,0)) center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 28px, 100% 28px, 100% 12px, 100% 12px;
+  background-attachment: local, local, scroll, scroll;
+}
+#modal-actions { flex: none; }
 
 /* Coloured header band inside the modal */
 #modal-icon {
@@ -896,7 +914,8 @@ body {
   color: var(--text-muted);
   font-size: .92rem;
   line-height: 1.55;
-  margin: 0 28px 20px;
+  margin: 0;
+  padding: 0 28px 16px;
 }
 #modal-actions {
   display: flex;
@@ -2473,4 +2492,93 @@ img.tx-emoji { display: inline-block; width: 1.2em; height: 1.2em; vertical-alig
   #qx-search { flex: 1 1 100%; }
   .bd-grid { --bd-cell: 22px; }
   .bd-grid-wrap { overflow-x: auto; align-items: flex-start; }
+}
+
+/* ── Game screen on phones ───────────────────────────────────────────────────────
+   Phone = narrow (≤ 720px, upright) or low (≤ 500px, on its side) — PHONE_GAME_QUERY
+   in ui.js. The board gets most of the screen: the legend hides behind ⓘ in the
+   zoom bar (body.legend-open, toggleLegend), the game id and presentation button go.
+   Upright: board on top (~58%), the sidebar under it in two columns, scrolling.
+   On its side: a narrower, compact sidebar on the right, scrolling. */
+.zoom-legend-btn { display: none; }
+
+@media (max-width: 720px), (max-height: 500px) {
+  #board-legend { display: none; }
+  body.legend-open #board-legend {
+    display: grid; grid-template-columns: repeat(2, auto); gap: 6px 14px;
+    left: 8px; bottom: 56px; padding: 8px 10px; font-size: .75rem; cursor: pointer;
+  }
+  body.legend-open #board-legend .legend-space { width: 28px; height: 28px; font-size: .9rem; border-radius: 6px; }
+  .zoom-legend-btn { display: inline-block; }
+  body.legend-open .zoom-legend-btn { background: var(--green-light) !important; }
+  #game-id-badge, #zoom-label, .zoom-present-btn { display: none; }
+  #zoom-controls { right: 8px; bottom: 8px; padding: 4px 8px; gap: 2px; }
+  #zoom-controls button { font-size: 1.15rem; padding: 6px 7px; }
+  .turn-recap { top: 6px; max-width: calc(100% - 16px); padding: 5px 10px; font-size: .78rem; gap: 6px; }
+
+  /* Cards fit the smaller board area and scroll when long */
+  /* Cards: smaller, so most fit without scrolling (the buttons always show) */
+  #modal { width: 94%; max-height: calc(100% - 12px); padding-bottom: 14px; border-radius: 14px; }
+  #modal-icon { font-size: 1.6rem; padding: 8px 16px 4px; }
+  #modal-title { font-size: 1.05rem; margin: 0 16px 6px; padding-top: 2px; }
+  #modal-content { padding: 0 14px 10px; font-size: .84rem; line-height: 1.4; }
+  /* Buttons fixed at the bottom, at most two rows: 2 per row (3 per row from 5 buttons) */
+  #modal { padding-bottom: 10px; }
+  #modal-actions { padding: 8px 12px 0; gap: 6px; border-top: 1px solid var(--border); }
+  #modal-actions > * { flex: 1 1 calc(50% - 3px); min-width: 0; }
+  #modal-actions:has(> :nth-child(5)) > * { flex-basis: calc(33.3% - 4px); }
+  #modal-actions .btn { padding: 8px 8px; font-size: .82rem; line-height: 1.2; white-space: normal; }
+
+  /* Compact panels */
+  .panel { padding: 9px 12px; }
+  .panel h3 { margin-bottom: 6px; font-size: .7rem; }
+  #dice-display { min-height: 0; }
+  #dice-result { min-height: 0; margin: 2px 0 6px; font-size: 1.1rem; }
+  #roll-btn { padding: 11px; }
+  #manual-dice-row { gap: 2px; margin-top: 6px; }
+  .manual-dice-label { display: none; }
+}
+
+/* Upright phone: board on top, sidebar under it */
+@media (max-width: 720px) and (orientation: portrait) {
+  #game-main { flex-direction: column; }
+  #board-viewport { flex: 1 1 58%; min-height: 0; }
+  #sidebar {
+    flex: 0 0 42%; width: 100%; min-width: 0;
+    border-left: none; border-top: 1px solid var(--border); box-shadow: 0 -2px 10px rgba(0,0,0,.08);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start;
+    /* Top: player | Roll Dice, then the rolled die (under the player) | manual dice */
+    grid-template-areas: "cur roll" "die manual" "score score" "timer timer" "hist hist" "gm gm";
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #current-player-panel { grid-area: cur; border-bottom: none; align-self: center; }
+  #dice-panel { display: contents; }   /* its parts sit in the grid themselves */
+  #roll-btn { grid-area: roll; align-self: center; width: auto; margin: 9px 12px 4px 0; }
+  #dice-display { grid-area: die; justify-self: center; align-self: center; padding: 0 0 8px; }
+  #dice-result { display: none; }      /* the die shows the number (and the board shows it big) */
+  #manual-dice-row { grid-area: manual; align-self: start; margin: 0; padding: 4px 12px 10px 0; }
+  #scoreboard-panel { grid-area: score; border-top: 1px solid #F0F0F0; }
+  #timer-panel { grid-area: timer; }
+  #history-panel { grid-area: hist; }
+  #gm-panel { grid-area: gm; }
+  #current-player-panel h3 { display: none; }
+  #current-player-display { flex-wrap: wrap; }
+  .player-name-large { font-size: .95rem; overflow-wrap: anywhere; }
+  /* Timer on one line: bar + time, then the buttons */
+  #timer-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  #timer-panel h3 { margin: 0; }
+  #timer-bar-track { flex: 1 1 120px; margin: 0; }
+  #timer-time { font-size: 1.2rem; margin: 0; }
+  #timer-main-controls, #timer-presets { margin: 0; }
+}
+
+/* Phone on its side: board on the left, a narrower sidebar on the right */
+@media (max-height: 500px) and (orientation: landscape) {
+  #sidebar { width: 230px; min-width: 230px; }
+  #current-player-panel h3, #timer-panel h3, #scoreboard-panel h3 { display: none; }
+  .player-token-large { transform: scale(.8); transform-origin: left center; }
+  #timer-presets { display: none; }
+  #manual-dice-display { display: flex; flex-wrap: nowrap; gap: 1px; }
+  .manual-die { padding: 1px; }
+  .manual-die .die-face.die-sm { --ds: 26px; }
 }

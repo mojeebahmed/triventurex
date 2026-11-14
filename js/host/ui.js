@@ -60,6 +60,7 @@ function showModal({ icon: modalIcon, title, content, actions }) {
   document.getElementById('modal-icon').innerHTML = icon(modalIcon) || esc(modalIcon ?? '');
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-content').innerHTML = content;
+  document.getElementById('modal-body').scrollTop = 0;   // a new card starts at its top (long cards scroll; the buttons stay)
 
   const actionsEl = document.getElementById('modal-actions');
   actionsEl.innerHTML = '';
@@ -982,8 +983,30 @@ function renderLegend() {
       <span>${info.label}</span>
     </div>`;
   }).join('');
+  legend.addEventListener('click', () => toggleLegend(false));   // phones: tap it away again
   // Inside the board area, so it only shows with the board (not on the end screen)
   document.getElementById('board-viewport').appendChild(legend);
+}
+
+// ── Phones: legend behind a button, board refits when the phone turns ──────────
+// The layout itself is CSS (styles.css, "Game screen on phones"): upright = board
+// on top, sidebar under it; sideways = a narrower sidebar on the right.
+
+/** Same as the CSS: an upright phone (narrow) or a phone on its side (low). */
+const PHONE_GAME_QUERY = '(max-width: 720px), (max-height: 500px)';
+
+/** Phones: show / hide the legend (always shown on bigger screens). */
+function toggleLegend(force) {
+  document.body.classList.toggle('legend-open', force);
+}
+
+function startPhoneLayout() {
+  const refit = () => {
+    if (document.getElementById('game-screen')?.classList.contains('active')) fitBoardInView();
+  };
+  for (const q of [PHONE_GAME_QUERY, '(orientation: portrait)']) {
+    window.matchMedia?.(q).addEventListener?.('change', () => setTimeout(refit, 60));
+  }
 }
 
 // ── Timer ─────────────────────────────────────────────────────────────────────

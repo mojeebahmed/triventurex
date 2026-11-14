@@ -104,3 +104,51 @@ describe('setup screen on phones', () => {
     assert.match(css, /\.setup-container \{[^}]*height: 100vh; height: 100dvh;/);
   });
 });
+
+describe('game screen on phones', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+
+  it('the zoom bar has the legend button (phones hide the legend behind it)', () => {
+    assert.match(html, /class="zoom-legend-btn" onclick="toggleLegend\(\)"/);
+  });
+
+  it('upright phones put the sidebar under the board (#game-main becomes a column)', () => {
+    assert.match(html, /<div id="game-main"/);
+    assert.match(css, /@media \(max-width: 720px\) and \(orientation: portrait\) \{\s*#game-main \{ flex-direction: column; \}/);
+  });
+
+  it('ui.js and the CSS use the same phone width / height', () => {
+    const ui = fs.readFileSync(path.join(__dirname, '..', 'js/host/ui.js'), 'utf8');
+    const q = ui.match(/const PHONE_GAME_QUERY = '([^']+)'/)[1];
+    assert.ok(css.includes(`@media ${q} {`), `css has no @media ${q}`);
+  });
+});
+
+describe('space cards never hide their buttons', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+  const rule = sel => (css.match(new RegExp(`\\n${sel} \\{([^}]*)\\}`)) || [])[1] || '';
+
+  it('the card is a column no taller than the board area', () => {
+    assert.match(rule('#modal'), /display: flex; flex-direction: column;/);
+    assert.match(rule('#modal'), /max-height: calc\(100% - 24px\)/);
+  });
+
+  it('header, title and content scroll together; the buttons stay at the bottom', () => {
+    assert.match(rule('#modal-body'), /overflow-y: auto/);
+    assert.match(css, /#modal-actions \{ flex: none; \}/);
+    for (const page of ['index.html', 'display.html']) {
+      const html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+      assert.match(html, /<div id="modal-body">\s*<div id="modal-icon"><\/div>\s*<h2 id="modal-title"><\/h2>\s*<div id="modal-content"><\/div>\s*<\/div>/, page);
+    }
+  });
+
+  it('a finger or the wheel on a card scrolls the card, not the board', () => {
+    const vp = fs.readFileSync(path.join(__dirname, '..', 'js/shared/viewport.js'), 'utf8');
+    assert.match(vp, /const _onBoard = e => !e\.target\.closest\?\.\('#modal,/);
+    for (const ev of ['wheel', 'mousedown', 'touchstart', 'touchmove']) {
+      const handler = vp.slice(vp.indexOf(`addEventListener('${ev}'`)).slice(0, 220);
+      assert.match(handler, /_onBoard\(e\)/, `${ev} must ignore cards`);
+    }
+  });
+});

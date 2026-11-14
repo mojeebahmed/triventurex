@@ -317,7 +317,8 @@
         <span id="net-game-id-label"></span>
       </div>
 
-      <div style="display:flex;flex:1;overflow:hidden">
+      <!-- Board + sidebar: side by side; on an upright phone the sidebar goes under the board (css: game screen on phones) -->
+      <div id="game-main" style="display:flex;flex:1;overflow:hidden">
 
       <!-- Board viewport -->
       <div id="board-viewport">
@@ -345,6 +346,8 @@
           <span   id="zoom-label">100%</span>
           <button onclick="zoomReset()" title="Fit to screen" aria-label="Fit to screen"><i data-icon="fitBoard"></i></button>
           <button onclick="zoomIn()"    title="Zoom in" aria-label="Zoom in"><i data-icon="zoomIn"></i></button>
+          <!-- Phones: the legend hides behind this button -->
+          <button type="button" class="zoom-legend-btn" onclick="toggleLegend()" title="What the spaces mean" aria-label="Legend"><i data-icon="boardLegend"></i></button>
           <button onclick="togglePresentation()" class="zoom-present-btn"
                   title="Presentation mode — full screen for a TV (P)" aria-label="Presentation mode"><i data-icon="presentation"></i></button>
           <button type="button" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
@@ -361,9 +364,12 @@
         <!-- Modal — absolute inside board-viewport so sidebar stays accessible -->
         <div id="modal-overlay" class="hidden">
           <div id="modal">
-            <div id="modal-icon"></div>
-            <h2 id="modal-title"></h2>
-            <div id="modal-content"></div>
+            <!-- Scrolls when the card is long; the buttons below always stay -->
+            <div id="modal-body">
+              <div id="modal-icon"></div>
+              <h2 id="modal-title"></h2>
+              <div id="modal-content"></div>
+            </div>
             <div id="modal-actions"></div>
           </div>
         </div>

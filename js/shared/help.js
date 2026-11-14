@@ -146,6 +146,10 @@ The board is on the left, the game's controls on the right.
 - Drag the board to move it; zoom with the mouse wheel, a pinch, or {icon:zoomIn} {icon:zoomOut}. {icon:fitBoard} fits the whole board on the screen.
 - {icon:presentation} **Presentation mode** (or press P): full screen for a TV, everything big and clear. {icon:gmControls} brings back the host's tools; Esc leaves.
 
+## On a phone or small tablet
+- Upright, the board is on top and the controls are underneath — scroll them up and down. On its side, the controls are on the right.
+- {icon:boardLegend} shows what the spaces mean (tap the legend to hide it again).
+
 ## The scoreboard
 Everyone's {points} and place. {icon:finished} has arrived, {icon:sittingOut} is sitting out, {icon:disconnected} has lost their phone connection (it reconnects by itself).
 
