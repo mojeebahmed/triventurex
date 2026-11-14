@@ -1505,11 +1505,16 @@ body.presenting .turn-recap { font-size: 1.15rem; top: 14px; }
 /* ── Lobby Screen ────────────────────────────────────────────── */
 
 #lobby-screen {
-  align-items: center;
+  /* Scrolls when the lobby is taller than the screen (QR + many players, a phone,
+     a short laptop window); margin: auto on the card still centres it otherwise */
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  padding: 20px 0;
   background: linear-gradient(135deg, var(--gradient-a), var(--gradient-b) 55%, var(--gradient-c));
 }
 .lobby-container {
+  margin: auto;
   background: var(--card);
   border-radius: 20px;
   padding: 32px 28px;
