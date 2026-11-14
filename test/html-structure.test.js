@@ -82,3 +82,25 @@ describe('phone-friendly pages', () => {
     assert.deepEqual(desk.sort(), ['print', 'review']);
   });
 });
+
+describe('setup screen on phones', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+
+  it('Questions and Boards move to More on a phone; New game and Rules stay', () => {
+    assert.match(html, /class="setup-tab desk-tab" data-tab="questions"/);
+    assert.match(html, /class="setup-tab desk-tab" data-tab="boards"/);
+    assert.match(html, /class="setup-tab active" data-tab="new"/);
+    assert.match(html, /class="setup-tab" data-tab="rules"/);
+    assert.match(html, /onclick="openSetupMore\(\)"/);
+  });
+
+  it('More offers Questions, Boards and the Academy', () => {
+    const more = html.slice(html.indexOf('id="setup-more"'), html.indexOf('id="setup-backdrop"'));
+    for (const call of ["showSetupTab('questions')", "showSetupTab('boards')", 'openAcademy()']) assert.ok(more.includes(call), call);
+  });
+
+  it('the setup card fills a phone screen with dvh', () => {
+    const css = fs.readFileSync(path.join(__dirname, '..', 'css/styles.css'), 'utf8');
+    assert.match(css, /\.setup-container \{[^}]*height: 100vh; height: 100dvh;/);
+  });
+});

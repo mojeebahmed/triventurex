@@ -20,6 +20,7 @@
       <h1 class="game-title" id="brand-engine">Triventurex</h1>
       <p class="game-edition-label" id="brand-edition"></p>
       <p class="subtitle" id="brand-subtitle"></p>
+      <p class="setup-phone-tip phone-only"><i data-icon="tvDisplay"></i> Set up here, then play on a laptop or TV — phones join as players.</p>
 
       <!-- Resume prompt (shown when a saved game exists) -->
       <div id="resume-prompt" class="hidden">
@@ -35,8 +36,10 @@
       <div class="setup-tabs" role="tablist">
         <button type="button" class="setup-tab active" data-tab="new" role="tab"><i data-icon="tabNewGame"></i> New game</button>
         <button type="button" class="setup-tab" data-tab="rules" role="tab"><i data-icon="tabRules"></i> Rules <span id="rules-tab-badge" class="rules-summary-badge hidden"></span></button>
-        <button type="button" class="setup-tab" data-tab="questions" role="tab"><i data-icon="tabQuestions"></i> Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
-        <button type="button" class="setup-tab" data-tab="boards" role="tab"><i data-icon="tabBoards"></i> Boards</button>
+        <button type="button" class="setup-tab desk-tab" data-tab="questions" role="tab"><i data-icon="tabQuestions"></i> Questions <span id="qx-tab-badge" class="rules-summary-badge hidden"></span></button>
+        <button type="button" class="setup-tab desk-tab" data-tab="boards" role="tab"><i data-icon="tabBoards"></i> Boards</button>
+        <!-- Phones: Questions + Boards move to More (best on a computer) -->
+        <button type="button" class="setup-more-btn phone-only" onclick="openSetupMore()"><i data-icon="moreModes"></i> More</button>
       </div>
 
       <!-- ── Tab 1: New game — one step open at a time; choosing moves on ── -->
@@ -145,11 +148,11 @@
             <select id="rules-preset" class="settings-select" onchange="onRulesPresetChange(this.value)"></select></label>
           <span id="rules-changed" class="rules-changed"></span>
           <span class="rules-foot-spacer"></span>
-          <button type="button" class="btn btn-secondary btn-small" onclick="printRulesCard()"
+          <button type="button" class="btn btn-secondary btn-small desk-only" onclick="printRulesCard()"
                   title="A short card with these rules, in this edition's words — one page (print 2 per sheet for a smaller card)"><i data-icon="print"></i> Print rules card</button>
           <button type="button" id="rules-reset-btn" class="btn btn-secondary btn-small" onclick="resetRulesToPreset()"
                   title="Undo your changes — back to the preset's settings"><i data-icon="reset"></i> Reset to preset</button>
-          <button type="button" class="btn btn-secondary btn-small" onclick="copyRulesAsPreset()"
+          <button type="button" class="btn btn-secondary btn-small desk-only" onclick="copyRulesAsPreset()"
                   title="Copy these rules as a RULE_PRESETS entry to paste into config.js"><i data-icon="copy"></i> Copy as preset</button>
         </div>
         <div class="rules-layout">
@@ -241,6 +244,26 @@
         <div class="setup-summary" id="setup-summary"></div>
         <button id="start-game-btn" class="btn btn-primary btn-large">Start Game <i data-icon="startGame"></i></button>
       </div>
+
+      <!-- Phones: More — the tabs that work best on a computer, and the Academy -->
+      <div id="setup-more" class="setup-sheet hidden" role="dialog" aria-label="More">
+        <div class="setup-sheet-head">
+          <strong><i data-icon="computerOnly"></i> Best on a computer</strong>
+          <button type="button" class="setup-sheet-close" onclick="closeSetupMore()" aria-label="Close"><i data-icon="close"></i></button>
+        </div>
+        <p class="step-note">These work on a phone too, but they are easier on a bigger screen.</p>
+        <button type="button" class="setup-sheet-item" onclick="closeSetupMore(); showSetupTab('questions')">
+          <span class="setup-sheet-icon"><i data-icon="tabQuestions"></i></span>
+          <span><strong>Questions</strong><small>Browse this edition's questions; mark one that looks wrong</small></span></button>
+        <button type="button" class="setup-sheet-item" onclick="closeSetupMore(); showSetupTab('boards')">
+          <span class="setup-sheet-icon"><i data-icon="tabBoards"></i></span>
+          <span><strong>Boards</strong><small>Draw your own board path</small></span></button>
+        <h3 class="setup-sheet-title"><i data-icon="academy"></i> Learn on your phone</h3>
+        <button type="button" class="setup-sheet-item" onclick="closeSetupMore(); openAcademy()">
+          <span class="setup-sheet-icon"><i data-icon="academy"></i></span>
+          <span><strong>Triventurex Academy</strong><small>Flashcards, quizzes and games with these questions</small></span></button>
+      </div>
+      <div id="setup-backdrop" class="setup-backdrop hidden" onclick="closeSetupMore()"></div>
 
     </div>
   </div>

@@ -367,6 +367,8 @@ New to the game? Press the **?** button on any screen (or the ? key) — it expl
 
 **On a phone** the Academy has its own layout: one-row top bar, *Choose what to learn* as a sheet from the bottom, flashcards one at a time (swipe for the next), and *Print cards* + *Review* under **⋯ More**.
 
+**Setting up on a phone:** the setup screen also fits a phone (New game · Rules · ⋯ More, where More holds Questions, Boards and the Academy). The game itself is meant for a laptop or TV, with phones joining as players.
+
 **As an app (install + offline):** served over https (GitHub Pages) or from `http://localhost`, the Academy can be installed — *Install the Academy* in More, the browser's install button, or on an iPhone Safari → Share → *Add to Home Screen*. After one visit online it works **without internet**: every edition's questions and the emoji are saved (`academy-sw.js`); *Save photos for offline* in More saves an edition's Places photos. Updates still arrive: when online, the newest files are always fetched first. (A phone opening `http://<laptop-ip>:3000/academy` on the local network gets the phone layout but not offline mode — browsers only allow it on https or localhost.)
 
 **Undo:** while a space card is open, Undo cancels just that turn (back to before the roll). Between turns, it undoes the last turn or GM change.

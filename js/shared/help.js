@@ -57,6 +57,9 @@ Set up a game in four steps. Click a step to open it — each choice moves on to
 - {icon:onThisScreen} **On this screen**: everyone plays on this computer and takes turns. {icon:addPlayer} Add up to 8 players; click a badge to choose its picture and colour.
 - {icon:onPhones} **On phones**: everyone uses their own phone to roll, answer and see secret cards. **Open lobby** shows a QR code to join. Say whether you play too, or only run the game as the game master (GM).
 
+## On a phone
+The game itself is played on a laptop or TV — phones join as players. You can still set it up here: {icon:moreModes} **More** holds the Questions and Boards tabs (easier on a computer) and the {icon:academy} Academy, for learning on your phone.
+
 ## Also here
 - A game still going? {icon:saved} **Resume** carries on where you stopped.
 - The other tabs: {icon:tabRules} **Rules** (points, timer, topics), {icon:tabQuestions} **Questions** (browse and check the questions) and {icon:tabBoards} **Boards** (draw your own board).`,

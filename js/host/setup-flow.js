@@ -4,6 +4,7 @@
  * steps as an accordion — one open at a time, each collapsed heading shows the
  * current choice, choosing moves on to the next step — and the sticky footer
  * that always shows the whole setup next to Start.
+ * Phones (CSS ≤ 720px): Questions + Boards leave the tabs for More (openSetupMore).
  */
 
 const SETUP_STEPS = ['edition-section', 'length-section', 'board-section', 'players-section'];
@@ -18,6 +19,16 @@ function showSetupTab(tab) {
   if (tab === 'rules') renderRulesTab();
   if (tab === 'questions') renderQuestionExplorer();
   if (tab === 'boards') renderBoardDesigner();
+}
+
+/** Phones: More — Questions + Boards (best on a computer) and the Academy, as a sheet from the bottom. */
+function openSetupMore() {
+  document.getElementById('setup-more').classList.remove('hidden');
+  document.getElementById('setup-backdrop').classList.remove('hidden');
+}
+function closeSetupMore() {
+  document.getElementById('setup-more')?.classList.add('hidden');
+  document.getElementById('setup-backdrop')?.classList.add('hidden');
 }
 
 /** Open one step (or none with null); the others collapse. */
@@ -111,6 +122,7 @@ function initSetupFlow() {
 
   // Enter starts the game — e.g. right after typing the last player name.
   // (On a focused button Enter keeps pressing that button; selects/textareas are left alone.)
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSetupMore(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !document.getElementById('setup-screen').classList.contains('active')) return;
     if (!e.target.isConnected) return;   // its element was just redrawn away — can't tell where it was
