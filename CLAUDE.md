@@ -1,10 +1,9 @@
 # Memory & Context Files
-At the start of every conversation, read these files:
-- /Users/mojeebahmed/Claude/Claude Mojeeb/about me/aboutme.md
-- /Users/mojeebahmed/Claude/Claude Mojeeb/about me/memory.md
-- /Users/mojeebahmed/Claude/Claude Mojeeb/about me/projects.md
+Personal context lives in `/Users/mojeebahmed/Claude/Claude Mojeeb/about me/`:
+- `aboutme.md` — read at the start of a conversation (it is short).
+- `memory.md` and `projects.md` — read only when a task needs project history or another project. Triventurex's own history is in `CHANGELOG.md`, git and the CLAUDE.md files.
 
-Update memory.md whenever meaningful progress is made.
+Update memory.md when meaningful progress is made (a short line — details belong in CHANGELOG.md).
 Save project files to this project's folder.
 
 # About Me
@@ -36,22 +35,19 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - Players: `http://<host-ip>:3000/player`
 
 ## Tests
-`npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`.
-- `test/turn-flow.test.js` drives the real host turn pipeline (scripts loaded in index.html order, UI stubbed) — add a scenario here when changing turn behaviour
-- `test/csv.test.js` — CSV parser + every edition's content (CSV must match the generated JS; valid answers/effects)
-- `test/board.test.js` — property test: random boards for every template of every edition in `editions.js` must keep all placement rules, and every landmark tile label must match where the player actually goes (raise `BOARDS_PER_TEMPLATE` locally to hunt rare cases)
-- `test/action-cards.test.js` — drawing/showing action cards
-- `test/ui-rules.test.js` — the space modals follow the game's rules (points, timer, difficulty, answering on the phone)
-- `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
-- `test/html-structure.test.js` — every `<div>` in index.html / player.html / academy.html is closed, the host screens are top-level (a missing `</div>` once hid the board), and academy.html loads only shared + academy scripts
-- `test/icons.test.js` — icons: `icon()` / `iconText()`, edition → `ICON_OVERRIDES` → `ICONS` lookup, valid registry, host and phones offer the same badges + colours, no raw emoji/icon symbols in engine code, every icon name used exists, bundles up to date, every page loads the icon scripts in order
-- `test/help.test.js` — the in-game help: a topic for every setup tab, Academy mode and phone view; every icon, word and link exists; markup renders safely
-- `test/academy.test.js` — Academy rounds (js/shared/academy.js) + every edition gives each mode content
-- `test/academy-offline.test.js` — the Academy as an app: academy-sw.js saves every file academy.html loads, same cache name as the page, every edition found, manifest + icons valid
-- `test/socket-events.test.js` — every `TX_NET.on('…')` event is in socket-client.js's forward list
-- `test/server.test.js` starts the real server on a random port and drives it with `socket.io-client` (dev dependency) as host + phones
+`npm test` — Node's built-in test runner (`node:test`), files in `test/**/*.test.js`. Which test covers what: `test/CLAUDE.md`.
 - `server.js` exports `{ server, io, rooms }` and only calls `listen()` when run directly — keep it that way
 - Run `npm test` before merging any change (it takes ~5 s)
+
+## Where the details live
+Each area has its own CLAUDE.md, loaded automatically when you work in that folder — read the one for the area you are about to change before changing it:
+- `js/shared/CLAUDE.md` — board generation and placement rules, turn logic, stats, help, icons (developer guide), dice
+- `js/host/CLAUDE.md` — host page: turn pipeline, setup screen, rules tab, modals, GM controls, undo, phone answering / private cards / badges (host side), presentation, board designer
+- `js/player/CLAUDE.md` — phone page: action box modes, rejoin, join by QR, edition on phones
+- `js/display/CLAUDE.md` — TV display
+- `js/academy/CLAUDE.md` — Triventurex Academy, its phone layout and offline app
+- `game_editions/CLAUDE.md` — content workflow, CSV rules, effect types, action cards
+- `test/CLAUDE.md` — what each test file checks
 
 ## Key files
 `js/` is grouped by who loads a file (plus `js/vendor/` for third-party libraries):
@@ -62,72 +58,18 @@ Open `index.html`. For images + CSV loading: `python3 -m http.server 8080`
 - `js/academy/` — Triventurex Academy page (`academy.html`) only
 
 Host page scripts are plain `<script>` files (not ES modules — `index.html` must work from disk), loaded in the order index.html lists them; top-level declarations are shared between them and `js/host/game.js` is loaded last.
-
-`js/shared/`:
-- `js/shared/utils.js` — shared helpers for host + player pages (`esc()` HTML escaping); loaded first
-- `js/shared/icon-registry.js` — every icon the engine uses, by name (`ICONS`), plus `ICON_OVERRIDES` (engine icon swaps that keep the original) and the badge pickers' lists (`BADGES`, `BADGE_COLORS` — host and phones show the same); loaded before config.js on every page
-- `js/shared/icons.js` + generated `js/shared/icons-data.js` — `icon(name)` / `iconText(name)`, `data-icon` placeholders, and the content-emoji swap (`startIcons()` at each page's start)
-- `js/shared/config.js` — engine settings (board, space types, zoom, animation, score, rule presets, awards, presentation)
-- `js/shared/rules.js` — per-game rules model (defaults → preset → changes), tile counts; pure, unit-tested
-- `js/shared/players.js` — player model: `createPlayer`, `movePlayer`, `addScore`, `getSortedPlayers`
-- `js/shared/turn.js` — pure turn logic (next player, snapshots, undo restore, history rows); unit-tested
-- `js/shared/csv.js` — pure CSV parsing for questions/deeds; unit-tested
-- `js/shared/dice.js` — `renderDie(n, sizeClass)` + `animateDieInto` — CSS dot-die and roll animation (host, phones, TV)
-- `js/shared/socket-client.js` — `TX_NET` singleton; safe no-ops when offline
-- `js/shared/board.js` — board generation (`generateBoard`) and rendering (`renderBoard`, `updateBoardTokens`) — host + TV display
-- `js/shared/viewport.js` — pan / zoom / fit and the board background — host + TV display
-- `js/shared/edition.js` — `mergeEditionConfig`, `applyEditionColors` — host + TV display
-- `js/shared/stats.js` — end-screen stats + awards from the history (G13)
-- `js/shared/questions.js` — question tree / filter / marked-questions report (G14 + G19), topic keys
-- `js/shared/help.js` — the in-game help: all help text (`HELP` topics), `openHelp(topic)`, `startHelp(topicFn)` (? key, Esc, first-visit glow); shared by host, phone and Academy (+ `css/help.css`)
-- `js/shared/marks.js` — 🚩 marked questions + reviewed ticks (localStorage), shared by the host page and the Academy
-- `js/shared/academy.js` — Academy rounds (true/false, match pairs, places quiz, flashcard sets via `chunk`, double-sided `printSheets` with mirrored backs, `textSize` for fixed-size cards, review stats); pure, unit-tested
-- `js/shared/path-design.js` — drawing board paths: cells, runs, checks, template export (G20)
-
-`js/host/` (the controller was one 2000-line game.js before A4):
-- `js/host/game.js` — shared `state`, start / resume / reset a game (`_startNewGame`, `_enterGameScreen`, `_restoreGame`), `refreshUI`, bootstrap
-- `js/host/turn-flow.js` — the turn pipeline (`_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`), undo, GM controls
-- `js/host/net-host.js` — host side of network play: lobby, `_syncStateToServer`, all socket handlers
-- `js/host/setup.js` — setup screen: player rows, host player row, on this screen / on phones
-- `js/host/setup-flow.js` — setup tabs (`showSetupTab`) and the New game steps ①–④, footer summary
-- `js/host/board-picker.js` — board thumbnails for the chosen length (+ 🎲 Random)
-- `js/host/rules-panel.js` — ⚙️ Rules tab; `gameRules()`
-- `js/host/question-explorer.js` — 📚 Questions tab + 🚩 report on question cards
-- `js/host/board-designer.js` — ✏️ Boards tab (draw / save / play / copy a board)
-- `js/host/presentation.js` — 📺 presentation mode
-- `js/host/badge-picker.js` — one badge modal for setup rows, the host and seats in the lobby / game (`openBadgeModal(index | 'host' | { playerId, where })`)
-- `js/host/category-filter.js` — 3-level question topic tree (Rules tab → Topics)
-- `js/host/edition-loader.js` — `loadEdition`, edition picker, branding (merge + colours via shared/edition.js)
-- `js/host/storage.js` — saved game, remembered preferences, custom boards, marked questions (localStorage)
-- `js/host/help-host.js` — `hostHelpTopic()`: which help the host's ? opens (setup tab, lobby, open card, GM controls, game log, game)
-- `js/host/ui.js` — modals (question, deed, action, landmark), timer, scoreboard, history panel, toast
-
-Player page, TV page, Academy + server:
-- `academy-sw.js` + `academy.webmanifest` + `images/academy/` — the Academy as an installable, offline app (served by server.js too)
-- `academy.html` + `js/academy/academy.js` (edition loading, shared filter, mode switching) + `js/academy/modes.js` (the nine modes) — 🎓 Triventurex Academy
-- `player.html` + `js/player/player.js` — phone screen (join, action box, answering, session management)
-- `display.html` + `js/display/display.js` — TV display (read-only)
 - `server.js` — rooms, dice rolling, relays host → phones / phone → host / host → TV (ownership rules at the top)
 - `js/vendor/qrcode.js` — qrcode-generator (MIT, Kazuhiko Arase) — third-party, don't edit
-- `tools/icon-picker.html` — try other icons for the engine or an edition, copy the list of changes (see *Icons*); `tools/path-designer.html` — older standalone board-path designer
+- `tools/icon-picker.html` — try other icons for the engine or an edition, copy the list of changes (see *Icons* in `js/shared/CLAUDE.md`); `tools/path-designer.html` — older standalone board-path designer
 
-Content:
-- `game_editions/editions.js` — edition registry (loaded via `<script>` in index.html)
-- `game_editions/<id>/config.js` — edition config (name, colours, landmarks, finish text, SPACE_INFO, SPACE_DISTRIBUTION)
-- `game_editions/<id>/questions.csv` + `deeds.csv` + `actions.csv` — edit content here
-- `game_editions/<id>/questions.js` + `deeds.js` + `actions.js` — generated from CSV (`npm run build:content`)
-- `game_editions/shared/actions.csv` (+ generated `actions.js`, `GENERAL_ACTIONS_DATA`) — general action cards for every edition (C4)
-- `game_editions/IDEAS.md` — ideas for new editions, content targets, and how we build one
-
-## Content workflow
-Edit CSV → `npm run build:content` (checks the content, then regenerates questions.js / deeds.js / actions.js) → refresh browser.
-- `npm run check:content` — check only; fails if a CSV has errors or a generated JS file is out of date. `npm test` includes the same checks
-- The checker (`scripts/content.js`) reports `file:line message`: wrong column count (unquoted comma), bad/duplicate ids, type/difficulty, multi answer not pointing at a filled option, unknown deed effects, landmark effects vs config.js `LANDMARKS`; warnings for missing topics and `{landmark}` text without a landmark effect
-- `questions.csv` first column is `id` — unique per edition, never reuse or renumber (asked-question tracking is stored by id). New question → next unused number
-- Any field containing a comma MUST be wrapped in double quotes (`"Madrid, Spain"`)
-- Never edit questions.js / deeds.js by hand — they're generated (the fallback for index.html opened from disk)
-- Column + effect reference for authors: `game_editions/template/README.md`
-- `scripts/` = Node-only dev tooling (not served); `tools/` = browser dev tools (served). `scripts/commons-image.js` finds, crops and credits Wikimedia Commons photos for an edition (see `game_editions/IDEAS.md`); `scripts/review-sheet.js <edition>` writes a printable REVIEW.md of its questions
+## Rules for every change
+- Player-supplied values go through `esc()` when inserted as HTML (see *Escaping* below)
+- Never hardcode configurable values, point numbers or edition words — `CONFIG` / edition config / `gameRules()`
+- No raw emoji or icon symbols in engine code — icon NAMES via `icon()` / `iconText()` (`js/shared/CLAUDE.md` → Icons)
+- Host code reads rules only via `gameRules()`; a turn ends only through `_finishTurn` (`js/host/CLAUDE.md`)
+- New server → page event: add it to socket-client.js's `events` list; new top-level client folder: add it to `PUBLIC_DIRS`
+- New or changed screen, tab, mode or control: update its help topic in js/shared/help.js
+- Content: edit the CSV, never the generated JS; never renumber question ids (`game_editions/CLAUDE.md`)
 
 ## Terminology
 - **Edition** = interchangeable game content pack (was "theme" before 2026-06-01)
@@ -137,95 +79,24 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - `TRIVENTUREX_EDITIONS` — the registry array in `game_editions/editions.js`
 - localStorage key: `triventurex_edition` (saves last-used edition ID)
 
-## Architecture — V1 (don't revert)
-- **Edition loading**: `loadEdition()` in game.js; validates saved ID against registry before use; `_ENGINE_DEFAULTS` snapshot for clean edition switching; calls `_populateCategoryFilter()` after load
-- **Board generation**: `generateBoard()` in board.js — pre-picks deed effects → constraint-aware deed-to-slot assignment (`_assignDeedsToSlots`) → no consecutive same-type → resolved landmark names stored on each deed
-- **SPACE_DISTRIBUTION**: defined in `js/shared/config.js` as engine default. Editions override via `SPACE_DISTRIBUTION` in their `config.js` — can be flat (all lengths) or keyed by `short`/`medium`/`long`. Questions always fill whatever space remains; no `question` key is needed in the distribution object.
-- **Constraint-aware placement** (`_assignDeedsToSlots`):
-  - `move_back N` → slot index ≥ N (not near start)
-  - `move_forward N` → slot index ≤ poolLen-1-N (not near finish)
-  - `move_to_prev_landmark N` → N landmarks exist before the slot
-  - `move_to_next_landmark N` → N landmarks exist after the slot
-  - Fallback: try alternative effect from card's effects array; then swap in an unused card from the deck that fits (`_replacementFromSpares`); least-bad slot only if nothing in the deck fits
-  - All of this is checked by a randomized test (`test/board.test.js`, ~3,000 boards per run) — keep it green when touching board.js
-- **Landmark deeds**: `move_to_prev_landmark` / `move_to_next_landmark` with `value=N` (N = 1 → nearest). Names resolved at board-gen time and stored as `resolvedLandmark` on each deed. `{landmark}` in deed text is filled by `fillLandmarkText()` (board.js) on the tile AND in the modal — never show raw text (the board property test checks it).
-- **Variable deed effects**: each card has up to 3 effects in CSV; one chosen at board-gen time via `_pickActiveEffect()`
-- **Exact finish**: rule `turns.exactFinish` (default from `CONFIG.RULES.exactFinish`, on) — player must roll exact number to land on finish; overshooting doesn't move. Rules tab → Turn & pace
-- **Question tracking**: per-edition, per-difficulty localStorage keys (`triventurex_asked_<editionId>_<diff>`). Two modes: `session` (remember across games, default) or `game` (reset each game). When all questions in a difficulty are exhausted, auto-recycles. Questions filtered by selected categories.
-- **Topic tree rows**: the checkbox + name (`.tree-check` label) toggle the selection; the rest of a row (count, arrow, empty space) expands/collapses. Each row shows its question count
-- **Question topics (3-level filter)**: questions have `cat > subcat > topic` hierarchy. The Rules tab (Topics) shows a collapsible tree — checking a cat/subcat toggles all children; parent shows indeterminate state when partial. Saved per edition to localStorage as an array of selected topic KEYS (`triventurex_cats_<editionId>`): `topicKey(q)` = "cat › subcat › topic" (js/shared/questions.js), because the same topic name can sit under several branches. `getSelectedTopics()` (category-filter.js) returns a Set of keys via `selectedTopicKeys()` (old saves of plain topic names select every branch with that name); `_availablePool()` in ui.js filters by `topicKey(q)`. Questions with empty topic always pass through (backwards compat with editions that only have `cat`).
+## Architecture — engine-wide (don't revert)
 - **Edition-neutral engine**: `player.score`, `addScore()`, `SCORE_VALUES`; editions provide `pointsName`, `finishLabel`, `finishCelebration`, `finishButtonLabel`, `endScreenMessage`
 - **Score values**: every point label and award reads `CONFIG.SCORE_VALUES` / `CONFIG.FINISH_BONUS` — never hardcode numbers in UI text. Editions may override either in their `config.js` (reset on edition switch via `_ENGINE_DEFAULTS`)
-- **Finish bonus**: `_recordFinish(player)` in game.js — called after every movement (roll, deed effect, GM move); idempotent
-- **Deed/question labels**: `CONFIG.SPACE_INFO[type].label` drives all modal titles and history icons — editions override via `SPACE_INFO` in config.js (e.g. Football Quest: "Good Play" / "Foul Play")
-- **Space GPU layers**: `transform: translateZ(0)` on each space → crisp at any zoom level
-- **fitBoardInView()** is SYNCHRONOUS (no rAF) — no board-jump bug
-- **Board drawn to the path's bounding box** (`pathBounds` in board.js), not the template's full grid — so fit-to-view centres on the path. `_gridRows/_gridCols` are still saved for old saves but not used for drawing
-- **#board-world** pinned to grid dimensions — no background-loading shift
-- **Modal** is `position:absolute` inside `#board-viewport` — sidebar always accessible
-- **Long cards keep their buttons**: `#modal` is a flex column with `max-height: calc(100% - 24px)` of the board area; `#modal-body` (icon, title, content — same wrapper in display.html) scrolls with scroll shadows, `#modal-actions` stays at the bottom (`showModal` resets the scroll). The board's pan / zoom handlers (viewport.js `_onBoard`) ignore events on `#modal`, the zoom bar and the legend — otherwise touch / wheel never reach the card. Phones: smaller card, buttons 2 per row (3 from 5 buttons) so at most two rows. test/html-structure.test.js checks it
-- **Modal accent colour**: `--modal-accent` CSS var set per space type; coloured border + tinted icon area
-- **Turn pipeline (A2)**: every turn = `_beginTurn` → `_playRoll` → `_resolveSpace` → `_finishTurn`; skipped turns (`_skipTurn`) and exact-finish blocks also end in `_finishTurn`, the ONLY end-of-turn path (finish bonus → history → turn_result/space_card_done → game over? → extra turn or `endTurn` → save → sync). Never end a turn any other way
-- **`state.turn`**: the turn in progress (`{ token, playerId, roll, posBefore, scoreBefore, snapshot, awaitingRoll }`) or `null`. Plain data, saved with the game; on resume a saved `state.turn` re-opens the space modal via `_resolveSpace`
-- **Stale continuations**: every async step / modal callback captures `token` and checks `_isStale(token)`; undo and player removal clear `state.turn`, which cancels everything in flight
-- **Pure turn logic** lives in `js/shared/turn.js` (`nextTurnIndex`, `takeSnapshot`, `restoreFromSnapshot`, `indexAfterRemoval`, `makeHistoryEntry`) — no DOM; unit-tested in `test/turn.test.js`
-- **Badge picker modal**: clicking player badge on setup screen opens a fixed overlay modal; shows live preview with emoji + initials; width = 80% of setup container
-- **Setup screen (G6/G7)**: two tabs — *🎲 New game* and *⚙️ Rules*. New game = accordion wizard (`js/host/setup-flow.js`): steps ① Edition → ② Game length → ③ Board → ④ Players, one open at a time, each collapsed heading shows the current choice (`updateSetupValues`), a choice opens the next step (`onSetupChoice`). Fixed-height card: header + tabs at the top, footer (whole setup summary + Start) at the bottom, only the tab content scrolls (in the Rules tab only the right-hand settings pane) (Enter in a name field also starts). First visit opens step ①; later visits start fully collapsed with last time's choices. Mode (*On this screen* / *On phones*) lives inside ④ Players; in phone mode Start reads *Open lobby*. Players are chips. CSS counter numbers the visible steps
-- **Setup screen on phones** (≤ 720px, CSS only + `openSetupMore` / `closeSetupMore` in setup-flow.js): the card fills the screen (`100dvh`, no frame), title compact + a phone-only tip (play on a laptop / TV); tabs = New game · Rules · **More** — Questions + Boards carry `desk-tab` (hidden on phones unless open) and live in the More sheet (`#setup-more`) with the Academy; `.phone-only` / `.desk-only` switch by width (Print rules card + Copy as preset are `desk-only`); editions as compact rows; Rules section tabs scroll sideways; Questions / Boards scroll as one page. The game screen itself is not made for phones
-- **Board picker (G8)**: `js/host/board-picker.js` draws a thumbnail per `PATH_TEMPLATES` entry for the chosen length (+ 🎲 Random); the choice lives in hidden `#path-select` ('random' or index). Changing length resets it to Random
-- **Presentation mode (G15)**: `js/host/presentation.js` — 📺 in the zoom controls or the `CONFIG.PRESENTATION.key` (P) → `body.presenting` + Fullscreen API (offline OK). CSS only: sidebar + modal drawn bigger with `zoom: var(--present-scale)`; GM panel, game log, manual dice, timer buttons hidden until ⚙️ (`body.present-gm-open`); pointer hides when idle. `fitBoardInView` may enlarge the board up to `maxFitScale` while presenting. Leaving full screen, Esc, ✕ or going back to setup leaves the mode. Not saved — a refresh returns to the normal layout
-- **Host player**: separate from local player list; stored in `triventurex_host_player` localStorage; GM-only toggle disables (not hides) the player input
 
-## Architecture — V2 (don't revert)
+## Architecture — server & network (don't revert)
 - **Escaping**: any player-supplied value (name, token, colour) inserted via innerHTML/template MUST go through `esc()`. Not needed for `textContent` (toasts, button labels, modal titles). Server also cleans profiles on join (`cleanProfile`: name ≤20, token ≤8 code points, hex-only colour)
 - **Static files**: server.js serves an allowlist only (`/`, `/player`, `/display`, `/academy`, `css/ js/ game_editions/ images/ tools/`). New top-level client folder → add it to `PUBLIC_DIRS`
-- **Offline fallback**: `index.html` dynamically loads `/socket.io/socket.io.js`; `onerror` leaves V1 untouched
 - **Authority**: Host (`game.js`) runs all game logic; server relays state via `sync_state` → `state_update`
 - **Dice**: server rolls (authoritative); player taps → `roll` event → server generates → broadcasts `roll_result`
 - **Game ID**: 4-digit numeric, unique among active rooms; easy to type on a phone
 - **State ownership (A3)**: HOST owns game state (positions, scores, turn order, finish order, sitting out) and pushes it with `sync_state`. SERVER owns connection state (`socketId`, `rejoinToken`, `disconnected`, room membership) + dice; `sync_state` never overwrites these. Rules are written at the top of server.js
 - **Server-only fields never leave the server**: `SERVER_ONLY_FIELDS` (`socketId`, `rejoinToken`, `awaitingHostSync`) are stripped by `publicPlayer(s)()` / `publicState()` from every emit. A player's own `rejoinToken` is only sent once, in its `joined` reply
 - **Late joiners survive syncs**: a joiner is `awaitingHostSync` until a host sync includes them; a sync with an older list keeps them. The host's `player_joined` handler adds them + syncs. A player the host has synced before and then leaves out IS dropped (host authority)
-- **Rematch / back to setup (G7)**: end screen *🔁 Rematch* = same players, length, board choice and rules, new board (`rematch()` in game.js; network: same room — server cancels the room expiry when a synced game is `playing` again). *New game setup* returns with last choices (`_restoreGameSettings`), all steps collapsed
-- **Per-game rules (G12)**: `js/shared/rules.js` (pure) builds rules as defaults (engine CONFIG + edition) → preset (`CONFIG.RULE_PRESETS`) → the player's changes. Stored per edition as `triventurex_rules_<editionId>` = `{ preset, changes }` (only what differs from the preset). Copied into `state.rules` at game start and saved with the game. Host code reads rules ONLY via `gameRules()` (rules-panel.js) — never `CONFIG.SCORE_VALUES` / `FINISH_BONUS` / `TIMER` / `RULES` directly; those are only the defaults
-- **Rules tab**: `js/host/rules-panel.js`, side tabs from `_rulesSchema()` sections (+ 🏷️ Topics, static DOM); every change is saved immediately (`_commitRules`), no Done/Cancel — *Reset to preset* undoes. New setting = add it to `defaultRules` + `normalizeRules` (rules.js), one schema line, then read it via `gameRules()`. "📋 Copy as preset" produces a `RULE_PRESETS` entry to paste into config.js
-- **Board under rules**: `generateBoard(len, template, { tileMix, deeds })`; counting is `tileCounts()` in rules.js — the panel preview uses the same function
-- **Phone turn cues (G18)**: player.js uses `nextTurnIndex` (js/shared/turn.js, loaded by player.html) to show *"You're next"* in the activity box (skips finished / sitting-out players like the host) and buzzes (`navigator.vibrate`) once when the phone's turn starts
-- **Leaving the lobby (G21)**: phone *← Leave · change name or badge* → `leave_game`; the server sends the new list with `player_removed`, which updates the host lobby (`_updateLobby`, also before the game starts) and the other phones; the join form keeps the Game ID
-- **Join by QR (G11)**: server's `hosted` reply carries `joinUrls` (every LAN IPv4 → `http://ip:port/player?game=ID`; the host page on localhost can't see these). Lobby shows a QR (`js/vendor/qrcode.js`, MIT, Kazuhiko Arase — third-party, don't edit), the address and the Game ID; GM panel has *📱 Show join code* for latecomers. `player.html?game=ID` pre-fills the Game ID and wins over an old saved session for another game. The `?game=` link is read once and removed from the address (`history.replaceState`) — otherwise a phone refresh re-applies an old link and drops the session for the game actually joined
-- **Private cards (C3)**: `private_card` (host-only) is forwarded by the server to ONE player's socket. `_sendPrivateCard(player, card)` in net-host.js sends it unless offline, the host's own player (`state.hostPlayerId`) or disconnected — then the host modal hides the card behind a show/hide toggle instead. Generic `{ title, text, rule, note }` payload — reuse it for other per-player secrets
-- **Answering on the phone (G3)**: rule `questions.answerOnPhone` (default on). Phone prompts in net-host.js: `_askOnPhone(player, card, onChoice)` sends a private card with `choices` + `promptId`; the phone taps → `card_choice` → server forwards to the host socket only, with the player id taken from the SOCKET → `_onCardChoice` accepts only the pending prompt, from that player, with a listed choice, once. Re-sent on `player_reconnected`. The host's own buttons stay usable — clicking one calls `_cancelPhonePrompt()`. Difficulty + multiple choice are answered on the phone (scored by the host, `_showPhoneAnswer` in ui.js); open questions are shown on the phone, judged by the GM. The answer never goes to the phone before it's answered
-- **Players without a phone (G17)**: host → `add_local_player` (lobby form or GM panel) → server seat with `socketId: null`, no `rejoinToken`, `noPhone: true` (server-owned, kept through `sync_state`) → announced with the normal `player_joined`. Host keeps `player.noPhone` (`_playerFromServer`); `_canReachPhone` is false for them, so their turns run on the host like the host's own player. Badge: first unused default (`_freeBadge`). A game can have zero phones. `remove_player` now also sends the new list (lobby updates)
-- **Changing badges (G17)**: the badge picker (badge-picker.js) also takes a seat target `{ playerId, where: 'lobby' | 'game' }`. Lobby: click any player's badge (host's own, phones, no-phone) → `update_player` (host only, badge only, `cleanProfile`) → server sends `player_updated { players }` to host + phones. Game: GM panel 🎨 (selected player, also offline) or a badge in the network list → `_setSeatBadge` changes `state.players`, redraws, saves, syncs. The host's own player's new badge is also saved as the host preference. A phone adopts a badge the host gave it (`_adoptHostBadge` on `player_updated` / `state_update`) and saves it as its identity. Undo keeps badges (`restoreFromSnapshot` keeps token/colour/noPhone live)
 - **Rejoin needs a real token**: `rejoin_game` only matches a non-empty string token — seats without one (host's own player, no-phone players) can't be taken over
-- **TV display (G16)**: `display.html` + `js/display/display.js` at `/display?game=ID`, read-only. Host → `display` {kind, data} → server relays to room `display:<id>` only (host socket only; never to phones). Kinds: `game` (edition + board, from `_displayGame` in `_enterGameScreen` / host rejoin), `live` (players + turn, from `updateBoardTokens` + `updateScoreboard` → every hop / score change), `card` (open modal or null, from `showModal` / `hideModal`), `roll`, `timer`. Server keeps the last game/live/card/timer and replays them to a display that (re)joins; lobby list via `displayLobby(room)`; `host` gone/back; `closed`. **Secrets**: `_publicHtml` strips `[data-secret]`, `[data-host-only]`, `.hidden`, buttons and inputs from card HTML — mark any new secret in a modal template with `data-secret`. Host buttons: lobby + GM panel *📺 Open TV display* (`openDisplay`)
-- **End-screen stats + awards (G13)**: `js/shared/stats.js` (pure) — `gameStats(history, players)` and `gameAwards(stats, CONFIG.AWARDS)` from `state.history`. Each history entry carries `landedOn` (the space the ROLL landed on — `spaceType` is where the turn ended after deed moves) and `result` (`{ question }` set by `_noteQuestion` in ui.js, `{ action }` set in `_resolveSpace`). GM entries are ignored. Award titles/texts in `CONFIG.AWARDS` ({n}, {s}, {good}/{bad}/{landmark}, {points}); editions rename them via `AWARDS` in their config.js. Host end screen: `showEndScreen` → `endOfGameSummary` / `statLine` / `awardsHtml`; TV gets `display` kind `end` (`_displayEnd`)
-- **Marked questions (G14 + G19)**: per edition in `triventurex_marked_<editionId>` = `{ [id]: { note, at } }` (js/shared/marks.js: `loadMarkedQuestions`, `markQuestion`, `unmarkQuestion`; also `loadReviewed` / `setReviewed` for the Academy's reviewer ticks). Filled from the setup tab *📚 Questions* (`js/host/question-explorer.js`: tree, search, difficulty, marked-only, show answers, 📋 Copy marked list) and from 🚩 on a question card in play (`reportQuestionHtml(q)` — `data-host-only`, never on the TV). Marks are by question id — another reason never to renumber ids
-- **Board designer (G20)**: setup tab *✏️ Boards* (`js/host/board-designer.js`): click a start cell, then cells in a straight line to add runs; live thumbnail, space count vs the usual size, crowded-rows warning; 💾 Save / ▶ Play / 📋 Copy as template (a `PATH_TEMPLATES` line). Saved boards: `triventurex_custom_boards` = `{ short, medium, long }` (for every edition). `applyCustomBoards()` (storage.js, at bootstrap and after save/delete) appends them to `CONFIG.PATH_TEMPLATES[len]` marked `custom: true` AFTER the built-in ones, so built-in indexes never change; the board picker shows them with ✏️. `tools/path-designer.html` is the older standalone version
-- **Game screen on phones** (CSS "Game screen on phones" in styles.css; `PHONE_GAME_QUERY` in ui.js = the same media query): phone = ≤ 720px wide or ≤ 500px high. The legend hides behind ⓘ in the zoom bar (`toggleLegend`, `body.legend-open`); game id, zoom % and the presentation button are hidden; cards scroll inside the board area. Upright: `#game-main` becomes a column — board ~58%, `#sidebar` under it as a two-column grid (player | Roll Dice, then the rolled die under the player | manual dice — `#dice-panel` is `display: contents` so its parts are grid items — then scoreboard, timer, game log, GM controls), scrolling. On its side: a 230px compact sidebar on the right. `startPhoneLayout()` (ui.js, from game.js bootstrap) refits the board when the phone turns
-- **Fit leaves room for the legend**: `fitBoardInView` pads the left by the legend's width (host page), so start tokens bottom-left aren't hidden
-- **Setup tabs**: `showSetupTab(tab)` shows `#setup-tab-<tab>`; Enter-to-start ignores the Rules and Questions tabs and elements already redrawn away (`!e.target.isConnected`)
-- **#board-viewport never scrolls** (`overflow: clip`): pan/zoom are transforms; a focused input in a card must not shift the board. The legend lives inside it (absolute), so it only shows with the board
 - **TX_NET events**: socket-client.js forwards only the events in its `events` list — a new server → page event must be added there (`test/socket-events.test.js` checks it)
-- **General action cards (C4)**: `game_editions/shared/actions.csv` → `window.GENERAL_ACTIONS_DATA` (index.html script + CSV fetch in `_loadEditionCSV`). `_actionDeck(general)` in ui.js mixes them into the edition's deck with ids `g<id>` so tracking never clashes with edition ids. Rule `actions.general` (default on). Digital cards are possible when the edition OR the shared file has cards (`_hasActionCards`). `shared/` has no questions.csv, so `listEditions()` skips it; `build:content` / `check:content` handle it as `shared`
-- **Action cards (C3)**: optional `actions.csv` per edition (`id, text, kind, note`; kinds in `CONFIG.ACTION_KINDS`: act / explain / sound). Drawn without repeats (`_drawActionCard`, tracked like questions under the `actions` key); the drawn card is stored on `state.turn.actionCard` so a resumed turn shows the same card. No actions.csv → physical-deck prompt
 - **Room lifecycle (A5)**: rooms are deleted immediately on `close_room` (host's end-screen "New game setup" / lobby Back — phones get `host_left` "ended the game"), `ROOM_TTL.endedMs` (5 min) after `phase: 'ended'`, or `ROOM_TTL.hostGoneMs` (30 min) after the host disconnects. `host_rejoin` cancels the countdown and sends `host_back` (phone hides its "host left" overlay). TTLs in `ROOM_TTL` at the top of server.js (env overrides)
-- **Edition on phones**: player.html loads no edition. The host sends the game's details as `edition: { name, icon, pointsName, finishLabel, icons, labels, board: { length, name, spaces } }` (`_phoneEdition()` in net-host.js) with `host_game` (lobby) and every `sync_state`; the server cleans it (`cleanEdition`: short strings, identifier keys, icon values `emoji:` / `<set>:<icon>` / `url:game_editions/…`), keeps it on the room and sends it in `joined`, `rejoined` and every `state_update`. The phone's `_applyEdition` sets its stand-in `CONFIG.EDITION_ICONS` (so `icon()` resolves edition → engine), the tile names in `SPACE_META`, and the edition banner (`.game-info`, lobby + game). Phone text uses the edition's words — `_pts()`, `_finish()`, `_tile(type)` — never a fixed "pts" / "finish" / "landmark"
 - **Host → phone relays** (`turn_result`, `space_card`, `space_card_done`) are accepted from the host socket only
 - **remove_player** on the server only changes membership (+ removed socket leaves the room); it sends no `state_update` — the host's `player_removed` handler syncs the result
-- **Token-based rejoin**: each player gets a `rejoinToken` on join; saved to `triventurex_game_session`; used to re-register the socket on any reconnect (page refresh OR phone screen wake)
-- **Mid-session reconnect**: `connect` handler in player.js checks `_myId` + `_gameId`; if set, loads session and calls `rejoinGame()` automatically — no page refresh needed
-- **Host rejoin**: `tx_net_game` localStorage key saves the host's gameId; on refresh, `_pendingHostRejoin` triggers `host_rejoin` event to re-register host socket
-- **Action box**: fixed-height area on player screen; modes = `dice` | `rolled` | `card` | `activity`
-- **Mode transitions**: `dice` → (tap roll) → `rolled` → (space_card) → `card` → (space_card_done) → `activity`
-- **state_update must NOT override rolled/card mode**: `renderGameView()` skips mode change when box is in `rolled-mode` or `card-mode` during a resolving turn
-- **turn_result before space_card_done**: `_finishTurn()` emits `turn_result` first so activity feed updates before card clears
-- **CSS dice**: `renderDie(n, sizeClass)` + `animateDieInto(el, result)` in `js/shared/dice.js` — dot-based, no images; host and phones use the same rolling animation (phones: roller big in the action box, others in a strip above the activity feed; feed entry added after the animation)
-- **GM controls**: adjust score, move player, skip turn, remove player, sit out / rejoin (`player.inactive`, host-owned, synced via `sync_state`); network players section shows connected/disconnected state
-- **GM actions in history**: `_gmAction()` — between turns a GM change gets its own undoable `spaceType:'gm'` history entry; during a turn it folds into that turn
-- **Turn order**: `nextTurnIndex()` (turn.js) skips finished and sitting-out players (falls back to any unfinished player so the game never stalls)
-- **Undo**: mid-turn → cancels only the turn in progress (restores `state.turn.snapshot`); between turns → pops the last history entry. Restores by player id (`restoreFromSnapshot`): joined players kept, removed stay removed, `inactive`/`disconnected` keep live values
-- **Manual dice**: `handleManualRoll(n)` on host → `_beginTurn` + `_playRoll(n)` locally; network also sends `manual_roll` so phones see the value (server broadcasts to players only) — no waiting on the server
 
 ## Current state
 - Version 2.2.0 (2026-10-17) — see `CHANGELOG.md` for what changed in each release (2.1 = code review & hardening, 2.2 = gameplay & play experience). The work-item IDs in commits and the changelog (B1…, A2…, C3…, T1…, G6…) come from the 2026-10 plan: B = bug, A = architecture, C = content, T = tests, G = gameplay
@@ -240,30 +111,7 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - Each branch: change → `npm test` → check in a browser (offline AND network with ≥1 phone when it touches play) → Mojeeb tests → merge `--ff-only` to `main`
 - Push to GitHub only when Mojeeb asks
 - After pulling server changes: restart `node server.js` and reload host + phone pages
-- Update this file's Architecture sections when an invariant changes
-
-## Effect types
-`score_add`, `score_remove`, `move_forward`, `move_back`, `move_to_prev_landmark`, `move_to_next_landmark`, `skip_turn`, `extra_turn`, `all_players_gain`, `all_players_lose`, `protection`
-
-(The old named `move_to_landmark` effect and the `landmark` CSV columns were removed on 2026-10-19 — use the next / previous landmark effects.)
-
-- **In-game help**: one ? button per screen (host setup card, lobby card, board zoom + presentation controls; phone: floating bottom-right; Academy header) and the ? key. Each `## ` part of a topic is drawn as its own box (`.help-section`); following a *More help* link adds a Back button (and Backspace) to the page you came from. All text is in `HELP` in js/shared/help.js — one topic per setup tab, lobby, game (+ cards, game log, GM controls), phone view and Academy mode, plus a shared *How to play*; `more` links related topics. Text uses a small markup (`##`, `- `, `**bold**`), `{icon:name}` (registry names — no raw emoji) and the edition's words `{points} {finish} {question} {action} {good} {bad} {landmark} {skip} {edition}` (`helpWords(CONFIG)`; the phone passes words from the host's `edition` block). **When you add or change a screen, tab, mode or control, update its help topic**; test/help.test.js checks that every setup tab and Academy mode has a topic and every icon / word / link exists
-- **What just happened (turn recap)**: `turnRecap(entry, words)` in js/shared/turn.js turns the latest history entry into one plain sentence ("Sara rolled 5 · Question: hard one, right · +2 Goals"); `renderTurnRecap` (ui.js, called by `renderHistoryPanel`, so undo updates it too) shows it as *Last turn* at the top of the board (phones: one line across the board — `fitTurnRecap` shrinks long text to 9px, then drops the label, then "…"; refits when the phone turns); `_displayLive` sends it to the TV as `recap`. History entries carry `outcome` ('space' | 'skip' | 'blocked') and question results carry `qid` + `diff` (`_noteQuestion(right, q, diff)`)
-- **What we learned today**: `learnedToday(history, questions)` in js/shared/stats.js — up to 3 questions asked this game (right answers first, then ones with a note) + the topics played; `learnedHtml` (ui.js) on the end screen, sent drawn to the TV with the `end` display kind
-- **Printable rules card**: Rules tab → *Print rules card* (`printRulesCard` in js/host/help-host.js) opens a one-page print of `rulesCardHtml()` (js/shared/help.js): the edition's words + this game's rules (points, finish bonus, exact finish, no going backwards…)
-- **Triventurex Academy**: `academy.html` (served at `/academy`, PUBLIC root route in server.js) must work from disk: it loads ONLY `js/shared/*`, `js/academy/*` and `game_editions/editions.js` (checked by test/html-structure.test.js), and each edition's `config.js` + `questions.js` as plain scripts. One edition at a time — switching reloads the page (`?edition=`), so no CONFIG reset is needed. New mode = one `registerMode({...})` in js/academy/modes.js; round-building logic goes in js/shared/academy.js with a test. Question cards in every mode share ONE look (css/academy.css `.ac-qcard` group: white inside, `--green` top accent, gold for answer sides) — reuse it, don't restyle per mode. Printed cards have fixed mm sizes (double-sided 90 × 62 mm, fold-over 90 × 124 mm folded in the middle). Every edition must give each mode content (test/academy.test.js)
-- **Academy on phones** (≤ 720px — `isPhone()` in js/academy/academy.js matches the CSS `@media (max-width: 720px)`): one-row top bar; the mode tabs scroll (active tab centred, edges fade); modes with `phone: false` (Print cards, Review) leave the tabs for a **More** sheet; *Choose what to learn* opens as a sheet from the bottom (`.ac-filter-body`, Show N questions button) — a filter change redraws the mode WITHOUT closing it (`showMode` closes sheets only when the mode changes); Flashcards start with one card (choice saved in `triventurex_academy_flash_size`), swipe or ←/→ for next/previous; reviewer bits (Mark as wrong, Marked only) are `.ac-desk` — hidden on phones except in Review. `.ac-phone-only` / `.ac-desk` toggle by width; hovers sit in `@media (hover: hover)`; the page height is `100dvh` (test/html-structure.test.js checks it)
-- **Academy as an app** (install + offline): `academy-sw.js` at the project root, registered by academy.js with **scope `./academy`** — it controls ONLY the Academy page (never the game / phone / TV pages; keep it that way). Only over https or localhost (not from disk, not `http://<lan-ip>`). Install saves `ACADEMY_FILES` (every script + stylesheet academy.html loads — **a new script in academy.html must be added there**, test/academy-offline.test.js checks it), every edition's config.js + questions.js (ids parsed from editions.js) and the emoji SVGs (`TX_ICON_DATA.emoji` via importScripts). Code/questions: network first (4 s wait, then the saved copy) so content updates arrive; pictures: cache first. Place photos: saved when shown, or all at once with More → *Save photos for offline* (the page writes to the same cache — `ACADEMY_CACHE` must match in both files). Changing the caching? Raise the version in `ACADEMY_CACHE` (both files). More also offers *Install the Academy* (`beforeinstallprompt`) or the iPhone Share → Add to Home Screen hint. server.js serves `/academy-sw.js` and `/academy.webmanifest`
-
-- **Icons** (developer guide):
-  - **Engine code never types an emoji or icon symbol.** It asks for a NAME from `js/shared/icon-registry.js`: `icon('undo')` → HTML (Lucide line icon in the text colour, or a Fluent Emoji Flat image); `iconText('tileSkip')` → plain text for places that can't hold HTML (`<option>`, tile labels, phone/TV text, toasts' text) — line icons give ''. In HTML pages: `<i data-icon="undo"></i>`; for an `<option>`: `data-icon-text="easy"`. `showModal` buttons take `icon` / `iconAfter` names; `showToast(text, ms, iconName)`.
-  - **Choose**: a Lucide line icon (`lucide:<name>`) for controls (buttons, tabs, links); an emoji (`emoji:<emoji>`) for game symbols (tiles, cards, awards, status). Name by purpose (`tvDisplay`, `awardQuizMaster`), not by look.
-  - **Add an icon**: add a name + comment to the registry, use it, run `npm run build:icons` (bundles the Lucide SVG into `icons-data.js` / the emoji image into `images/emoji/`). `npm test` fails on raw emoji/icon symbols in engine code (comments are fine), on unknown names, and on out-of-date bundles.
-  - **Editions** override names in ONE `ICONS` block in their config.js (`tileGoodDeed: '⚽'`, `awardExplorer: '🏟️'`) — lookup is edition → engine (`CONFIG.EDITION_ICONS`, set by `mergeEditionConfig(config, T, editionId)` in js/shared/edition.js; pass the edition id). Values: an emoji, `'<set>:<icon>'`, or `'file:icons/x.svg'` (a picture in the edition folder → `url:game_editions/<id>/…`; `iconText()` gives '' for it). Only names the engine uses are allowed — `check:content` reports unknown names, bad values, missing pictures, and warns about old-style `SPACE_INFO.*.icon` / `AWARDS.*.icon`. `build:icons` bundles line icons from the registry AND editions' ICONS (keyed by id, `lucide:undo-2`). The phone page has no edition loaded — the host sends the edition's icons with the state (see *Edition on phones*).
-  - **Config fields** (`SPACE_INFO.*.icon`, `AWARDS.*.icon`, `ACTION_KINDS.*.icon`, `GAME.editionIcon`) hold a NAME or an emoji — render them with `icon()` / `iconText()`, never as raw text. Player badges are emoji data (`BADGES` + `BADGE_COLORS` in the registry, used by both the host's and the phone's picker); keep a badge in a `data-token` attribute, never read it back from `textContent` (the page shows it as an image).
-  - **Overrides keep the original**: `ICONS` holds the original icon of every name; a different choice for the engine goes in `ICON_OVERRIDES` (same file, normally empty or a few lines). Lookup is edition `ICONS` block → `ICON_OVERRIDES` → `ICONS`. Back to the original = remove the override line; keep it for good = change `ICONS` and remove the line. Tests: an override must name an existing icon and differ from the original
-  - **Trying other icons**: `tools/icon-picker.html` (open via the server: `/tools/icon-picker.html`) lists every name with its purpose (parsed from the registry's comments) and current icon, for the engine or one edition; overridden names show their original, with *Back to the original* / *Make it the original*. Search Lucide / Phosphor / Tabler or Fluent emoji, or draw an emoji from Twemoji / Noto / OpenMoji (needs the internet — Iconify API + jsDelivr). It changes no file: it produces the lines to apply — `ICON_OVERRIDES` add / remove, originals to change in `ICONS`, an edition's ICONS block, `scripts/icons.config.js` emoji-set overrides (+ any `npm i -D @iconify-json/<set>` needed); then `npm run build:icons`. Keep overrides few
-  - **Content** (questions, deeds, edition labels) keeps plain emoji; `startIcons()` swaps them for the bundled images in the page (one MutationObserver). Opt out: `.no-icons`. The emoji SET is in `scripts/icons.config.js` (with the rare per-emoji override).
+- When an invariant changes, update the CLAUDE.md that covers it (this file for project-wide rules and the server; otherwise the folder's own CLAUDE.md)
 
 ## Next work / ideas
 - **Content**: more questions for every edition over time (Swab Quest 432; World Tour, Animal Safari, Prophets' Stories ~220 each). **Football Quest needs a revisit**: it was the first content and has only 92 questions with a flat, inconsistent category / subcategory / topic structure — rework its questions and categories like the newer editions (see game_editions/IDEAS.md → Improving existing editions)
