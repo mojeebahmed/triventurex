@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00695C">
   <link rel="icon" href="data:,">
   <title>Triventurex Academy</title>
   <link rel="stylesheet" href="css/styles.css">
@@ -14,12 +15,12 @@
   <!-- Triventurex Academy: learn an edition's questions and places before playing.
        One edition at a time; works opened from disk and from the server (/academy). -->
   <header class="ac-top">
-    <div class="ac-brand"><i data-icon="academyLogo"></i> Triventurex Academy</div>
+    <div class="ac-brand"><i data-icon="academyLogo"></i> <span class="ac-brand-name">Triventurex </span>Academy</div>
     <label class="ac-edition" title="Which edition to learn — the page reloads with it">
       <select id="ac-edition" class="settings-select"></select>
     </label>
     <span class="ac-spacer"></span>
-    <a class="btn btn-secondary btn-small" href="index.html"><i data-icon="playGame"></i> Play the game</a>
+    <a class="btn btn-secondary btn-small ac-play" href="index.html" title="Play the game" aria-label="Play the game"><i data-icon="playGame"></i><span class="ac-play-label"> Play the game</span></a>
     <button type="button" class="help-btn" onclick="openHelp(academyHelpTopic())" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
   </header>
 
@@ -30,15 +31,29 @@
     <aside id="ac-side" class="ac-side">
       <details id="ac-filter" class="ac-filter" open>
         <summary><i data-icon="search"></i> Choose what to learn <span id="ac-filter-summary" class="ac-filter-summary"></span></summary>
-        <input id="ac-search" type="search" placeholder="Search questions, answers or #id…" autocomplete="off">
-        <select id="ac-diff" class="settings-select">
-          <option value="all">Easy + hard</option><option value="easy" data-icon-text="easy">Easy</option><option value="hard" data-icon-text="hard">Hard</option>
-        </select>
-        <nav id="ac-tree" class="ac-tree"></nav>
+        <!-- On a phone this opens as a sheet from the bottom (head + Show button only there) -->
+        <div class="ac-filter-body">
+          <div class="ac-bsheet-head ac-phone-only">
+            <strong>Choose what to learn</strong>
+            <button type="button" class="ac-bsheet-close" data-close-sheet aria-label="Close"><i data-icon="close"></i></button>
+          </div>
+          <input id="ac-search" type="search" placeholder="Search questions, answers or #id…" autocomplete="off">
+          <select id="ac-diff" class="settings-select">
+            <option value="all">Easy + hard</option><option value="easy" data-icon-text="easy">Easy</option><option value="hard" data-icon-text="hard">Hard</option>
+          </select>
+          <nav id="ac-tree" class="ac-tree"></nav>
+          <div class="ac-bsheet-foot ac-phone-only">
+            <button type="button" id="ac-filter-done" class="btn btn-primary" data-close-sheet>Show questions</button>
+          </div>
+        </div>
       </details>
     </aside>
     <main id="ac-main" class="ac-main"></main>
   </div>
+
+  <!-- Phones: the modes that work best on a computer (filled by academy.js) -->
+  <div id="ac-more" class="ac-bsheet ac-more hidden" role="dialog" aria-label="More"></div>
+  <div id="ac-backdrop" class="ac-backdrop hidden" data-close-sheet></div>
 
   <textarea id="ac-export" class="rules-export hidden" rows="8" readonly></textarea>
 

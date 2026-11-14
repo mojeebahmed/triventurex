@@ -98,6 +98,8 @@ const ICONS = {
   whereAmI:        'lucide:compass',
   answerRight:     'lucide:check',            // Academy: "I got it" / True
   answerWrong:     'lucide:x',                // Academy: "Not quite" / False
+  moreModes:       'lucide:ellipsis',         // Academy on a phone: the More tab (modes best on a computer)
+  computerOnly:    'lucide:monitor',          // Academy: a mode that works best on a computer
 
   // ── Board tiles and spaces (editions usually override these) ────────────────
   tileStart:       'emoji:🚩',

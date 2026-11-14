@@ -248,6 +248,10 @@ Learn the questions of an edition before you play — or just for fun.
 - {icon:marked} Marks on questions are shared with the game's Questions tab, on this device.
 - {icon:playGame} **Play the game** goes back to the game.
 
+## On a phone
+- Tap **Choose what to learn** (under the tabs) to pick topics, then **Show questions**.
+- Slide the row of tabs sideways for more modes. {icon:moreModes} **More** holds {icon:modePrint} Print cards and {icon:modeReview} Review — they work best on a computer.
+
 ## The modes
 {icon:modeExplore} Explore · {icon:modeFlashcards} Flashcards · {icon:modeQuiz} Quiz · {icon:modeMatch} Match · {icon:modeTrueFalse} True or false · {icon:modeSpeed} Speed round · {icon:modePlaces} Places · {icon:modePrint} Print cards · {icon:modeReview} Review — each has its own help.`,
   },
@@ -257,14 +261,16 @@ Learn the questions of an edition before you play — or just for fun.
 Browse the questions with their answers and the fact behind each one.
 
 - {icon:markQuestion} **Mark as wrong / unclear** with a note when something looks off; {icon:editNote} edits the note.
-- **Marked only** shows just the marked questions.`,
+- **Marked only** shows just the marked questions.
+- On a phone, marking is in {icon:modeReview} **Review** (under {icon:moreModes} More).`,
   },
   'academy-flashcards': {
     title: 'Flashcards', icon: 'modeFlashcards', more: ['academy'],
     body: `
 A set of cards: guess the answer, then tap the card to turn it over.
 
-- Choose how many cards a set has (8, 9 or one at a time).
+- Choose how many cards a set has (8, 9 or one at a time). Phones start with one card.
+- One card at a time: **swipe** left for the next card and right to go back (or use the arrow keys).
 - {icon:turnAll} **Turn all** / {icon:hideAll} **Hide all**; move to the next set or {icon:back} back.
 - {icon:shuffle} **Shuffle and start again** for a new order.`,
   },

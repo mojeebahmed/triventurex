@@ -6,6 +6,10 @@
  * difficulty, search) and switches between the modes registered by modes.js.
  * Changing the edition reloads the page with ?edition=<id>; the mode lives in
  * the #hash. Marks and review ticks: js/shared/marks.js (shared with the game).
+ *
+ * Phones (isPhone(), same width as the CSS): the filter opens as a sheet from
+ * the bottom, and modes marked `phone: false` (print, review) move from the
+ * tabs to a More sheet — learning comes first on a small screen.
  */
 
 const LS_ACADEMY_EDITION = 'triventurex_academy_edition';
@@ -16,7 +20,11 @@ function getActiveEditionId() { return _activeEditionId; }
 /** Filter shared by every question mode. */
 const ac = { path: [], diff: 'all', text: '', mode: 'explore' };
 
-/** Modes, registered by modes.js: { id, icon, label, filter: bool, render(main, questions) } */
+/** Same width as the phone layout in css/academy.css. */
+const AC_PHONE_QUERY = '(max-width: 720px)';
+const isPhone = () => window.matchMedia(AC_PHONE_QUERY).matches;
+
+/** Modes, registered by modes.js: { id, icon, label, filter: bool, phone?: false, render(main, questions) } */
 const AC_MODES = [];
 let _acCleanup = null;       // a mode's timers / key handlers, undone when leaving it
 
@@ -94,6 +102,7 @@ function _renderTree() {
   const n = filteredQuestions().length;
   document.getElementById('ac-filter-summary').textContent =
     `· ${ac.path.length ? ac.path.map(_acLabel).join(' › ') : 'All'} · ${n} question${n === 1 ? '' : 's'}`;
+  document.getElementById('ac-filter-done').textContent = `Show ${n} question${n === 1 ? '' : 's'}`;
 }
 
 function _initFilter() {
@@ -101,8 +110,7 @@ function _initFilter() {
     const btn = e.target.closest('[data-path]');
     if (!btn) return;
     ac.path = JSON.parse(btn.dataset.path);
-    _filterChanged();
-    if (window.matchMedia('(max-width: 720px)').matches) document.getElementById('ac-filter').open = false;
+    _filterChanged();   // on a phone the sheet stays open: its button shows the new count
   });
   document.getElementById('ac-diff').addEventListener('change', e => { ac.diff = e.target.value; _filterChanged(); });
   let t = null;
@@ -110,8 +118,45 @@ function _initFilter() {
     clearTimeout(t);
     t = setTimeout(() => { ac.text = e.target.value; _filterChanged(); }, 200);
   });
-  // Phones: the filter starts folded so the mode is visible
-  if (window.matchMedia('(max-width: 720px)').matches) document.getElementById('ac-filter').open = false;
+  // Phones: the filter starts folded so the mode is visible; opening it opens the sheet
+  const filter = document.getElementById('ac-filter');
+  if (isPhone()) filter.open = false;
+  filter.addEventListener('toggle', () => {
+    if (filter.open && isPhone()) _showBackdrop(true);
+    else if (!filter.open && document.getElementById('ac-more').classList.contains('hidden')) _showBackdrop(false);
+  });
+}
+
+// ── Sheets (phones): the filter and the More list slide up from the bottom ──────
+
+function _showBackdrop(on) {
+  document.getElementById('ac-backdrop').classList.toggle('hidden', !on);
+  document.body.classList.toggle('ac-sheet-open', on);
+}
+
+function closeSheets() {
+  if (isPhone()) document.getElementById('ac-filter').open = false;
+  document.getElementById('ac-more').classList.add('hidden');
+  _showBackdrop(false);
+}
+
+/** More (phones): the modes that work best on a computer. */
+function _openMore() {
+  const more = document.getElementById('ac-more');
+  const desk = AC_MODES.filter(m => m.phone === false);
+  more.innerHTML = `
+    <div class="ac-bsheet-head">
+      <strong>${icon('computerOnly')} Best on a computer</strong>
+      <button type="button" class="ac-bsheet-close" data-close-sheet aria-label="Close">${icon('close')}</button>
+    </div>
+    <p class="ac-hint">These work on a phone too, but they are easier on a bigger screen.</p>
+    <div class="ac-more-list">${desk.map(m => `
+      <button type="button" class="ac-more-item" data-mode="${m.id}">
+        <span class="ac-more-icon">${icon(m.icon)}</span>
+        <span><strong>${esc(m.label)}</strong><small>${esc(m.hint || '')}</small></span>
+      </button>`).join('')}</div>`;
+  more.classList.remove('hidden');
+  _showBackdrop(true);
 }
 
 function _filterChanged() {
@@ -121,10 +166,27 @@ function _filterChanged() {
 
 // ── Modes ───────────────────────────────────────────────────────────────────────
 
+/** Tabs: every mode on a computer; on a phone the learning modes (+ the one on
+ *  screen) and More. The tab on screen is scrolled into view. */
 function _renderModeTabs() {
-  document.getElementById('ac-modes').innerHTML = AC_MODES.map(m =>
+  const nav = document.getElementById('ac-modes');
+  const phone = isPhone();
+  const shown = AC_MODES.filter(m => !phone || m.phone !== false || m.id === ac.mode);
+  nav.innerHTML = shown.map(m =>
     `<button type="button" role="tab" class="ac-mode-btn ${m.id === ac.mode ? 'active' : ''}" data-mode="${m.id}"
-             aria-selected="${m.id === ac.mode}" title="${esc(m.hint || '')}">${icon(m.icon)} ${esc(m.label)}</button>`).join('');
+             aria-selected="${m.id === ac.mode}" title="${esc(m.hint || '')}">${icon(m.icon)} ${esc(m.label)}</button>`).join('') +
+    (phone && AC_MODES.some(m => m.phone === false)
+      ? `<button type="button" class="ac-mode-btn ac-more-btn" data-more title="More">${icon('moreModes')} More</button>` : '');
+  const active = nav.querySelector('.ac-mode-btn.active');
+  if (active) nav.scrollLeft = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+  _updateTabFades();
+}
+
+/** Fade the edge of the tab row where more tabs are hidden. */
+function _updateTabFades() {
+  const nav = document.getElementById('ac-modes');
+  nav.classList.toggle('fade-left', nav.scrollLeft > 4);
+  nav.classList.toggle('fade-right', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
 }
 
 /** The help for the mode on screen (js/shared/help.js); each links to the Academy's general help. */
@@ -133,6 +195,7 @@ const academyHelpTopic = () => (HELP[`academy-${ac.mode}`] ? `academy-${ac.mode}
 function showMode(id) {
   const mode = AC_MODES.find(m => m.id === id) || AC_MODES[0];
   if (_acCleanup) { try { _acCleanup(); } catch {} _acCleanup = null; }
+  if (mode.id !== ac.mode) closeSheets();   // a filter change redraws the same mode: the sheet stays open
   ac.mode = mode.id;
   if (location.hash !== `#${mode.id}`) history.replaceState(null, '', `#${mode.id}`);
   document.body.classList.toggle('ac-no-filter', !mode.filter);
@@ -145,7 +208,7 @@ function showMode(id) {
 
 /** "Not enough questions" message for a mode, with a hint to widen the filter. */
 function emptyHtml(what) {
-  return `<div class="ac-empty"><p>${what}</p><p>Choose a wider topic or "Easy + hard" on the left.</p></div>`;
+  return `<div class="ac-empty"><p>${what}</p><p>Choose a wider topic or "Easy + hard" in <b>Choose what to learn</b>.</p></div>`;
 }
 
 /** Copy text to the clipboard, or show it to copy by hand. */
@@ -167,9 +230,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   _renderEditionPicker();
   _initFilter();
   _renderTree();
-  document.getElementById('ac-modes').addEventListener('click', e => {
+  const nav = document.getElementById('ac-modes');
+  nav.addEventListener('click', e => {
+    if (e.target.closest('[data-more]')) { _openMore(); return; }
     const btn = e.target.closest('[data-mode]');
     if (btn) showMode(btn.dataset.mode);
+  });
+  nav.addEventListener('scroll', _updateTabFades, { passive: true });
+  document.getElementById('ac-more').addEventListener('click', e => {
+    const btn = e.target.closest('[data-mode]');
+    if (btn) { showMode(btn.dataset.mode); closeSheets(); }
+  });
+  document.addEventListener('click', e => { if (e.target.closest('[data-close-sheet]')) { e.preventDefault(); closeSheets(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('ac-sheet-open')) closeSheets(); });
+  // Turning a tablet or resizing a window across the phone width: tabs and filter follow
+  window.matchMedia(AC_PHONE_QUERY).addEventListener?.('change', () => {
+    closeSheets();
+    document.getElementById('ac-filter').open = !isPhone();
+    _renderModeTabs();
   });
   showMode(location.hash.slice(1) || 'explore');
 });

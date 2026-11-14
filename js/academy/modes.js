@@ -59,7 +59,7 @@ function _itemHtml(q, { marked, reviewed, review }) {
           <button type="button" class="btn btn-primary btn-small" data-action="save">Save</button>
           <button type="button" class="btn btn-secondary btn-small" data-action="cancel">Cancel</button>
         </div>` : `
-        <div class="qx-actions">
+        <div class="qx-actions ${review ? '' : 'ac-desk'}">
           ${review ? `<label class="ac-reviewed"><input type="checkbox" data-action="reviewed" ${reviewed[q.id] ? 'checked' : ''}> ✓ Reviewed</label>` : ''}
           ${mark
             ? `<button type="button" class="link-btn" data-action="edit">${icon('editNote')} Edit note</button>
@@ -100,7 +100,7 @@ registerMode({
     main.innerHTML = `
       <div class="ac-bar">
         <label class="qx-check"><input type="checkbox" id="ac-answers" ${_ex.answers ? 'checked' : ''}> Show answers</label>
-        <label class="qx-check"><input type="checkbox" id="ac-marked" ${_ex.markedOnly ? 'checked' : ''}> ${icon('marked')} Marked only</label>
+        <label class="qx-check ac-desk"><input type="checkbox" id="ac-marked" ${_ex.markedOnly ? 'checked' : ''}> ${icon('marked')} Marked only</label>
         <span class="ac-spacer"></span>
         <span id="ac-count" class="qx-count"></span>
       </div>
@@ -108,7 +108,7 @@ registerMode({
     const list = main.querySelector('#ac-list');
     const draw = () => {
       const marked = loadMarkedQuestions();
-      const shownQs = _ex.markedOnly ? questions.filter(q => marked[q.id]) : questions;
+      const shownQs = _ex.markedOnly && !isPhone() ? questions.filter(q => marked[q.id]) : questions;
       main.querySelector('#ac-count').textContent = `${shownQs.length} question${shownQs.length === 1 ? '' : 's'}`;
       const page = shownQs.slice(0, _ex.limit);
       list.innerHTML = page.length
@@ -125,57 +125,105 @@ registerMode({
 
 // ── Flashcards ───────────────────────────────────────────────────────────────
 
-/** Cards per set: 4×2, 3×3 or one big card. */
+/** Cards per set: 4×2, 3×3 or one big card (phones start with one card and swipe). */
 const FLASH_LAYOUTS = [{ n: 8, cols: 4, label: '8 cards (4 × 2)' }, { n: 9, cols: 3, label: '9 cards (3 × 3)' }, { n: 1, cols: 1, label: '1 card' }];
-let _flashSize = 8;
+const LS_FLASH_SIZE = 'triventurex_academy_flash_size';
+let _flashSize = null;
+
+function _initialFlashSize() {
+  let saved = null;
+  try { saved = Number(localStorage.getItem(LS_FLASH_SIZE)); } catch {}
+  return FLASH_LAYOUTS.some(l => l.n === saved) ? saved : isPhone() ? 1 : 8;
+}
 
 registerMode({
   id: 'flashcards', icon: 'modeFlashcards', label: 'Flashcards', filter: true,
   hint: 'A set of cards: guess each answer, then turn the card over',
   render(main, questions) {
+    if (_flashSize === null) _flashSize = _initialFlashSize();
+    const touchScreen = window.matchMedia('(pointer: coarse)').matches;
     let sets, s, flipped;
     const start = () => { sets = chunk(quizRound(questions, 0), _flashSize); s = 0; flipped = new Set(); draw(); };
-    const card = q => {
+    const card = (q, anim) => {
       const open = flipped.has(q.id);
-      return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''}" data-flip="${q.id}" aria-pressed="${open}">
+      const turn = _flashSize === 1 && touchScreen ? 'Tap to turn · swipe for the next card' : 'Tap to see the answer';
+      return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''} ${anim || ''}" data-flip="${q.id}" aria-pressed="${open}">
           <div class="ac-card-meta">${_diffTag(q)}${_flashSize === 1 ? ` · ${_where(q)}` : ''}</div>
           <div class="ac-card-q">${q.q}</div>
           ${open ? `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}`
-                 : `${_optsHtml(q)}<div class="ac-card-turn">${icon('thinking')} Tap to see the answer</div>`}
+                 : `${_optsHtml(q)}<div class="ac-card-turn">${icon('thinking')} ${turn}</div>`}
         </button>`;
     };
-    const draw = () => {
+    const draw = anim => {
       if (!sets.length) { main.innerHTML = emptyHtml('No cards for this choice.'); return; }
       const set = sets[s];
       const last = s === sets.length - 1;
+      const one = _flashSize === 1;
       main.innerHTML = `
         <div class="ac-bar">
-          <span class="qx-count">${icon('flashcards')} Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned</span>
+          <span class="qx-count">${icon('flashcards')} ${one ? `Card ${s + 1} of ${sets.length}` : `Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned`}</span>
           <span class="ac-spacer"></span>
           <select id="ac-flash-size" class="settings-select" title="How many cards at a time">
             ${FLASH_LAYOUTS.map(l => `<option value="${l.n}" ${l.n === _flashSize ? 'selected' : ''}>${l.label}</option>`).join('')}
           </select>
-          <button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? `${icon('hideAll')} Hide all` : `${icon('turnAll')} Turn all`}</button>
+          ${one ? '' : `<button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? `${icon('hideAll')} Hide all` : `${icon('turnAll')} Turn all`}</button>`}
         </div>
-        <div class="ac-flash-grid" style="--cols:${FLASH_LAYOUTS.find(l => l.n === _flashSize).cols}">${set.map(card).join('')}</div>
+        <div class="ac-flash-grid" style="--cols:${FLASH_LAYOUTS.find(l => l.n === _flashSize).cols}">${set.map(q => card(q, anim)).join('')}</div>
         <div class="ac-actions">
-          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>${icon('back')} Previous set</button>
-          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? `${icon('shuffle')} Shuffle and start again` : `Next set ${icon('forward')}`}</button>
+          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>${icon('back')} ${one ? 'Previous' : 'Previous set'}</button>
+          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? `${icon('shuffle')} Shuffle and start again` : `${one ? 'Next card' : 'Next set'} ${icon('forward')}`}</button>
         </div>`;
-      main.querySelector('#ac-flash-size').onchange = e => { _flashSize = Number(e.target.value); start(); };
+      main.querySelector('#ac-flash-size').onchange = e => {
+        _flashSize = Number(e.target.value);
+        try { localStorage.setItem(LS_FLASH_SIZE, String(_flashSize)); } catch {}
+        start();
+      };
     };
+    /** Next (+1) or previous (-1) set; slides in from that side. */
+    const go = dir => {
+      const to = s + dir;
+      if (to < 0 || to >= sets.length) return;
+      s = to; flipped = new Set(); main.scrollTop = 0;
+      draw(dir > 0 ? 'ac-in-right' : 'ac-in-left');
+    };
+    let swipedAt = 0;
     main.onclick = e => {
+      if (Date.now() - swipedAt < 400) return;   // the click a swipe can leave behind
       const c = e.target.closest('[data-flip]');
       if (c) { const id = Number(c.dataset.flip); flipped.has(id) ? flipped.delete(id) : flipped.add(id); draw(); return; }
       const a = e.target.closest('[data-action]')?.dataset.action;
       const set = sets[s];
-      if (a === 'all')   flipped = flipped.size === set.length ? new Set() : new Set(set.map(q => q.id));
-      if (a === 'next')  { s++; flipped = new Set(); main.scrollTop = 0; }
-      if (a === 'prev')  { s--; flipped = new Set(); main.scrollTop = 0; }
-      if (a === 'again') { start(); return; }
-      if (a) draw();
+      if (a === 'all')   { flipped = flipped.size === set.length ? new Set() : new Set(set.map(q => q.id)); draw(); }
+      if (a === 'next')  go(1);
+      if (a === 'prev')  go(-1);
+      if (a === 'again') start();
     };
-    onLeaveMode(() => { main.onclick = null; });
+    // One card at a time: swipe left / right (phones), or the arrow keys
+    let touch = null;
+    const onStart = e => { touch = _flashSize === 1 && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; };
+    const onEnd = e => {
+      if (!touch) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touch.x, dy = t.clientY - touch.y;
+      touch = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      swipedAt = Date.now();
+      go(dx < 0 ? 1 : -1);
+    };
+    const onKey = e => {
+      if (_flashSize !== 1 || e.target.closest?.('input, select, textarea') || document.body.classList.contains('ac-sheet-open')) return;
+      if (e.key === 'ArrowRight') go(1);
+      if (e.key === 'ArrowLeft') go(-1);
+    };
+    main.addEventListener('touchstart', onStart, { passive: true });
+    main.addEventListener('touchend', onEnd, { passive: true });
+    document.addEventListener('keydown', onKey);
+    onLeaveMode(() => {
+      main.onclick = null;
+      main.removeEventListener('touchstart', onStart);
+      main.removeEventListener('touchend', onEnd);
+      document.removeEventListener('keydown', onKey);
+    });
     start();
   },
 });
@@ -481,7 +529,7 @@ function _printBack(q) {
 }
 
 registerMode({
-  id: 'print', icon: 'modePrint', label: 'Print cards', filter: true,
+  id: 'print', icon: 'modePrint', label: 'Print cards', filter: true, phone: false,
   hint: 'Print the chosen questions as cards to cut out',
   render(main, questions) {
     const cards = questions.slice(0, PRINT_MAX);
@@ -509,6 +557,7 @@ registerMode({
           </select>
           <button type="button" class="btn btn-primary btn-small" data-action="print" ${cards.length ? '' : 'disabled'}>${icon('print')} Print</button>
         </div>
+        <p class="ac-phone-note ac-phone-only ac-no-print">${icon('computerOnly')} Printing works best from a computer. On a phone: tap Print, or use Share and then Print.</p>
         <p class="ac-hint ac-no-print">${_printStyle === 'duplex'
           ? 'Print on <b>both sides</b>, flipping on the <b>long edge</b>, at 100% scale (no "fit to page"). Each answer lands right behind its question — cut along the card lines.'
           : 'Print at 100% scale. Cut out each card, then fold it on the dashed line: question on the front, answer on the back.'}</p>
@@ -526,7 +575,7 @@ registerMode({
 const _rv = { show: 'all' };   // 'all' | 'todo' | 'marked'
 
 registerMode({
-  id: 'review', icon: 'modeReview', label: 'Review', filter: true,
+  id: 'review', icon: 'modeReview', label: 'Review', filter: true, phone: false,
   hint: 'Check every question: tick it as reviewed or mark it with a note',
   render(main, questions) {
     _ex.limit = 40; _ex.editing = null;

@@ -55,3 +55,30 @@ describe('academy.html structure', () => {
     for (const s of scripts) assert.match(s, /^(js\/shared\/|js\/academy\/|game_editions\/editions\.js$)/, s);
   });
 });
+
+// Phones: the setup screen and the Academy must be usable on a phone (2026-11)
+describe('phone-friendly pages', () => {
+  const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+
+  for (const file of ['index.html', 'player.html', 'academy.html']) {
+    it(`${file} has a mobile viewport`, () => {
+      assert.match(read(file), /<meta name="viewport" content="width=device-width, initial-scale=1\.0/);
+    });
+  }
+
+  it('the Academy fills the screen with dvh (phone browser bars must not hide the bottom)', () => {
+    const css = read('css/academy.css');
+    assert.match(css, /body\.academy\s*\{[^}]*height:\s*100vh;\s*height:\s*100dvh/);
+  });
+
+  it('the Academy has the phone filter sheet, its Show button, the More sheet and the backdrop', () => {
+    const html = read('academy.html');
+    for (const id of ['ac-filter', 'ac-filter-done', 'ac-more', 'ac-backdrop']) assert.match(html, new RegExp(`id="${id}"`), id);
+  });
+
+  it('only Print cards and Review move to More on a phone', () => {
+    const modes = read('js/academy/modes.js');
+    const desk = [...modes.matchAll(/id: '(\w+)'[^\n]*phone: false/g)].map(m => m[1]);
+    assert.deepEqual(desk.sort(), ['print', 'review']);
+  });
+});
