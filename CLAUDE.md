@@ -232,8 +232,8 @@ Edit CSV → `npm run build:content` (checks the content, then regenerates quest
 - 5 editions: Swab Quest (432 questions, 52 deed cards, 26 action cards, 20 landmarks) + Football Quest (92 questions, 52 deed cards, 25 action cards, 20 stadium landmarks) + World Tour (220 questions, 56 deed cards, 25 action cards, 26 wonders) + Animal Safari (220 questions, 56 deed cards, 25 action cards, 26 reserves). + Prophets' Stories (221 questions, 56 deed cards, 25 action cards, 24 places; in review). The last three use Wikimedia Commons photos — credits in each edition's `CREDITS.md`
 - Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
-- Four pages: host (`index.html`), phones (`player.html`), TV (`display.html`), 🎓 Academy (`academy.html`)
-- ~440 tests (`npm test`)
+- Four pages: host (`index.html`), phones (`player.html`), TV (`display.html`), 🎓 Academy (`academy.html`) — setup, game and Academy also have phone layouts; the Academy installs as an offline app (2026-11)
+- ~490 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
 - `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)

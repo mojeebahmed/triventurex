@@ -57,7 +57,7 @@ The game auto-detects whether Socket.IO is available. If the server isn't runnin
 ## Development
 
 ```bash
-npm test                  # all tests (~440, a few seconds): server, turn flow, board generation, rules, stats, content
+npm test                  # all tests (~490, a few seconds): server, turn flow, board generation, rules, stats, content
 npm run build:content     # check every edition's CSV content (and the shared action cards), then regenerate questions.js / deeds.js / actions.js
 npm run check:content     # check only: fails on content errors or out-of-date generated files
 node scripts/commons-image.js search "Eiffel Tower"   # find free-licence landmark photos on Wikimedia Commons (see IDEAS.md)
@@ -367,7 +367,7 @@ New to the game? Press the **?** button on any screen (or the ? key) — it expl
 
 **On a phone** the Academy has its own layout: one-row top bar, *Choose what to learn* as a sheet from the bottom, flashcards one at a time (swipe for the next), and *Print cards* + *Review* under **⋯ More**.
 
-**Setting up on a phone:** the setup screen also fits a phone (New game · Rules · ⋯ More, where More holds Questions, Boards and the Academy). The game itself is meant for a laptop or TV, with phones joining as players.
+**Setting up on a phone:** the setup screen also fits a phone (New game · Rules · ⋯ More, where More holds Questions, Boards and the Academy). The game is best on a laptop or TV with phones joining as players, but it also works on a phone or small tablet: upright, the board is on top and the controls are underneath (scroll them); on its side, the controls are on the right. ⓘ in the zoom bar shows the legend; long cards scroll while their buttons stay put.
 
 **As an app (install + offline):** served over https (GitHub Pages) or from `http://localhost`, the Academy can be installed — *Install the Academy* in More, the browser's install button, or on an iPhone Safari → Share → *Add to Home Screen*. After one visit online it works **without internet**: every edition's questions and the emoji are saved (`academy-sw.js`); *Save photos for offline* in More saves an edition's Places photos. Updates still arrive: when online, the newest files are always fetched first. (A phone opening `http://<laptop-ip>:3000/academy` on the local network gets the phone layout but not offline mode — browsers only allow it on https or localhost.)
 
@@ -441,6 +441,8 @@ The full list of saved keys (game save, preferences, asked questions/cards, phon
 - **🎓 Triventurex Academy** (academy.html): explore, flashcards, quiz, match, true or false, speed round, places, print cards and a reviewer mode
 - **Icons**: Fluent Emoji (game symbols) and Lucide (controls) everywhere, used by name; editions change icons in one `ICONS` block; `tools/icon-picker.html` to try other icons
 - **Phones**: the same badges and colours as the host; the edition's words, icons and tile names; an edition banner on the phone and host lobby
+- **Phone and small-screen layouts** for the setup screen, the game (board first, controls underneath or beside) and the Academy (swipe flashcards, filter sheet)
+- **Academy as an app**: installable from the browser and usable offline (GitHub Pages / https)
 - **World Tour** 🌍, **Animal Safari** 🦁 and **Prophets' Stories** 📖 editions; 40 general action cards for every edition; landmark points 3 by default; Rules tab as a one-line action bar with the same control style as the other tabs; Wikimedia Commons image tool — details in `CHANGELOG.md`
 
 ### Future ideas

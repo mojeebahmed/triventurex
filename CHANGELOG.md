@@ -7,6 +7,11 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 ## [Unreleased]
 
 ### Added
+- **Phones and small screens** — the setup screen, the game and the Academy now fit a phone:
+  - **Game**: upright, the board fills the top (~58%) and the controls sit underneath, scrolling (player | Roll Dice, the rolled die | manual dice, scores, timer, game log, GM controls); on its side, a narrower panel on the right. The legend hides behind a new ⓘ button in the zoom bar; the board refits when the phone turns. *Last turn* is one line across the board — long text gets smaller, then drops its label.
+  - **Setup**: the card fills the screen; tabs are *New game · Rules · ⋯ More* (More holds Questions, Boards and the Academy); editions as compact rows.
+  - **Academy**: one-row top bar, *Choose what to learn* as a sheet from the bottom, flashcards one at a time with **swipe** (or ← / →), bigger answer buttons; *Print cards* and *Review* move to *⋯ More*, and marking questions is kept to Review.
+- **Academy as an app**: install it from the browser (*Install the Academy* in More, or Share → *Add to Home Screen* on an iPhone) and learn **offline** — after one visit online, every edition's questions and the emoji are saved; *Save photos for offline* saves an edition's Places photos. When online the newest questions are always fetched first (`academy-sw.js`, `academy.webmanifest`; https or localhost only).
 - **Last turn**: one line at the top of the board (and on the TV) says what just happened — *Sara rolled 5 · Question: hard one, right · +2 Goals*.
 - **What we learned today** on the end screen (and the TV): three facts from the game's questions — right answers first — and the topics played.
 - **Print rules card** (Rules tab): a short card with this game's rules in the edition's words, on one A4 page (print 2 pages per sheet for a smaller card).
@@ -24,6 +29,8 @@ IDs in brackets (B1, A2, C3, T1, G6, …) are the work-item IDs used in branch n
 - `game_editions/IDEAS.md`: ideas for new editions, the content target per edition, and how an edition is built.
 
 ### Fixed
+- Long space cards hid their buttons on small screens, and a finger or the mouse wheel on a card moved the board instead of scrolling the card. The card now scrolls (icon, title, text) while its buttons stay at the bottom.
+- The host lobby could not scroll: on a phone, a short window or with many players, its top and the *Back* button were cut off.
 - Phones: a deed that moves to the next / previous landmark now names the landmark (the phone was sent the old named-landmark field, which is always empty).
 - ⚙️ Rules → Topics: a topic that appears under several categories (World Tour's "Europe", Animal Safari's "Africa") could not be switched off in one branch only. The selection is now kept per full path (category › subcategory › topic); saved selections carry over.
 - Deed tiles on the board showed a raw `{landmark}` placeholder; the tile and the card now both show the landmark (or "a wonder" / "a stadium" / … when this game's effect isn't a landmark move).

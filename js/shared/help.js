@@ -167,6 +167,7 @@ What to do when a card opens.
 - On phones, multiple-choice questions are answered on the phone and scored for you.
 - Otherwise read the question out, press {icon:reveal} **Reveal Answer**, then {icon:judgeCorrect} or {icon:judgeWrong}.
 - {icon:markQuestion} marks a question that looks wrong.
+- A long card scrolls — the buttons always stay at the bottom.
 
 ## {icon:tileAction} {action}
 - Only the performer may see the card — on their phone, or with {icon:reveal} while the others look away.

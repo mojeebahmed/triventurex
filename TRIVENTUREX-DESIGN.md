@@ -261,6 +261,7 @@ Host browser (index.html)          Player browsers (player.html)       TV (displ
 | `triventurex_marked_<editionId>` | Questions marked wrong / unclear: `{ [id]: { note, at } }` (game + Academy) |
 | `triventurex_reviewed_<editionId>` | Academy 🔍 Review: questions ticked as reviewed `{ [id]: at }` |
 | `triventurex_academy_edition` | Last edition opened in the Academy |
+| `triventurex_academy_flash_size` | Academy flashcards: cards per set (8, 9 or 1); phones start with 1 |
 | `triventurex_custom_boards` | Boards from the ✏️ Boards tab: `{ short, medium, long }` (all editions) |
 | `triventurex_player_identity` | Player name/token/colour on player device (V2) |
 | `triventurex_game_session` | Rejoin token + game/player IDs on player device (V2) |
@@ -348,6 +349,14 @@ Browse every question by category › subcategory › topic, search, filter by d
 
 A learning page next to the game, one edition at a time (switching edition reloads the page with `?edition=<id>`; the mode is the `#hash`). One filter (topic tree, difficulty, search) feeds every question mode. The rounds are built by `js/shared/academy.js` (pure); the page is `js/academy/`. 🚩 marks and reviewer ticks live in `js/shared/marks.js`, so a mark made in the Academy shows in the game's 📚 Questions tab in the same browser. Opened from disk the page works the same — the edition's `config.js` and `questions.js` are loaded as plain scripts.
 
+**On phones** (≤ 720px) the Academy has its own layout: the filter opens as a sheet from the bottom, modes marked `phone: false` (Print cards, Review) move to a *More* sheet, and flashcards start one at a time with swipe.
+
+**As an app**: `academy-sw.js` (scope `./academy` — it controls only this page) and `academy.webmanifest` make the Academy installable and usable offline when served over https or localhost. Installing saves the page's own files, every edition's `config.js` + `questions.js` and the emoji; code and questions are fetched network-first (the saved copy offline or after 4 s), pictures cache-first. Place photos are saved when shown or with *Save photos for offline*. Every script academy.html loads must be listed in the worker's `ACADEMY_FILES` (a test checks it).
+
+### Phones and small screens (setup, game)
+
+Setup and game screens switch layout by CSS width / height only (≤ 720px wide upright, ≤ 500px high on its side; `PHONE_GAME_QUERY` in ui.js matches the CSS). Setup: full-screen card, *New game · Rules · More*. Game: upright the board takes ~58% and `#sidebar` becomes a two-column grid underneath; on its side a 230px sidebar. The legend hides behind ⓘ; the board refits when the phone turns. Space cards are a column whose body scrolls while the buttons stay; the board's pan / zoom ignores events on cards so touch and the wheel reach them.
+
 ### Icon picker (`tools/icon-picker.html`)
 
 Open via the server (`/tools/icon-picker.html`). Lists every icon name with its purpose and current icon, for the engine or one edition; search other icon sets (needs the internet) and try them. It changes no file — it gives the lines to apply (`ICON_OVERRIDES`, an edition's `ICONS` block, `scripts/icons.config.js`), then run `npm run build:icons`.
@@ -381,7 +390,6 @@ The older standalone version of the ✏️ Boards tab. It needs to be served (it
 - **New editions** — same engine, different content. Ideas, sizing and the build process: `game_editions/IDEAS.md` (World Tour, Animal Safari and Prophets' Stories are done)
 - **Team mode** — two teams share a token; questions alternate between team members
 - **Timer penalty** — losing points when the question timer runs out
-- **Mobile layout improvements** — board tiles larger on phones; better touch handling
 
 ### Longer-term
 - **Online multiplayer** — beyond local Wi-Fi (requires hosted server + authentication)
