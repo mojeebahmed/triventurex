@@ -44,6 +44,9 @@ app.get(['/', '/index.html'],      (req, res) => res.sendFile(path.join(__dirnam
 app.get(['/player', '/player.html'], (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 app.get(['/display', '/display.html'], (req, res) => res.sendFile(path.join(__dirname, 'display.html')));
 app.get(['/academy', '/academy.html'], (req, res) => res.sendFile(path.join(__dirname, 'academy.html')));
+// Academy as an app (install + offline): its service worker and manifest live next to academy.html
+app.get('/academy-sw.js', (req, res) => res.sendFile(path.join(__dirname, 'academy-sw.js')));
+app.get('/academy.webmanifest', (req, res) => res.type('application/manifest+json').sendFile(path.join(__dirname, 'academy.webmanifest')));
 
 // ── Room state ────────────────────────────────────────────────────────────────
 // Map<gameId, RoomState>

@@ -10,6 +10,10 @@
  * Phones (isPhone(), same width as the CSS): the filter opens as a sheet from
  * the bottom, and modes marked `phone: false` (print, review) move from the
  * tabs to a More sheet — learning comes first on a small screen.
+ *
+ * As an app (served over http(s), e.g. GitHub Pages; not from disk): registers
+ * academy-sw.js (scope ./academy — only this page) so the Academy installs from
+ * the browser and works offline; More offers Install / Save photos for offline.
  */
 
 const LS_ACADEMY_EDITION = 'triventurex_academy_edition';
@@ -140,7 +144,74 @@ function closeSheets() {
   _showBackdrop(false);
 }
 
-/** More (phones): the modes that work best on a computer. */
+// ── As an app: install + offline (academy-sw.js) ────────────────────────────────
+
+/** Same name as ACADEMY_CACHE in academy-sw.js (test/academy-offline.test.js checks it). */
+const ACADEMY_CACHE = 'tx-academy-v1';
+let _installPrompt = null;   // Chrome / Android: the browser's install prompt, kept for our button
+
+const offlineCapable = () => 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.isSecureContext;
+const _isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function _startApp() {
+  if (!offlineCapable()) return;
+  navigator.serviceWorker.register('academy-sw.js', { scope: './academy' })
+    .catch(err => console.warn('Academy: offline mode is not available', err));
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installPrompt = e; });
+  window.addEventListener('appinstalled', () => { _installPrompt = null; });
+}
+
+/** The place photos of the edition on screen. */
+const _photoUrls = () => (CONFIG.LANDMARKS || []).map(l => l.image).filter(Boolean);
+
+/** More → "Use it like an app": install (or how to, on an iPhone) + save photos. */
+function _appSectionHtml() {
+  if (!offlineCapable()) return '';
+  let install = '';
+  if (!_isStandalone()) {
+    if (_installPrompt) {
+      install = `<button type="button" class="ac-more-item" data-app="install">
+          <span class="ac-more-icon">${icon('installApp')}</span>
+          <span><strong>Install the Academy</strong><small>Opens from your home screen like an app, and works without internet</small></span></button>`;
+    } else if (_isIos()) {
+      install = `<div class="ac-more-item ac-more-static">
+          <span class="ac-more-icon">${icon('shareIos')}</span>
+          <span><strong>Add to your home screen</strong><small>In Safari, tap Share, then <b>Add to Home Screen</b>. It then opens like an app and works without internet.</small></span></div>`;
+    }
+  }
+  const photos = _photoUrls().length ? `<button type="button" class="ac-more-item" data-app="photos">
+      <span class="ac-more-icon">${icon('saveOffline')}</span>
+      <span><strong>Save photos for offline</strong><small id="ac-photos-status">The ${_photoUrls().length} photos in Places, for ${esc(CONFIG.GAME?.editionName ?? 'this edition')} — questions are saved already</small></span></button>` : '';
+  if (!install && !photos) return '';
+  return `<h3 class="ac-more-title">${icon('installApp')} Use it like an app</h3><div class="ac-more-list">${install}${photos}</div>`;
+}
+
+async function _onAppAction(action, btn) {
+  if (action === 'install' && _installPrompt) {
+    _installPrompt.prompt();
+    try { await _installPrompt.userChoice; } catch {}
+    _installPrompt = null;
+    closeSheets();
+  }
+  if (action === 'photos') {
+    const status = document.getElementById('ac-photos-status');
+    const urls = _photoUrls();
+    btn.disabled = true;
+    let done = 0, failed = 0;
+    try {
+      const cache = await caches.open(ACADEMY_CACHE);
+      for (const url of urls) {
+        try { if (!(await cache.match(url))) await cache.add(url); } catch { failed++; }
+        status.textContent = `Saving… ${++done} of ${urls.length}`;
+      }
+      status.textContent = failed ? `Saved ${urls.length - failed} of ${urls.length} photos — try again with a better connection` : 'All photos are saved on this device';
+    } catch { status.textContent = 'Could not save the photos on this device'; }
+    btn.disabled = false;
+  }
+}
+
+/** More (phones): the modes that work best on a computer, and the app options. */
 function _openMore() {
   const more = document.getElementById('ac-more');
   const desk = AC_MODES.filter(m => m.phone === false);
@@ -154,7 +225,8 @@ function _openMore() {
       <button type="button" class="ac-more-item" data-mode="${m.id}">
         <span class="ac-more-icon">${icon(m.icon)}</span>
         <span><strong>${esc(m.label)}</strong><small>${esc(m.hint || '')}</small></span>
-      </button>`).join('')}</div>`;
+      </button>`).join('')}</div>
+    ${_appSectionHtml()}`;
   more.classList.remove('hidden');
   _showBackdrop(true);
 }
@@ -224,6 +296,7 @@ function copyText(text, okMessage) {
 document.addEventListener('DOMContentLoaded', async () => {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   startHelp(academyHelpTopic);   // ? button + the ? key (js/shared/help.js)
+  _startApp();                   // install + offline (academy-sw.js)
   const id = _pickEditionId();
   if (!id) { document.getElementById('ac-main').innerHTML = emptyHtml('No editions found.'); return; }
   await _loadEdition(id);
@@ -238,6 +311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   nav.addEventListener('scroll', _updateTabFades, { passive: true });
   document.getElementById('ac-more').addEventListener('click', e => {
+    const app = e.target.closest('[data-app]');
+    if (app) { _onAppAction(app.dataset.app, app); return; }
     const btn = e.target.closest('[data-mode]');
     if (btn) { showMode(btn.dataset.mode); closeSheets(); }
   });

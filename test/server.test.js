@@ -795,7 +795,8 @@ describe('static files', () => {
   for (const p of ['/', '/index.html', '/player', '/player.html', '/academy', '/academy.html', '/js/academy/modes.js',
                    '/js/host/game.js', '/js/shared/utils.js',
                    '/css/styles.css', '/game_editions/editions.js',
-                   '/game_editions/swab-quest/questions.csv', '/images/game-length-short.png']) {
+                   '/game_editions/swab-quest/questions.csv', '/images/game-length-short.png',
+                   '/academy-sw.js', '/academy.webmanifest', '/images/academy/icon-512.png']) {
     it(`serves ${p}`, async () => {
       assert.equal((await rawGet(p)).status, 200);
     });

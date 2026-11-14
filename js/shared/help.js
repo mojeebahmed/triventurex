@@ -252,6 +252,11 @@ Learn the questions of an edition before you play — or just for fun.
 - Tap **Choose what to learn** (under the tabs) to pick topics, then **Show questions**.
 - Slide the row of tabs sideways for more modes. {icon:moreModes} **More** holds {icon:modePrint} Print cards and {icon:modeReview} Review — they work best on a computer.
 
+## Use it like an app
+- {icon:installApp} **Install the Academy** (in {icon:moreModes} More, or the install button in your browser): it opens from your home screen, without the browser around it.
+- On an iPhone: in Safari tap {icon:shareIos} **Share**, then **Add to Home Screen**.
+- Once opened online, the Academy works **without internet** — every edition's questions are saved. {icon:saveOffline} **Save photos for offline** (in More) saves the photos of Places too.
+
 ## The modes
 {icon:modeExplore} Explore · {icon:modeFlashcards} Flashcards · {icon:modeQuiz} Quiz · {icon:modeMatch} Match · {icon:modeTrueFalse} True or false · {icon:modeSpeed} Speed round · {icon:modePlaces} Places · {icon:modePrint} Print cards · {icon:modeReview} Review — each has its own help.`,
   },

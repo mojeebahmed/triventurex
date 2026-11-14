@@ -100,6 +100,9 @@ const ICONS = {
   answerWrong:     'lucide:x',                // Academy: "Not quite" / False
   moreModes:       'lucide:ellipsis',         // Academy on a phone: the More tab (modes best on a computer)
   computerOnly:    'lucide:monitor',          // Academy: a mode that works best on a computer
+  installApp:      'lucide:smartphone',       // Academy: install it like an app (More on a phone)
+  saveOffline:     'lucide:download',         // Academy: save an edition's photos for offline use
+  shareIos:        'lucide:share',            // Academy: iPhone help — Share, then Add to Home Screen
 
   // ── Board tiles and spaces (editions usually override these) ────────────────
   tileStart:       'emoji:🚩',
