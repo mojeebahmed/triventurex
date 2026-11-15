@@ -17,6 +17,22 @@ Phase 1 done (2026-11-15): foundation, DB, CSV import/export, structural checks,
 (evidence layer), ARCHITECTURE.md §6. Open decisions: ARCHITECTURE.md §7 and METHODOLOGY.md §13.
 Run `.venv/bin/python -m pytest` before merging (see README for setup).
 
+## Decisions (Mojeeb, 2026-11-15) — replace ARCHITECTURE.md §7
+- **Free services only, $0 budget.** No paid API usage, no card-required plans. Budgets are tracked as
+  requests/day and credits/month per provider, not dollars; a provider with no free quota left is skipped,
+  never billed. Existing subscriptions (Google AI Plus, Claude) only where they cost nothing extra.
+- **LLM:** Gemini API free tier (Mojeeb's key, billing disabled). Model ids and limits are configuration —
+  the free tier is small (≈20 requests/day for Flash, ≈500 for Flash-Lite, no Pro, Nov 2026), so cheap
+  stages use Flash-Lite. Second independent verifier / small pilots: Claude Code itself (subscription),
+  one fresh subagent per request so blind stages stay blind. No Anthropic/OpenAI API keys.
+- **Search:** several free pools behind one interface with quota tracking: Tavily (1,000 credits/month),
+  optionally Exa and Serper; Brave needs a card → not used. Direct sources first (free, no credits).
+- **Ahmadiyya source: alislam.org.** Qur'an verses from `alislam.org/quran/app/<s>:<v>` (Arabic + Sher Ali
+  English, Bismillah = verse 1, allowed by robots.txt and listed in its sitemap); site search via
+  `alislam.org/?s=<query>`. Respect robots.txt (`/quran/view/`, `/quran/tafseer/`, `/library/browse/…` are
+  disallowed).
+- **First runs:** pilot = 5–10 Swab Quest questions inside the free daily limits; first full run = Swab Quest.
+
 ## Implementation invariants (phase 1)
 - **CSV = the game's parser**, not Python's `csv` module: `qv/io/csv_format.py` re-implements
   `js/shared/csv.js` (line-based, JS `trim()`, no line breaks in fields). Parity is tested against the real JS

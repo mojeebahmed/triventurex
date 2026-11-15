@@ -4,12 +4,13 @@ audience: families and youth (Ahmadiyya community)
 frame:
   name: Ahmadiyya understanding
   applies_to: [doctrine, attribution_to_frame, frame_specific]
-  authorities:
+  authorities:            # alislam.org is the official source (Mojeeb, 2026-11-15)
     - alislam.org
     - reviewofreligions.org
     - "The Holy Qur'an with English translation and commentary (Ahmadiyya)"
   confirmed: false
 conventions:
+  quran_source: alislam.org/quran/app      # Arabic + Maulawi Sher Ali English translation
   quran_numbering: bismillah_is_verse_1   # 2:32 here = 2:31 in the common (Hafs/Cairo) numbering
   honorifics_in_answers: ignore            # "Hadhrat Adam (as)" == "Adam"
   transliteration: lenient                 # Isma'il / Ismail / Ishmael
