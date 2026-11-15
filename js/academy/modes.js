@@ -125,30 +125,57 @@ registerMode({
 
 // ── Flashcards ───────────────────────────────────────────────────────────────
 
-/** Cards per set: 4×2, 3×3 or one big card (phones start with one card and swipe). */
-const FLASH_LAYOUTS = [{ n: 8, cols: 4, label: '8 cards (4 × 2)' }, { n: 9, cols: 3, label: '9 cards (3 × 3)' }, { n: 1, cols: 1, label: '1 card' }];
+/* A set has 4, 8 or 12 cards on a computer (you choose; 8 to start) and one card
+ * on a phone (swipe). The set never changes by itself. How many COLUMNS show it
+ * follows the room: cards stay about CONFIG.ACADEMY.flash.cardWidth wide (× the
+ * text size), at most maxCols — so a narrower window or bigger text moves the
+ * same cards into fewer columns (flashColumns in js/shared/academy.js). */
 const LS_FLASH_SIZE = 'triventurex_academy_flash_size';
-let _flashSize = null;
+const _flashCfg = () => ({ cardWidth: 280, gap: 14, maxCols: 4, setSizes: [4, 8, 12], setSize: 8, ...(CONFIG.ACADEMY?.flash || {}) });
+let _flashSetSize = null;   // the computer's choice (phones always show one card)
 
-function _initialFlashSize() {
+function _savedFlashSetSize() {
+  const { setSizes, setSize } = _flashCfg();
   let saved = null;
   try { saved = Number(localStorage.getItem(LS_FLASH_SIZE)); } catch {}
-  return FLASH_LAYOUTS.some(l => l.n === saved) ? saved : isPhone() ? 1 : 8;
+  return setSizes.includes(saved) ? saved : setSize;
+}
+
+/** The width the cards share: the mode's area without its padding. */
+function _flashWidth(main) {
+  const cs = getComputedStyle(main);
+  return main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
 }
 
 registerMode({
   id: 'flashcards', icon: 'modeFlashcards', label: 'Flashcards', filter: true,
   hint: 'A set of cards: guess each answer, then turn the card over',
   render(main, questions) {
-    if (_flashSize === null) _flashSize = _initialFlashSize();
+    if (_flashSetSize === null) _flashSetSize = _savedFlashSetSize();
     const touchScreen = window.matchMedia('(pointer: coarse)').matches;
-    let sets, s, flipped;
-    const start = () => { sets = chunk(quizRound(questions, 0), _flashSize); s = 0; flipped = new Set(); draw(); };
+    const perSet = () => (isPhone() ? 1 : _flashSetSize);
+    let order, per, sets, s, flipped;
+    const one = () => per === 1;
+    /** Cut the cards into sets, staying at the card on screen. */
+    const cut = () => {
+      const first = sets ? s * per : 0;
+      per = perSet();
+      sets = chunk(order, per);
+      s = Math.min(Math.floor(first / per), Math.max(0, sets.length - 1));
+    };
+    /** Columns for the room there is now — no redraw, the same cards move. */
+    const placeColumns = () => {
+      const grid = main.querySelector('.ac-flash-grid');
+      if (!grid || one()) return;
+      const cols = flashColumns(_flashWidth(main), currentTextSize(), _flashCfg());
+      grid.style.setProperty('--cols', String(Math.min(cols, sets[s].length)));
+    };
+    const start = () => { order = quizRound(questions, 0); sets = null; cut(); flipped = new Set(); draw(); };
     const card = (q, anim) => {
       const open = flipped.has(q.id);
-      const turn = _flashSize === 1 && touchScreen ? 'Tap to turn · swipe for the next card' : 'Tap to see the answer';
+      const turn = one() && touchScreen ? 'Tap to turn · swipe for the next card' : 'Tap to see the answer';
       return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''} ${anim || ''}" data-flip="${q.id}" aria-pressed="${open}">
-          <div class="ac-card-meta">${_diffTag(q)}${_flashSize === 1 ? ` · ${_where(q)}` : ''}</div>
+          <div class="ac-card-meta">${_diffTag(q)}${one() ? ` · ${_where(q)}` : ''}</div>
           <div class="ac-card-q">${q.q}</div>
           ${open ? `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}`
                  : `${_optsHtml(q)}<div class="ac-card-turn">${icon('thinking')} ${turn}</div>`}
@@ -158,25 +185,27 @@ registerMode({
       if (!sets.length) { main.innerHTML = emptyHtml('No cards for this choice.'); return; }
       const set = sets[s];
       const last = s === sets.length - 1;
-      const one = _flashSize === 1;
+      const single = one();
       main.innerHTML = `
         <div class="ac-bar">
-          <span class="qx-count">${icon('flashcards')} ${one ? `Card ${s + 1} of ${sets.length}` : `Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned`}</span>
+          <span class="qx-count">${icon('flashcards')} ${single ? `Card ${s + 1} of ${sets.length}` : `Set ${s + 1} of ${sets.length} · ${flipped.size} of ${set.length} turned`}</span>
           <span class="ac-spacer"></span>
-          <select id="ac-flash-size" class="settings-select" title="How many cards at a time">
-            ${FLASH_LAYOUTS.map(l => `<option value="${l.n}" ${l.n === _flashSize ? 'selected' : ''}>${l.label}</option>`).join('')}
+          ${single ? '' : `<select id="ac-flash-size" class="settings-select" title="How many cards in a set">
+            ${_flashCfg().setSizes.map(n => `<option value="${n}" ${n === _flashSetSize ? 'selected' : ''}>${n} cards</option>`).join('')}
           </select>
-          ${one ? '' : `<button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? `${icon('hideAll')} Hide all` : `${icon('turnAll')} Turn all`}</button>`}
+          <button type="button" class="btn btn-secondary btn-small" data-action="all">${flipped.size === set.length ? `${icon('hideAll')} Hide all` : `${icon('turnAll')} Turn all`}</button>`}
         </div>
-        <div class="ac-flash-grid" style="--cols:${FLASH_LAYOUTS.find(l => l.n === _flashSize).cols}">${set.map(q => card(q, anim)).join('')}</div>
+        <div class="ac-flash-grid ${single ? 'ac-flash-one' : ''}">${set.map(q => card(q, anim)).join('')}</div>
         <div class="ac-actions">
-          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>${icon('back')} ${one ? 'Previous' : 'Previous set'}</button>
-          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? `${icon('shuffle')} Shuffle and start again` : `${one ? 'Next card' : 'Next set'} ${icon('forward')}`}</button>
+          <button type="button" class="btn btn-secondary" data-action="prev" ${s ? '' : 'disabled'}>${icon('back')} ${single ? 'Previous' : 'Previous set'}</button>
+          <button type="button" class="btn btn-primary" data-action="${last ? 'again' : 'next'}">${last ? `${icon('shuffle')} Shuffle and start again` : `${single ? 'Next card' : 'Next set'} ${icon('forward')}`}</button>
         </div>`;
-      main.querySelector('#ac-flash-size').onchange = e => {
-        _flashSize = Number(e.target.value);
-        try { localStorage.setItem(LS_FLASH_SIZE, String(_flashSize)); } catch {}
-        start();
+      placeColumns();
+      const size = main.querySelector('#ac-flash-size');
+      if (size) size.onchange = e => {
+        _flashSetSize = Number(e.target.value);
+        try { localStorage.setItem(LS_FLASH_SIZE, String(_flashSetSize)); } catch {}
+        cut(); flipped = new Set(); draw();   // same order, from the card on screen
       };
     };
     /** Next (+1) or previous (-1) set; slides in from that side. */
@@ -200,7 +229,7 @@ registerMode({
     };
     // One card at a time: swipe left / right (phones), or the arrow keys
     let touch = null;
-    const onStart = e => { touch = _flashSize === 1 && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; };
+    const onStart = e => { touch = one() && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; };
     const onEnd = e => {
       if (!touch) return;
       const t = e.changedTouches[0];
@@ -211,18 +240,29 @@ registerMode({
       go(dx < 0 ? 1 : -1);
     };
     const onKey = e => {
-      if (_flashSize !== 1 || e.target.closest?.('input, select, textarea') || document.body.classList.contains('ac-sheet-open')) return;
+      if (!one() || e.target.closest?.('input, select, textarea') || document.body.classList.contains('ac-sheet-open')) return;
       if (e.key === 'ArrowRight') go(1);
       if (e.key === 'ArrowLeft') go(-1);
     };
+    // The room changes (window resized, filter opened, text size): move the same
+    // cards into more or fewer columns. Across the phone width: one card ↔ a set.
+    const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(() => placeColumns()) : null;
+    resize?.observe(main);
+    const phoneQuery = window.matchMedia(AC_PHONE_QUERY);
+    const onPhoneChange = () => { if (sets?.length && main.isConnected) { cut(); flipped = new Set(); draw(); } };
     main.addEventListener('touchstart', onStart, { passive: true });
     main.addEventListener('touchend', onEnd, { passive: true });
     document.addEventListener('keydown', onKey);
+    document.addEventListener('textsizechange', placeColumns);
+    phoneQuery.addEventListener?.('change', onPhoneChange);
     onLeaveMode(() => {
       main.onclick = null;
+      resize?.disconnect();
       main.removeEventListener('touchstart', onStart);
       main.removeEventListener('touchend', onEnd);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('textsizechange', placeColumns);
+      phoneQuery.removeEventListener?.('change', onPhoneChange);
     });
     start();
   },

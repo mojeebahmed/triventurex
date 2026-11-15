@@ -26,6 +26,12 @@
       <select id="ac-edition" class="settings-select"></select>
     </label>
     <span class="ac-spacer"></span>
+    <!-- Text size (js/shared/text-size.js): only the question cards grow. Phones: in More -->
+    <span class="text-size ac-desk" data-text-size role="group" aria-label="Text size on the cards">
+      <button type="button" data-text-step="-1" title="Smaller text on the cards" aria-label="Smaller text"><i data-icon="textSmaller"></i></button>
+      <span class="text-size-value" aria-live="polite">100%</span>
+      <button type="button" data-text-step="1" title="Bigger text on the cards" aria-label="Bigger text"><i data-icon="textBigger"></i></button>
+    </span>
     <a class="btn btn-secondary btn-small ac-play" href="index.html" title="Play the game" aria-label="Play the game"><i data-icon="playGame"></i><span class="ac-play-label"> Play the game</span></a>
     <button type="button" class="help-btn" onclick="openHelp(academyHelpTopic())" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
   </header>
@@ -70,6 +76,7 @@
   <script src="js/shared/icons.js"></script>
   <script src="js/shared/help.js"></script>
   <script src="js/shared/config.js"></script>
+  <script src="js/shared/text-size.js"></script>
   <script src="js/shared/edition.js"></script>
   <script src="js/shared/questions.js"></script>
   <script src="js/shared/marks.js"></script>

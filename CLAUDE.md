@@ -104,7 +104,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - Plus 40 general action cards (`game_editions/shared/`) mixed into every edition
 - All Islamic/football text in respective `game_editions/<id>/config.js` — engine is fully edition-neutral
 - Four pages: host (`index.html`), phones (`player.html`), TV (`display.html`), 🎓 Academy (`academy.html`) — setup, game and Academy also have phone layouts; the Academy installs as an offline app (2026-11)
-- ~490 tests (`npm test`)
+- ~500 tests (`npm test`)
 
 ## Workflow (how Mojeeb works on this project)
 - `main` stays playable. One branch per item or small group of related items (e.g. `feat/g16-second-screen`, `fix/phone-refresh-rejoin`)

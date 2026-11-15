@@ -135,6 +135,30 @@ const CONFIG = {
    *                (normal mode never draws spaces bigger than 100%)
    * cursorHideMs – the mouse pointer hides after this long without moving (0 = never)
    */
+  /**
+   * TEXT_SIZE — the A− / A+ buttons (js/shared/text-size.js). Only the cards get
+   * bigger: the space card in the game, the question cards in the Academy —
+   * never the board, player names or menus. Remembered per device and page.
+   *
+   * steps – the sizes the buttons step through (1 = normal)
+   */
+  TEXT_SIZE: {
+    steps: [1, 1.15, 1.3, 1.5, 1.75],
+  },
+
+  /**
+   * ACADEMY — Triventurex Academy (academy.html).
+   *
+   * flash – Flashcards on a computer (phones always show one card and swipe):
+   *   setSizes  – the "cards in a set" choices; setSize – the first choice
+   *   cardWidth – a card is at least this wide (px, × the text size); the cards
+   *               move into fewer columns rather than get narrower
+   *   maxCols   – never more columns than this; gap – space between cards (px)
+   */
+  ACADEMY: {
+    flash: { setSizes: [4, 8, 12], setSize: 8, cardWidth: 280, gap: 14, maxCols: 4 },
+  },
+
   PRESENTATION: {
     key:          'p',
     scale:        1.35,

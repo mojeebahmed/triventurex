@@ -145,6 +145,7 @@ The board is on the left, the game's controls on the right.
 ## The board
 - Drag the board to move it; zoom with the mouse wheel, a pinch, or {icon:zoomIn} {icon:zoomOut}. {icon:fitBoard} fits the whole board on the screen.
 - {icon:presentation} **Presentation mode** (or press P): full screen for a TV, everything big and clear. {icon:gmControls} brings back the host's tools; Esc leaves.
+- {icon:textSmaller} {icon:textBigger} **Text size**: smaller or bigger text on the cards — the board, names and scoreboard stay the same. Remembered on this computer.
 
 ## On a phone or small tablet
 - Upright, the board is on top and the controls are underneath — scroll them up and down. On its side, the controls are on the right.
@@ -168,6 +169,7 @@ What to do when a card opens.
 - Otherwise read the question out, press {icon:reveal} **Reveal Answer**, then {icon:judgeCorrect} or {icon:judgeWrong}.
 - {icon:markQuestion} marks a question that looks wrong.
 - A long card scrolls — the buttons always stay at the bottom.
+- Text too small? {icon:textBigger} in the bar at the bottom right of the board makes the cards bigger.
 
 ## {icon:tileAction} {action}
 - Only the performer may see the card — on their phone, or with {icon:reveal} while the others look away.
@@ -255,14 +257,15 @@ Learn the questions of an edition before you play — or just for fun.
 - **Choose what to learn** (left): tick topics, pick easy or hard, or search. Every mode uses this choice.
 - {icon:marked} Marks on questions are shared with the game's Questions tab, on this device.
 - {icon:playGame} **Play the game** goes back to the game.
+- {icon:textSmaller} {icon:textBigger} **Text size** (top right): smaller or bigger text on the question cards — tabs and menus stay the same. Remembered on this device.
 
 ## On a phone
 - Tap **Choose what to learn** (under the tabs) to pick topics, then **Show questions**.
-- Slide the row of tabs sideways for more modes. {icon:moreModes} **More** holds {icon:modePrint} Print cards and {icon:modeReview} Review — they work best on a computer.
+- Slide the row of tabs sideways for more modes. {icon:moreModes} **More** holds {icon:modePrint} Print cards and {icon:modeReview} Review — they work best on a computer — and {icon:textSize} **Text size**.
 
 ## Use it like an app
 - {icon:installApp} **Install the Academy** (in {icon:moreModes} More, or the install button in your browser): it opens from your home screen, without the browser around it.
-- On an iPhone: in Safari tap {icon:shareIos} **Share**, then **Add to Home Screen**.
+- On an iPhone or iPad (Safari, Chrome or another browser): tap {icon:moreModes} More, then {icon:shareIos} **Add to your home screen** for the steps in your browser — usually **Share**, then **Add to Home Screen**. iPhones don't let a page install itself, so there is no install button there.
 - Once opened online, the Academy works **without internet** — every edition's questions are saved. {icon:saveOffline} **Save photos for offline** (in More) saves the photos of Places too.
 
 ## The modes
@@ -282,8 +285,8 @@ Browse the questions with their answers and the fact behind each one.
     body: `
 A set of cards: guess the answer, then tap the card to turn it over.
 
-- Choose how many cards a set has (8, 9 or one at a time). Phones start with one card.
-- One card at a time: **swipe** left for the next card and right to go back (or use the arrow keys).
+- Choose how many cards a set has: 4, 8 or 12. The cards keep their width — in a smaller window or with bigger text they move into fewer columns.
+- On a phone you see one card at a time: **swipe** left for the next card and right to go back.
 - {icon:turnAll} **Turn all** / {icon:hideAll} **Hide all**; move to the next set or {icon:back} back.
 - {icon:shuffle} **Shuffle and start again** for a new order.`,
   },

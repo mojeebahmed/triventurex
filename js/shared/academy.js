@@ -117,6 +117,17 @@ function textSize(q) {
   return len <= 90 ? 'l' : len <= 170 ? 'm' : 's';
 }
 
+/**
+ * Flashcards: how many columns fit `width` px when each card should be at least
+ * `cardWidth` × `scale` (the text size) wide — 1 up to `maxCols`. Cards then
+ * share the row (a little wider, never narrower). A narrower window or bigger
+ * text → fewer columns; the set itself never changes.
+ */
+function flashColumns(width, scale = 1, { cardWidth = 300, gap = 14, maxCols = 4 } = {}) {
+  const w = cardWidth * scale, g = gap * scale;
+  return Math.max(1, Math.min(maxCols, Math.floor(((width || 0) + g) / (w + g))));
+}
+
 /** Reviewer progress for an edition. `reviewed` / `marked` are the stored id maps. */
 function reviewStats(questions, reviewed = {}, marked = {}) {
   const ids = new Set((questions || []).map(q => String(q.id)));
@@ -125,7 +136,38 @@ function reviewStats(questions, reviewed = {}, marked = {}) {
   return { total: ids.size, reviewed: done, marked: flagged, left: ids.size - done };
 }
 
+/**
+ * Which browser an iPhone / iPad is using, from its user agent — to show the right
+ * "Add to Home Screen" steps (iPhones don't let a page install itself).
+ * 'safari' | 'chrome' | 'firefox' | 'edge' | 'other' | null (not an iPhone / iPad).
+ * iPads that ask for the desktop site look like a Mac: pass `touchPoints` > 1.
+ */
+function iosBrowser(ua = '', touchPoints = 0) {
+  const ios = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && touchPoints > 1);
+  if (!ios) return null;
+  if (/CriOS\//.test(ua)) return 'chrome';
+  if (/FxiOS\//.test(ua)) return 'firefox';
+  if (/EdgiOS\//.test(ua)) return 'edge';
+  if (/Safari\//.test(ua) && !/(OPiOS|YaBrowser|DuckDuckGo|GSA|FBAN|FBAV|Instagram)/.test(ua)) return 'safari';
+  return 'other';
+}
+
+/** The numbered steps to add the Academy to the home screen, for that browser. */
+function homeScreenSteps(browser) {
+  const finish = ['Tap **Add to Home Screen** (scroll down the list if you don\'t see it)',
+                  'Keep **Open as Web App** switched on if you see it, then tap **Add**'];
+  switch (browser) {
+    case 'chrome':  return ['Tap the **Share** button at the top right, next to the address', ...finish];
+    case 'edge':
+    case 'firefox': return ['Tap the **menu** button (three lines or three dots), then **Share**', ...finish];
+    case 'safari':  return ['Tap the **Share** button at the bottom (or the three dots first, then **Share**)', ...finish];
+    default:        return ['Open this page in **Safari** — copy the link below and paste it there',
+                            'Tap the **Share** button, then **Add to Home Screen**', finish[1]];
+  }
+}
+
 if (typeof module !== 'undefined') {
   module.exports = { shuffled, answerText, correctIndex, isMulti, quizRound, trueFalseItems,
-                     matchPairs, speedPool, placesQuiz, reviewStats, chunk, printSheets, textSize };
+                     matchPairs, speedPool, placesQuiz, reviewStats, chunk, printSheets, textSize,
+                     iosBrowser, homeScreenSteps, flashColumns };
 }

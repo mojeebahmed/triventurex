@@ -250,6 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   startHelp(hostHelpTopic);   // ? buttons + the ? key (js/shared/help.js, js/host/help-host.js)
   startPhoneLayout();         // phones: refit the board when the phone turns (ui.js)
+  startTextSize('game', s => showToast(`Card text ${textSizeLabel(s)}`, 1600, 'textSize'));   // A− / A+ in the zoom bar (js/shared/text-size.js)
   // Validate saved edition against the registry — if the ID no longer exists
   // (e.g. folder was renamed), fall back to the first registered edition.
   const savedRaw     = (() => { try { return localStorage.getItem('triventurex_edition'); } catch { return null; } })();

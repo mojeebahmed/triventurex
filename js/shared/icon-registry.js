@@ -104,6 +104,10 @@ const ICONS = {
   installApp:      'lucide:smartphone',       // Academy: install it like an app (More on a phone)
   saveOffline:     'lucide:download',         // Academy: save an edition's photos for offline use
   shareIos:        'lucide:share',            // Academy: iPhone help — Share, then Add to Home Screen
+  addHomeScreen:   'lucide:square-plus',      // Academy: iPhone help — the Add to Home Screen step
+  textSmaller:     'lucide:a-arrow-down',     // text size: smaller text on the cards (game card, Academy cards)
+  textBigger:      'lucide:a-arrow-up',       // text size: bigger text on the cards
+  textSize:        'lucide:type',             // text size: the setting's heading (Academy More sheet, help)
 
   // ── Board tiles and spaces (editions usually override these) ────────────────
   tileStart:       'emoji:🚩',

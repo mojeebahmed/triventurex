@@ -348,6 +348,12 @@
           <button onclick="zoomIn()"    title="Zoom in" aria-label="Zoom in"><i data-icon="zoomIn"></i></button>
           <!-- Phones: the legend hides behind this button -->
           <button type="button" class="zoom-legend-btn" onclick="toggleLegend()" title="What the spaces mean" aria-label="Legend"><i data-icon="boardLegend"></i></button>
+          <!-- Text size (js/shared/text-size.js): only the space cards grow -->
+          <span class="text-size zoom-text-size" data-text-size role="group" aria-label="Text size on the cards">
+            <button type="button" data-text-step="-1" title="Smaller text on the cards" aria-label="Smaller text"><i data-icon="textSmaller"></i></button>
+            <span class="text-size-value" aria-live="polite">100%</span>
+            <button type="button" data-text-step="1" title="Bigger text on the cards" aria-label="Bigger text"><i data-icon="textBigger"></i></button>
+          </span>
           <button onclick="togglePresentation()" class="zoom-present-btn"
                   title="Presentation mode — full screen for a TV (P)" aria-label="Presentation mode"><i data-icon="presentation"></i></button>
           <button type="button" onclick="openHostHelp()" title="Help (?)" aria-label="Help"><i data-icon="help"></i></button>
@@ -364,6 +370,11 @@
         <!-- Modal — absolute inside board-viewport so sidebar stays accessible -->
         <div id="modal-overlay" class="hidden">
           <div id="modal">
+            <!-- Text size, in the card's corner: the zoom bar is under the open card (js/shared/text-size.js; never sent to the TV) -->
+            <span class="text-size modal-text-size" data-text-size data-host-only role="group" aria-label="Text size on the cards">
+              <button type="button" data-text-step="-1" title="Smaller text on the cards" aria-label="Smaller text"><i data-icon="textSmaller"></i></button>
+              <button type="button" data-text-step="1" title="Bigger text on the cards" aria-label="Bigger text"><i data-icon="textBigger"></i></button>
+            </span>
             <!-- Scrolls when the card is long; the buttons below always stay -->
             <div id="modal-body">
               <div id="modal-icon"></div>
@@ -543,6 +554,7 @@
   <script src="js/shared/icons.js"></script>
   <script src="js/shared/help.js"></script>
   <script src="js/shared/config.js"></script>
+  <script src="js/shared/text-size.js"></script>
   <script src="js/shared/board.js"></script>
   <script src="js/shared/players.js"></script>
   <script src="js/shared/turn.js"></script>

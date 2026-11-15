@@ -77,6 +77,24 @@ body.ac-no-filter .ac-side { display: none; }
 .ac-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px auto 0; max-width: 680px; }
 .ac-actions .btn { min-width: 150px; }
 
+/* Text size (A− / A+, js/shared/text-size.js): only the cards of each mode grow —
+   the whole card (text, spacing, buttons) so it keeps its shape. Tabs, the filter,
+   the bar above the cards and printed cards (fixed mm sizes) stay the same. */
+#ac-list, .ac-flash-grid, .ac-panel, .ac-match-grid, .ac-places, .ac-summary, .ac-missed { zoom: var(--text-scale, 1); }
+.ac-top .text-size { background: rgba(255,255,255,.92); border-radius: 18px; padding: 2px 4px; color: var(--text); }
+.ac-top .text-size button {
+  border: none; background: none; cursor: pointer; color: var(--green); font-size: 1.1rem;
+  width: 32px; height: 30px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center;
+}
+@media (hover: hover) { .ac-top .text-size button:hover:not(:disabled) { background: var(--green-light); } }
+.ac-more-textsize { justify-content: space-between; }
+.ac-more-textsize .text-size button {
+  border: 1px solid var(--border); background: #fff; cursor: pointer; color: var(--green); font-size: 1.3rem;
+  width: 48px; height: 44px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+}
+.ac-more-textsize .text-size { gap: 6px; }
+.ac-more-textsize .text-size-value { font-size: .9rem; min-width: 46px; }
+
 /* Explore / Review list items */
 body.academy .qx-item { padding: 12px 16px; margin-bottom: 10px; }
 body.academy .qx-item.marked { border-top-color: var(--danger); box-shadow: 0 4px 16px rgba(0,0,0,.06); }
@@ -86,8 +104,12 @@ body.academy .qx-item.show-answers .qx-correct { color: var(--green-dark, var(--
 .ac-panel { display: block; width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 24px; font: inherit; }
 .ac-panel .ac-card-q { font-size: 1.2rem; }
 
-/* Flashcards: a grid of cards (4 × 2, 3 × 3 or one) */
-.ac-flash-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 14px; }
+/* Flashcards: a set of cards in --cols columns (set by modes.js from the room:
+   cards about CONFIG.ACADEMY.flash.cardWidth wide, at most 4 columns). A short
+   last row is centred; cards in a row are the same height. */
+.ac-flash-grid { --cols: 4; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.ac-flash-grid > .ac-flash { flex: 0 0 calc((100% - (var(--cols) - 1) * 14px) / var(--cols)); min-width: 0; }
+.ac-flash-grid.ac-flash-one { --cols: 1; }
 .ac-flash {
   display: flex; flex-direction: column; min-height: 190px; padding: 14px 16px;
   font: inherit; cursor: pointer; transition: transform .15s, box-shadow .15s;
@@ -101,9 +123,9 @@ body.academy .qx-item.show-answers .qx-correct { color: var(--green-dark, var(--
 @media (prefers-reduced-motion: reduce) { .ac-flash.ac-in-right, .ac-flash.ac-in-left { animation: none; } }
 .ac-flash.flipped { border-top-color: var(--gold); }
 .ac-flash .ac-opts li { font-size: .82rem; padding: 3px 8px; }
-.ac-flash-grid[style*="--cols:1"] { max-width: 680px; margin: 0 auto; }
-.ac-flash-grid[style*="--cols:1"] .ac-flash { min-height: 280px; padding: 22px 24px; }
-.ac-flash-grid[style*="--cols:1"] .ac-card-q { font-size: 1.25rem; }
+.ac-flash-grid.ac-flash-one { max-width: 680px; margin: 0 auto; }
+.ac-flash-grid.ac-flash-one .ac-flash { min-height: 280px; padding: 22px 24px; }
+.ac-flash-grid.ac-flash-one .ac-card-q { font-size: 1.25rem; }
 .ac-card-turn { margin-top: auto; padding-top: 12px; color: var(--text-muted); font-size: .8rem; text-align: center; }
 
 /* Answer buttons (quiz, speed, places) */
@@ -230,6 +252,11 @@ body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
 .ac-more-item small { display: block; color: var(--text-muted); font-size: .8rem; margin-top: 2px; }
 .ac-more-icon { font-size: 1.3rem; color: var(--green); display: inline-flex; }
 .ac-more-static { cursor: default; }
+.ac-more-item[aria-expanded="true"] { border-color: var(--green); background: var(--green-light); }
+/* iPhone: the Add to Home Screen steps for the browser in use (opens under its button) */
+.ac-ios-steps { padding: 10px 14px 12px; border: 1px dashed var(--green); border-radius: 12px; background: #fff; }
+.ac-ios-steps ol { margin: 0 0 8px; padding-left: 22px; display: grid; gap: 6px; font-size: .92rem; line-height: 1.4; }
+.ac-ios-steps .ac-hint { margin: 0 0 10px; font-size: .82rem; }
 .ac-more-title { display: flex; align-items: center; gap: 6px; margin: 18px 0 0; font-size: .9rem; }
 .ac-more-item:disabled { opacity: .7; cursor: progress; }
 .ac-phone-note { margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; background: #FFF8E1; font-size: .85rem; }
@@ -296,12 +323,11 @@ body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
   .ac-panel .ac-actions { position: sticky; bottom: 0; margin: 14px -16px -16px; padding: 12px 16px 16px; background: linear-gradient(rgba(255,255,255,0), #fff 35%); border-radius: 0 0 14px 14px; }
 
   /* Flashcards: 8 or 9 cards = two columns; one card = a big card to swipe */
-  .ac-flash-grid { grid-template-columns: repeat(min(var(--cols, 4), 2), minmax(0, 1fr)); gap: 10px; }
   .ac-flash { min-height: 150px; padding: 10px 12px; }
   .ac-flash .ac-card-q { font-size: .95rem; }
-  .ac-flash-grid[style*="--cols:1"] .ac-flash { min-height: 52vh; min-height: 52dvh; padding: 20px; touch-action: pan-y; }
-  .ac-flash-grid[style*="--cols:1"] .ac-card-q { font-size: 1.3rem; }
-  .ac-flash-grid[style*="--cols:1"] .ac-opts li { font-size: 1rem; padding: 8px 12px; }
+  .ac-flash-grid.ac-flash-one .ac-flash { min-height: 52vh; min-height: calc(52dvh / var(--text-scale, 1)); padding: 20px; touch-action: pan-y; }
+  .ac-flash-grid.ac-flash-one .ac-card-q { font-size: 1.3rem; }
+  .ac-flash-grid.ac-flash-one .ac-opts li { font-size: 1rem; padding: 8px 12px; }
   .ac-card-q { font-size: 1.05rem; }
   .ac-sheet { transform-origin: top left; zoom: .45; }
 }

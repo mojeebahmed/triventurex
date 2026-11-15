@@ -126,3 +126,40 @@ for (const id of listEditions().filter(id => id !== 'template')) {
     });
   });
 }
+
+describe('flashcards: columns', () => {
+  const cfg = { cardWidth: 280, gap: 14, maxCols: 4 };
+
+  it('4 columns on a laptop, fewer in a narrower window', () => {
+    assert.equal(A.flashColumns(1202, 1, cfg), 4);   // MacBook Air 13" (1512px) without the topic list
+    assert.equal(A.flashColumns(1000, 1, cfg), 3);
+    assert.equal(A.flashColumns(1130, 1, cfg), 3);   // 1440px window
+    assert.equal(A.flashColumns(700, 1, cfg), 2);
+    assert.equal(A.flashColumns(550, 1, cfg), 1);
+  });
+
+  it('cards are never narrower than cardWidth × text size, and at most maxCols', () => {
+    for (const scale of [1, 1.15, 1.3, 1.5, 1.75]) {
+      for (let width = 200; width <= 3000; width += 23) {
+        const cols = A.flashColumns(width, scale, cfg);
+        assert.ok(cols >= 1 && cols <= 4);
+        if (cols > 1) assert.ok((width - (cols - 1) * 14 * scale) / cols >= 280 * scale, `${width}px at ${scale}`);
+      }
+    }
+  });
+
+  it('bigger text → fewer columns (never more)', () => {
+    let prev = Infinity;
+    for (const scale of [1, 1.15, 1.3, 1.5, 1.75]) {
+      const cols = A.flashColumns(1202, scale, cfg);
+      assert.ok(cols <= prev);
+      prev = cols;
+    }
+    assert.equal(A.flashColumns(1202, 1.75, cfg), 2);
+  });
+
+  it('nothing measured yet → one column', () => {
+    assert.equal(A.flashColumns(0), 1);
+    assert.equal(A.flashColumns(undefined), 1);
+  });
+});

@@ -1372,6 +1372,30 @@ body.presenting .turn-recap { font-size: 1.15rem; top: 14px; }
 .btn-blue { background: var(--c-question); color: #fff; }
 .btn-blue:hover:not(:disabled) { background: var(--blue); }
 
+/* ── Text size (A− / A+, js/shared/text-size.js) ─────────────── */
+/* Only the space card grows — the whole card (text, spacing, buttons) so it
+   keeps its shape. The board, names, scoreboard and menus stay the same.
+   A long card still fits the board area and scrolls (#modal-body). */
+#modal { zoom: var(--text-scale, 1); }
+.text-size { display: inline-flex; align-items: center; gap: 2px; }
+.text-size button:disabled { opacity: .35; cursor: default; }
+.text-size-value { font-size: .75rem; font-weight: 600; color: var(--text-muted); min-width: 36px; text-align: center; font-variant-numeric: tabular-nums; }
+/* In the card's top-right corner (the open card covers the zoom bar): quiet until hovered */
+#modal { position: relative; }
+.modal-text-size {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  background: rgba(255,255,255,.75); border-radius: 14px; padding: 1px 2px; opacity: .55; transition: opacity .15s;
+}
+.modal-text-size:hover, .modal-text-size:focus-within { opacity: 1; }
+.modal-text-size button {
+  border: none; background: none; cursor: pointer; color: var(--text); font-size: .95rem;
+  width: 28px; height: 26px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+}
+.modal-text-size button:hover:not(:disabled) { background: var(--green-light); color: var(--green); }
+/* In the zoom bar: a thin line between board zoom and text size; the % shows in a toast */
+.zoom-text-size { border-left: 1px solid var(--border); margin-left: 2px; padding-left: 4px; }
+.zoom-text-size .text-size-value { display: none; }
+
 /* ── Zoom Controls ───────────────────────────────────────────── */
 
 #zoom-controls {
@@ -2213,8 +2237,8 @@ body.presenting #gm-toggle { display: none; }   /* ⚙️ already opened it */
 
 /* Space cards readable from the sofa */
 body.presenting #modal {
-  zoom: var(--present-scale, 1.35);
-  max-height: calc(94vh / var(--present-scale, 1.35));   /* a long card scrolls instead of running off the TV */
+  zoom: calc(var(--present-scale, 1.35) * var(--text-scale, 1));   /* × the A− / A+ text size */
+  max-height: calc(94vh / (var(--present-scale, 1.35) * var(--text-scale, 1)));   /* a long card scrolls instead of running off the TV */
   overflow-y: auto;
 }
 

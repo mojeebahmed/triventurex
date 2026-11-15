@@ -152,7 +152,8 @@ let _installPrompt = null;   // Chrome / Android: the browser's install prompt, 
 
 const offlineCapable = () => 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.isSecureContext;
 const _isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+/** 'safari' | 'chrome' | … on an iPhone / iPad, else null (iosBrowser in js/shared/academy.js). */
+const _iosBrowser = () => iosBrowser(navigator.userAgent, navigator.maxTouchPoints);
 
 function _startApp() {
   if (!offlineCapable()) return;
@@ -165,22 +166,37 @@ function _startApp() {
 /** The place photos of the edition on screen. */
 const _photoUrls = () => (CONFIG.LANDMARKS || []).map(l => l.image).filter(Boolean);
 
+/** iPhone / iPad: the steps to add the Academy to the home screen, for the browser
+ *  in use (a page can't install itself there — not even in Chrome). */
+function _iosStepsHtml(browser) {
+  const bold = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  return `<div id="ac-ios-steps" class="ac-ios-steps hidden">
+      <ol>${homeScreenSteps(browser).map(t => `<li>${bold(t)}</li>`).join('')}</ol>
+      <p class="ac-hint">${icon('addHomeScreen')} The Academy then opens from its own icon, full screen.
+        ${browser === 'safari' ? '' : 'No <b>Add to Home Screen</b> in this browser? Open the page in Safari instead.'}</p>
+      <button type="button" class="btn btn-secondary btn-small" data-app="copy-link">${icon('copy')} Copy the link</button>
+    </div>`;
+}
+
 /** More → "Use it like an app": install (or how to, on an iPhone) + save photos. */
 function _appSectionHtml() {
-  if (!offlineCapable()) return '';
+  const ios = _iosBrowser();
+  if (!offlineCapable() && !ios) return '';
+  const offline = offlineCapable() ? ', and works without internet' : '';
   let install = '';
   if (!_isStandalone()) {
     if (_installPrompt) {
       install = `<button type="button" class="ac-more-item" data-app="install">
           <span class="ac-more-icon">${icon('installApp')}</span>
-          <span><strong>Install the Academy</strong><small>Opens from your home screen like an app, and works without internet</small></span></button>`;
-    } else if (_isIos()) {
-      install = `<div class="ac-more-item ac-more-static">
+          <span><strong>Install the Academy</strong><small>Opens from your home screen like an app${offline}</small></span></button>`;
+    } else if (ios) {
+      install = `<button type="button" class="ac-more-item" data-app="ios-steps" aria-expanded="false" aria-controls="ac-ios-steps">
           <span class="ac-more-icon">${icon('shareIos')}</span>
-          <span><strong>Add to your home screen</strong><small>In Safari, tap Share, then <b>Add to Home Screen</b>. It then opens like an app and works without internet.</small></span></div>`;
+          <span><strong>Add to your home screen</strong><small>Opens like an app${offline} — tap to see how</small></span></button>
+        ${_iosStepsHtml(ios)}`;
     }
   }
-  const photos = _photoUrls().length ? `<button type="button" class="ac-more-item" data-app="photos">
+  const photos = offlineCapable() && _photoUrls().length ? `<button type="button" class="ac-more-item" data-app="photos">
       <span class="ac-more-icon">${icon('saveOffline')}</span>
       <span><strong>Save photos for offline</strong><small id="ac-photos-status">The ${_photoUrls().length} photos in Places, for ${esc(CONFIG.GAME?.editionName ?? 'this edition')} — questions are saved already</small></span></button>` : '';
   if (!install && !photos) return '';
@@ -188,6 +204,17 @@ function _appSectionHtml() {
 }
 
 async function _onAppAction(action, btn) {
+  if (action === 'ios-steps') {
+    const steps = document.getElementById('ac-ios-steps');
+    const open = steps.classList.toggle('hidden') === false;
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) steps.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  if (action === 'copy-link') {
+    copyText(location.href.split('#')[0], 'Link copied — paste it into Safari\'s address bar.');
+    return;
+  }
   if (action === 'install' && _installPrompt) {
     _installPrompt.prompt();
     try { await _installPrompt.userChoice; } catch {}
@@ -226,7 +253,13 @@ function _openMore() {
         <span class="ac-more-icon">${icon(m.icon)}</span>
         <span><strong>${esc(m.label)}</strong><small>${esc(m.hint || '')}</small></span>
       </button>`).join('')}</div>
+    <h3 class="ac-more-title">${icon('textSize')} Text size</h3>
+    <div class="ac-more-list"><div class="ac-more-item ac-more-static ac-more-textsize">
+      <span><strong>Question cards</strong><small>Bigger or smaller text on the cards</small></span>
+      ${textSizeControlHtml()}
+    </div></div>
     ${_appSectionHtml()}`;
+  applyTextSize(currentTextSize());   // show the size on the new buttons
   more.classList.remove('hidden');
   _showBackdrop(true);
 }
@@ -297,6 +330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   startHelp(academyHelpTopic);   // ? button + the ? key (js/shared/help.js)
   _startApp();                   // install + offline (academy-sw.js)
+  startTextSize('academy');      // A− / A+: top bar, or More on a phone (js/shared/text-size.js)
   const id = _pickEditionId();
   if (!id) { document.getElementById('ac-main').innerHTML = emptyHtml('No editions found.'); return; }
   await _loadEdition(id);

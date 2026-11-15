@@ -34,6 +34,7 @@ const ACADEMY_FILES = [
   'js/shared/icons.js',
   'js/shared/help.js',
   'js/shared/config.js',
+  'js/shared/text-size.js',
   'js/shared/edition.js',
   'js/shared/questions.js',
   'js/shared/marks.js',

@@ -13,6 +13,7 @@ root `CLAUDE.md`. Keep invariants for this area here; update them when one chang
 - `test/rules.test.js`, `test/stats.test.js`, `test/questions.test.js`, `test/path-design.test.js`, `test/turn.test.js`, `test/players.test.js`, `test/utils.test.js`, `test/dice.test.js` — pure unit tests
 - `test/html-structure.test.js` — every `<div>` in index.html / player.html / academy.html is closed, the host screens are top-level (a missing `</div>` once hid the board), and academy.html loads only shared + academy scripts
 - `test/icons.test.js` — icons: `icon()` / `iconText()`, edition → `ICON_OVERRIDES` → `ICONS` lookup, valid registry, host and phones offer the same badges + colours, no raw emoji/icon symbols in engine code, every icon name used exists, bundles up to date, every page loads the icon scripts in order
+- `test/text-size.test.js` — A− / A+ steps, only card containers zoom (never board / sidebar / tabs), every page has the control; iPhone browser detection + Add to Home Screen steps
 - `test/help.test.js` — the in-game help: a topic for every setup tab, Academy mode and phone view; every icon, word and link exists; markup renders safely
 - `test/academy.test.js` — Academy rounds (js/shared/academy.js) + every edition gives each mode content
 - `test/academy-offline.test.js` — the Academy as an app: academy-sw.js saves every file academy.html loads, same cache name as the page, every edition found, manifest + icons valid
