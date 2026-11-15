@@ -127,7 +127,7 @@ class FakeSearch:
 def build(db: Database, llm: FakeLLM, now: datetime | None = None, **cfg: Any) -> ResearchDeps:
     ledger = QuotaLedger(db, reserve_fraction=0, clock=(lambda: now) if now else None)
     m = Metering(ledger, RateLimiter(sleep=lambda s: None), UsageRecorder(db))
-    pools = {st: ModelPool(llm, ["m1"], {"m1": [Limit("day", 1000)]}, {"m1": 1000}, m) for st in ("s1a", "s1b", "s3")}
+    pools = {st: ModelPool.single(llm, ["m1"], {"m1": [Limit("day", 1000)]}, {"m1": 1000}, m) for st in ("s1a", "s1b", "s3")}
     fetcher = Fetcher(db, m.recorder, m.limiter, FetchConfig(), client=httpx.Client(follow_redirects=True))
     return ResearchDeps(db=db, runner=StageRunner(db, pools),
                         router=SearchRouter(db, [Pool(FakeSearch(), [Limit("day", 1000)], 1, 1000)], m),

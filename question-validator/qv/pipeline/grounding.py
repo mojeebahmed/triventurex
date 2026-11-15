@@ -5,6 +5,10 @@ dashes → '-', zero-width characters removed, whitespace runs → one space —
 quote must then be an exact substring. Footnote markers like "[24]" are ignored on
 both sides. Offsets are computed here, mapped back to the original stored text; the
 model never supplies them. No fuzzy matching.
+
+The only change made to a quote itself: a `<document>` / `</document>` tag at its very
+start or end is removed. Those tags are our own prompt delimiters (render_s3), which
+local models tend to copy into the quote; they are never part of the evidence.
 """
 
 from __future__ import annotations
@@ -20,6 +24,8 @@ _ZERO_WIDTH = {"​", "‌", "‍", "⁠", "﻿", "­"}
 MIN_QUOTE_CHARS = 12
 #: Footnote / citation markers ("[24]", "[ 3 ]") are not content; they are ignored on both sides.
 _FOOTNOTE = re.compile(r"\[\s*\d{1,3}\s*\]")
+#: Our own S3 prompt delimiters, copied by some models to the edges of a quote.
+_DELIMITERS = re.compile(r"^\s*<document>|</document>\s*$")
 
 
 @dataclass(frozen=True)
@@ -73,7 +79,7 @@ class DocumentIndex:
 
     def find(self, quote: str) -> Grounded | None:
         """Locate `quote`; None if it is not a verbatim (normalised) substring or is too short."""
-        q = normalise(quote)
+        q = normalise(_DELIMITERS.sub("", quote))
         if len(q) < MIN_QUOTE_CHARS:
             return None
         pos = self.norm.find(q)

@@ -196,6 +196,8 @@ def _quota_lines(db: Database) -> list[str]:
         limit = Limit("day", lim.rpd, g.daily_reset_timezone)
         lines.append(f"  gemini {m:24} {ledger.remaining('gemini', m, limit):7.0f} of {ledger.usable(limit):.0f} "
                      "requests left today")
+    for m in pcfg.llm.ollama.models:
+        lines.append(f"  ollama {m:24}       local model, no quota")
     sc = pcfg.search
     for name, limit, unit in (("parallel", Limit("day", sc.parallel.daily_soft_cap), "searches today (own cap)"),
                               ("tavily", Limit("month", sc.tavily.credits_per_month), "credits this month"),
@@ -232,7 +234,7 @@ def research(dataset: str,
     rc = load_research_config()
     llm_per_q = 2 + (rc.max_documents_per_question + rc.max_note_documents_per_question + 1) * rc.s3_max_windows
     typer.echo(f"About to research up to {total} question(s) of {dataset}.")
-    typer.echo(f"Rough upper bound per question: {llm_per_q} Gemini requests (usually fewer), "
+    typer.echo(f"Rough upper bound per question: {llm_per_q} LLM requests (usually fewer), "
                f"{rc.max_web_queries_per_question} web searches (cached ones are free).")
     typer.echo("Free quota now:")
     for line in _quota_lines(db):

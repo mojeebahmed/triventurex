@@ -42,7 +42,7 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv export original world-tour                 # byte-identical copy of the import
 .venv/bin/qv export report world-tour                   # structural report CSV
 .venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}}
-.venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa)
+.venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa; local models)
 .venv/bin/qv research swab-quest --ids 1,5,10-12       # evidence for some questions (asks first)
 .venv/bin/qv resume 3                                  # continue a run stopped by a free limit
 .venv/bin/qv runs | metrics 3 | evidence 3 12 | usage  # inspect runs, one question's evidence, API use
@@ -51,13 +51,20 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/python -m pytest                             # tests (~3 s; parity tests need node)
 ```
 
+### Local models (optional, $0)
+
+Stages can run on a local model through [Ollama](https://ollama.com) instead of (or before) Gemini. Models,
+their `num_ctx` and the pools are in `config/providers.yaml`: a pool entry is `provider/model`, e.g.
+`ollama/qwen3:14b`. A pool tries its entries in order; when Ollama is not running or a model is not pulled,
+the next entry (e.g. Gemini) takes over. Point a stage at a pool under `stage_pools`.
+
 ## Layout
 
 ```
 qv/domain/      typed models (Pydantic): Question, CsvRow, StructuralIssue, DatasetDiff …
 qv/io/          game-compatible CSV parser + byte-faithful patch writer
 qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py
-qv/providers/   llm/ (Gemini + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
+qv/providers/   llm/ (Gemini, Ollama + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
                 fetch.py, quran.py, usage.py (free-quota ledger, rate limits, call log)
 qv/prompts/     versioned system prompts (copied from prompts/*.md)
 qv/ui/          Streamlit read-only view (thin; queries in qv/services/views.py)
@@ -66,7 +73,7 @@ qv/services/    application logic used by CLI/UI: datasets, exports, research (p
 qv/evaluation.py  eval cases, seeded errors, stratified sampling
 qv/cli.py       `qv` command (thin)
 config/profiles/  per-edition profile: audience, frame, conventions, structural rules
-config/providers.yaml  free-tier limits, Gemini model pools, search order · research.yaml depth · sources.yaml tiers
+config/providers.yaml  free-tier limits, local models, model pools, search order · research.yaml depth · sources.yaml tiers
 eval/           cases.yaml, known_errors.csv, seeded.csv + seeded_labels.yaml
 tests/          pytest
 ```

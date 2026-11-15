@@ -55,3 +55,10 @@ def test_footnote_markers_are_ignored() -> None:
     g = DocumentIndex(text).find("meaning 'burning'. It is named so for three reasons.")
     assert g is not None and "[24]" in g.text and text[g.start:g.end] == g.text
     assert DocumentIndex(text).find("meaning 'burning'.[24] It is named so") is not None
+
+
+def test_prompt_delimiters_at_the_edges_are_removed() -> None:
+    """Local models copy render_s3's <document> tags into quotes; only those edge tags are removed."""
+    g = DocumentIndex(TEXT).find("<document>\nThe Quran contains 540 ruku (paragraph divisions).\n</document>")
+    assert g is not None and g.text == "The Quran contains 540 ruku (paragraph divisions)."
+    assert DocumentIndex(TEXT).find("The Quran <document>contains 540 ruku") is None

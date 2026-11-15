@@ -144,7 +144,7 @@ def make_pool(db: Database, script: dict[str, list[Any]], rpd: int = 100) -> tup
     prov = ScriptedProvider(script)
     metering = Metering(QuotaLedger(db, reserve_fraction=0), RateLimiter(sleep=lambda s: None), UsageRecorder(db))
     models = list(script)
-    pool = ModelPool(prov, models, {m: [Limit("day", rpd)] for m in models}, {m: 1000 for m in models}, metering)
+    pool = ModelPool.single(prov, models, {m: [Limit("day", rpd)] for m in models}, {m: 1000 for m in models}, metering)
     return pool, prov
 
 
@@ -152,7 +152,7 @@ def test_pool_falls_back_when_daily_quota_is_used_up(db: Database) -> None:
     pool, prov = make_pool(db, {"a": [DailyQuotaError("a used up")], "b": ['{"city":"X","note":null}']})
     res = pool.complete(system="s", user="u", schema_cls=Small, ctx=CallContext())
     assert res.model == "b" and res.output.city == "X"
-    assert pool.available_models() == ["b"]  # 'a' marked exhausted for today
+    assert pool.available_models() == ["fake/b"]  # 'a' marked exhausted for today
 
 
 def test_pool_skips_models_without_ledger_quota(db: Database) -> None:

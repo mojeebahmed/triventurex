@@ -226,7 +226,7 @@ class StageRunner:
                 if len(retry_problems) <= len(problems):
                     result, problems = retry, retry_problems
         except (LLMSchemaError, LLMRefusal) as exc:
-            self._store(ctx, stage, version, h, pool.provider.name, "", None, [], False, str(exc))
+            self._store(ctx, stage, version, h, pool.last_provider, "", None, [], False, str(exc))
             raise
         sid = self._store(ctx, stage, version, h, result.provider, result.model,
                           result.output.model_dump(mode="json"), problems, True, None)

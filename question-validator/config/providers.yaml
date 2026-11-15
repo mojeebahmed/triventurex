@@ -13,14 +13,28 @@ llm:
       gemini-3.8-flash:      {rpm: 5,  rpd: 20}
       gemini-3.7-flash:      {rpm: 5,  rpd: 20}
       gemini-3.6-flash:      {rpm: 5,  rpd: 20}
-    pools:                   # tried in order; the next model takes over when one's daily quota is used up
-      cheap: [gemini-3.5-flash-lite, gemini-3.1-flash-lite]
-      judge: [gemini-3.8-flash, gemini-3.7-flash, gemini-3.6-flash]
+  ollama:                    # local models on this Mac: $0, no daily limit, only speed
+    base_url: http://localhost:11434
+    timeout_s: 900
+    models:                  # num_ctx must hold the whole prompt — S3 windows are up to ~12k tokens
+      qwen3:14b:    {num_ctx: 24576, think: false}
+      qwen3:8b:     {num_ctx: 24576, think: false}
+      gemma3:12b:   {num_ctx: 24576}
+      mistral-nemo: {num_ctx: 24576}
+  pools:                     # provider/model, tried in order. The next entry takes over when one's daily
+                             # quota is used up or (local) Ollama is not running / the model is not pulled.
+    cheap: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite]
+    judge: [gemini/gemini-3.8-flash, gemini/gemini-3.7-flash, gemini/gemini-3.6-flash]
+    # Local models are $0 but slow (S3: 1–4 min per document on an M2 Pro vs ~1.5 s on Gemini; pilot trial
+    # 2026-11-15: gemma3:12b grounded 13/15 quotes, qwen3:8b 19/24, qwen3:14b 4/7). Best as overflow after
+    # the free Gemini quota: a run then keeps going slowly instead of stopping.
+    cheap_then_local: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite, ollama/gemma3:12b]
+    local_first: [ollama/gemma3:12b, gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite]
 
 stage_pools:                 # which pool each model stage uses
   s1a: cheap
   s1b: cheap
-  s3: cheap
+  s3: cheap                  # cheap_then_local = keep going on gemma3:12b when Flash-Lite's free quota is used up
 
 search:
   order: [parallel, tavily, exa]   # tried in this order until one has results; each stops at its free limit

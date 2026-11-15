@@ -31,8 +31,10 @@ from qv.pipeline.stages import (
     s3_target_ids, windows,
 )
 from qv.providers.fetch import Fetcher
-from qv.providers.llm.base import LLMError, LLMProvider, ModelPool
+from qv.config import split_entry
+from qv.providers.llm.base import LLMError, LLMProvider, ModelPool, PoolEntry
 from qv.providers.llm.gemini import GeminiProvider
+from qv.providers.llm.ollama import OllamaProvider
 from qv.providers.quran import QuranRefError, QuranSource
 from qv.providers.search.base import SearchError, SearchHit, SearchProvider, domain_of
 from qv.providers.search.free import AlislamSearch, WikipediaSearch
@@ -64,13 +66,48 @@ class ResearchDeps:
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
 
 
-def build_pools(provider: LLMProvider, pcfg: ProvidersConfig, metering: Metering,
+def pool_entries(labels: list[str], providers: dict[str, LLMProvider], pcfg: ProvidersConfig) -> list[PoolEntry]:
+    """`provider/model` labels → pool entries with their limits (local models have none).
+
+    Entries whose provider is missing from `providers` (e.g. no Gemini key) are left out.
+    """
+    out: list[PoolEntry] = []
+    for label in labels:
+        name, model = split_entry(label)
+        if name not in providers:
+            continue
+        if name == "gemini":
+            g = pcfg.llm.gemini
+            lim = g.models[model]
+            out.append(PoolEntry(providers[name], model, [Limit("day", lim.rpd, g.daily_reset_timezone)], lim.rpm))
+        else:
+            out.append(PoolEntry(providers[name], model, [], pcfg.llm.ollama.models[model].rpm))
+    return out
+
+
+def build_llm_providers(settings: Settings, pcfg: ProvidersConfig, metering: Metering) -> dict[str, LLMProvider]:
+    """The LLM providers that can be used: Gemini when a key is set, Ollama when models are configured."""
+    providers: dict[str, LLMProvider] = {}
+    if settings.gemini_api_key:
+        providers["gemini"] = GeminiProvider(settings.gemini_api_key, metering.recorder)
+    o = pcfg.llm.ollama
+    if o.models:
+        providers["ollama"] = OllamaProvider(metering.recorder, base_url=o.base_url, timeout_s=o.timeout_s,
+                                             model_options={m: c.options() for m, c in o.models.items()})
+    return providers
+
+
+def build_pools(providers: dict[str, LLMProvider], pcfg: ProvidersConfig, metering: Metering,
                 stages: tuple[str, ...] = ("s1a", "s1b", "s3")) -> dict[str, ModelPool]:
     """One ModelPool per stage from config/providers.yaml."""
-    g = pcfg.llm.gemini
-    limits = {m: [Limit("day", lim.rpd, g.daily_reset_timezone)] for m, lim in g.models.items()}
-    rpm = {m: lim.rpm for m, lim in g.models.items()}
-    return {st: ModelPool(provider, pcfg.pool_for(st), limits, rpm, metering) for st in stages}
+    pools = {}
+    for st in stages:
+        entries = pool_entries(pcfg.pool_for(st), providers, pcfg)
+        if not entries:
+            raise LLMError(f"No usable model for stage {st} (pool {pcfg.pool_for(st)}): "
+                           "set GEMINI_API_KEY in .env or configure an Ollama model")
+        pools[st] = ModelPool(entries, metering)
+    return pools
 
 
 def build_search_pools(settings: Settings, pcfg: ProvidersConfig, metering: Metering) -> list[Pool]:
@@ -98,11 +135,10 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
     """Real providers from settings and config files."""
     pcfg = load_providers_config()
     metering = Metering.for_db(db, pcfg.reserve_fraction)
-    gemini = GeminiProvider(settings.gemini_api_key, metering.recorder)
     fetcher = Fetcher(db, metering.recorder, metering.limiter, pcfg.fetch, contact=settings.contact)
     rcfg = load_research_config()
     return ResearchDeps(
-        db=db, runner=StageRunner(db, build_pools(gemini, pcfg, metering)),
+        db=db, runner=StageRunner(db, build_pools(build_llm_providers(settings, pcfg, metering), pcfg, metering)),
         router=SearchRouter(db, build_search_pools(settings, pcfg, metering), metering,
                             cache_days=rcfg.search_cache_days),
         fetcher=fetcher, quran=QuranSource(fetcher), registry=load_registry(), cfg=rcfg, metering=metering,

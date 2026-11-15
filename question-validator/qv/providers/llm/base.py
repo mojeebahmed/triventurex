@@ -49,6 +49,13 @@ class TransientError(LLMError):
     """Server error or timeout; worth retrying with backoff."""
 
 
+class ProviderUnavailable(LLMError):
+    """The provider cannot serve this model right now (local server down, model not installed).
+
+    A pool moves on to its next model without marking any quota as used up.
+    """
+
+
 @dataclass(frozen=True)
 class Message:
     """One chat turn."""
@@ -124,10 +131,28 @@ def parse_structured(text: str, model_cls: type[T]) -> T:
         raise LLMSchemaError(f"Response does not match the schema: {errors}", text) from exc
 
 
-class ModelPool:
-    """Runs a structured request on the first model in a pool that still has free quota.
+@dataclass(frozen=True)
+class PoolEntry:
+    """One model of one provider inside a pool, with the limits we allow ourselves."""
 
-    - Daily quota used up (ledger or provider 429) → the next model takes over.
+    provider: LLMProvider
+    model: str
+    limits: list[Limit]
+    rpm: int
+
+    @property
+    def label(self) -> str:
+        """`provider/model`, as written in config/providers.yaml."""
+        return f"{self.provider.name}/{self.model}"
+
+
+class ModelPool:
+    """Runs a structured request on the first model in a pool that can serve it.
+
+    Entries may come from different providers (e.g. a local Ollama model first, Gemini after it).
+
+    - Daily quota used up (ledger or provider 429) → the next entry takes over.
+    - Provider unavailable (local server down, model not pulled) → the next entry, nothing marked.
     - Per-minute limit → wait and retry the same model.
     - Server errors → retry with backoff (bounded).
     - Invalid JSON / schema → one retry on the same model with the error, then LLMSchemaError.
@@ -136,51 +161,59 @@ class ModelPool:
     MAX_RATE_RETRIES = 4
     MAX_TRANSIENT_RETRIES = 3
 
-    def __init__(self, provider: LLMProvider, models: list[str], limits: dict[str, list[Limit]],
-                 rpm: dict[str, int], metering: Metering) -> None:
-        """`limits`/`rpm` per model id; `models` in fallback order."""
-        if not models:
+    def __init__(self, entries: list[PoolEntry], metering: Metering) -> None:
+        """`entries` in fallback order."""
+        if not entries:
             raise ValueError("A model pool needs at least one model")
-        self.provider = provider
-        self.models = models
-        self.limits = limits
-        self.rpm = rpm
+        self.entries = entries
         self.metering = metering
+        self.last_provider = entries[0].provider.name
+
+    @classmethod
+    def single(cls, provider: LLMProvider, models: list[str], limits: dict[str, list[Limit]],
+               rpm: dict[str, int], metering: Metering) -> ModelPool:
+        """A pool whose models all come from one provider."""
+        return cls([PoolEntry(provider, m, limits[m], rpm[m]) for m in models], metering)
+
+    def _can_spend(self, e: PoolEntry) -> bool:
+        return self.metering.ledger.can_spend(e.provider.name, e.model, 1, e.limits)
 
     def available_models(self) -> list[str]:
-        """Models in the pool that still have free quota now."""
-        return [m for m in self.models
-                if self.metering.ledger.can_spend(self.provider.name, m, 1, self.limits[m])]
+        """Labels (`provider/model`) of the entries that still have free quota now."""
+        return [e.label for e in self.entries if self._can_spend(e)]
 
     def complete(self, *, system: str, user: str, schema_cls: type[T], ctx: CallContext) -> StructuredResult:
-        """Return a validated output, falling back across models; raises QuotaExhausted when none is left."""
+        """Return a validated output, falling back across entries; raises QuotaExhausted when none is left."""
         schema = json_schema_for(schema_cls)
         last_error: Exception | None = None
-        for model in self.models:
-            if not self.metering.ledger.can_spend(self.provider.name, model, 1, self.limits[model]):
+        for e in self.entries:
+            if not self._can_spend(e):
                 continue
+            self.last_provider = e.provider.name
             try:
-                return self._complete_on(model, system, user, schema, schema_cls, ctx)
+                return self._complete_on(e, system, user, schema, schema_cls, ctx)
             except DailyQuotaError as exc:
-                self.metering.ledger.mark_exhausted(self.provider.name, model, self.limits[model])
+                self.metering.ledger.mark_exhausted(e.provider.name, e.model, e.limits)
+                last_error = exc
+            except ProviderUnavailable as exc:
                 last_error = exc
         raise QuotaExhausted(
-            f"No free quota left today for any model in pool {self.models}"
+            f"No model available now in pool {[e.label for e in self.entries]}"
             + (f" (last error: {last_error})" if last_error else "")
         )
 
-    def _complete_on(self, model: str, system: str, user: str, schema: dict[str, Any],
+    def _complete_on(self, e: PoolEntry, system: str, user: str, schema: dict[str, Any],
                      schema_cls: type[T], ctx: CallContext) -> StructuredResult:
         messages = [Message("user", user)]
         call_ids: list[int] = []
         attempts = 0
         schema_retry_used = False
         while True:
-            raw = self._send(model, system, messages, schema, ctx, call_ids)
+            raw = self._send(e, system, messages, schema, ctx, call_ids)
             attempts += 1
             try:
                 out = parse_structured(raw.text, schema_cls)
-                return StructuredResult(out, self.provider.name, raw.model or model, raw.text, attempts, call_ids)
+                return StructuredResult(out, e.provider.name, raw.model or e.model, raw.text, attempts, call_ids)
             except LLMSchemaError as exc:
                 if schema_retry_used:
                     raise
@@ -189,17 +222,18 @@ class ModelPool:
                     "user", f"Your previous answer was rejected: {exc}. Reply again with JSON that matches "
                             "the schema exactly.")]
 
-    def _send(self, model: str, system: str, messages: list[Message], schema: dict[str, Any],
+    def _send(self, e: PoolEntry, system: str, messages: list[Message], schema: dict[str, Any],
               ctx: CallContext, call_ids: list[int]) -> RawResponse:
+        ledger, model = self.metering.ledger, e.model
         rate_retries = transient_retries = 0
         while True:
-            if not self.metering.ledger.can_spend(self.provider.name, model, 1, self.limits[model]):
+            if not self._can_spend(e):
                 raise DailyQuotaError(f"{model}: free daily quota used up (ledger)")
-            self.metering.limiter.wait(f"{self.provider.name}:{model}", self.rpm[model])
+            self.metering.limiter.wait(e.label, e.rpm)
             try:
-                raw = self.provider.generate_json(model=model, system=system, messages=messages,
-                                                  schema=schema, ctx=ctx)
-                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                raw = e.provider.generate_json(model=model, system=system, messages=messages,
+                                               schema=schema, ctx=ctx)
+                ledger.record(e.provider.name, model, 1, e.limits)
                 if raw.api_call_id:
                     call_ids.append(raw.api_call_id)
                 return raw
@@ -207,13 +241,13 @@ class ModelPool:
                 rate_retries += 1
                 if rate_retries > self.MAX_RATE_RETRIES:
                     raise DailyQuotaError(f"{model}: still rate-limited after {rate_retries} waits") from exc
-                self.metering.limiter.penalise(f"{self.provider.name}:{model}", exc.retry_after)
+                self.metering.limiter.penalise(e.label, exc.retry_after)
             except TransientError:
                 transient_retries += 1
-                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                ledger.record(e.provider.name, model, 1, e.limits)
                 if transient_retries > self.MAX_TRANSIENT_RETRIES:
                     raise
-                self.metering.limiter.penalise(f"{self.provider.name}:{model}", 2 ** transient_retries)
+                self.metering.limiter.penalise(e.label, 2 ** transient_retries)
             except (LLMRefusal, LLMSchemaError):
-                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                ledger.record(e.provider.name, model, 1, e.limits)
                 raise

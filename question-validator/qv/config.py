@@ -118,21 +118,55 @@ class ModelLimits(BaseModel):
 
 
 class GeminiConfig(BaseModel):
-    """Gemini models, limits and pools."""
+    """Gemini models and their free-tier limits."""
 
     model_config = ConfigDict(extra="forbid")
 
     daily_reset_timezone: str = "America/Los_Angeles"
     models: dict[str, ModelLimits]
-    pools: dict[str, list[str]]
+
+
+class OllamaModel(BaseModel):
+    """One local model: no quota, only speed and context size."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rpm: int = Field(60, gt=0)
+    num_ctx: int = Field(24576, ge=2048, description="Must hold the whole prompt (Ollama cuts longer ones)")
+    think: bool = Field(False, description="Reasoning mode for models that have one (e.g. qwen3)")
+    temperature: float = 0.0
+
+    def options(self) -> dict:
+        """Request options for OllamaProvider."""
+        return {"num_ctx": self.num_ctx, "think": self.think, "temperature": self.temperature}
+
+
+class OllamaConfig(BaseModel):
+    """Local models served by Ollama on this machine ($0, no daily limit)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_url: str = "http://localhost:11434"
+    timeout_s: float = Field(900, gt=0)
+    models: dict[str, OllamaModel] = Field(default_factory=dict)
 
 
 class LLMConfig(BaseModel):
-    """All LLM providers."""
+    """All LLM providers and the pools built from them."""
 
     model_config = ConfigDict(extra="forbid")
 
     gemini: GeminiConfig
+    ollama: OllamaConfig = Field(default_factory=OllamaConfig)
+    pools: dict[str, list[str]] = Field(description="Pool name → `provider/model` entries in fallback order")
+
+
+def split_entry(entry: str) -> tuple[str, str]:
+    """`ollama/qwen3:14b` → ('ollama', 'qwen3:14b'). Split on the first slash only."""
+    provider, sep, model = entry.partition("/")
+    if not sep or not model:
+        raise ValueError(f"Pool entry '{entry}' must be written as provider/model")
+    return provider, model
 
 
 class TavilyConfig(BaseModel):
@@ -207,8 +241,8 @@ class ProvidersConfig(BaseModel):
     fetch: FetchConfig = Field(default_factory=FetchConfig)
 
     def pool_for(self, stage: str) -> list[str]:
-        """Model ids for a stage, in fallback order."""
-        return self.llm.gemini.pools[self.stage_pools[stage]]
+        """`provider/model` entries for a stage, in fallback order."""
+        return self.llm.pools[self.stage_pools[stage]]
 
 
 class ResearchConfig(BaseModel):
@@ -231,12 +265,18 @@ class ResearchConfig(BaseModel):
 def load_providers_config(path: Path = CONFIG_DIR / "providers.yaml") -> ProvidersConfig:
     """Load and validate config/providers.yaml."""
     cfg = ProvidersConfig.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
-    for pool, models in cfg.llm.gemini.pools.items():
-        unknown = [m for m in models if m not in cfg.llm.gemini.models]
-        if unknown:
-            raise ValueError(f"Pool '{pool}' uses models without limits: {unknown}")
+    known = {"gemini": cfg.llm.gemini.models, "ollama": cfg.llm.ollama.models}
+    for pool, entries in cfg.llm.pools.items():
+        if not entries:
+            raise ValueError(f"Pool '{pool}' is empty")
+        for entry in entries:
+            provider, model = split_entry(entry)
+            if provider not in known:
+                raise ValueError(f"Pool '{pool}': unknown provider '{provider}' in '{entry}'")
+            if model not in known[provider]:
+                raise ValueError(f"Pool '{pool}': '{entry}' has no entry under llm.{provider}.models")
     for stage, pool in cfg.stage_pools.items():
-        if pool not in cfg.llm.gemini.pools:
+        if pool not in cfg.llm.pools:
             raise ValueError(f"Stage '{stage}' uses unknown pool '{pool}'")
     return cfg
 

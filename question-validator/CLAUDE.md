@@ -18,6 +18,11 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   read-only web view (`qv ui`). Merged to `main` and pushed.
 - Pilot (runs 2–3, 10 Swab Quest questions: 2,5,34,52,70,127,247,285,391,418): 80 grounded passages, 2.4 % quotes
   dropped (target < 2 %), 90 % of questions with a passage on the need (target ≥ 85 %), $0. #70 found no evidence.
+- Local models (2026-11-15, branch `feat/qv-ollama-provider`): `OllamaProvider`, cross-provider pools
+  (`provider/model` entries). S3 trial on 3 pilot documents: gemma3:12b grounded 13/15 quotes, qwen3:8b 19/24,
+  qwen3:14b 4/7 (Gemini ≈ 98 %), but 1–4 min per document vs ≈ 1.5 s on Gemini → local = $0 overflow after the
+  free Gemini quota (`cheap_then_local` pool), not first. S3 default stays `cheap`. Relevance of local passages
+  not yet judged; S1a/S1b/S6 locally not tried yet.
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
 
 ## Next work (agreed order, 2026-11-15)
@@ -89,6 +94,15 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   `QuotaExhausted` stops a run cleanly; `qv resume <run>` continues (stage outputs reused by input hash —
   the hash excludes the model so pools can switch models).
 - **Tests never touch the network** (autouse respx guard in `tests/conftest.py`).
+
+## Implementation invariants (local models)
+- **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model
+  names contain `:`). Local entries have no quota limits but still go through the rate limiter and call log.
+  `ProviderUnavailable` (Ollama down, model not pulled) moves to the next entry without marking anything used up.
+- **Ollama prompts must fit `num_ctx`**: Ollama silently cuts a longer prompt, so a prompt that fills the window
+  is an error, never a result. `think` is off by default (qwen3).
+- **Grounding strips only our `<document>` delimiters at a quote's edges** (local models copy them); nothing else
+  in a quote is changed.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,
