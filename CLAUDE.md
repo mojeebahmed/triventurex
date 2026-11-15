@@ -48,6 +48,8 @@ Each area has its own CLAUDE.md, loaded automatically when you work in that fold
 - `js/academy/CLAUDE.md` — Triventurex Academy, its phone layout and offline app
 - `game_editions/CLAUDE.md` — content workflow, CSV rules, effect types, action cards
 - `test/CLAUDE.md` — what each test file checks
+- `question-validator/CLAUDE.md` — the **Question Validator**, a separate Python project (AI-assisted fact-checking of
+  the editions' questions; phases 1–2 done, next steps listed there). The game rules in this file do not apply to it
 
 ## Key files
 `js/` is grouped by who loads a file (plus `js/vendor/` for third-party libraries):

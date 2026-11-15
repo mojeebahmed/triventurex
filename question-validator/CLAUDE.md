@@ -13,11 +13,35 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `SPECIFICATION.md` — the original PRD (unchanged copy; don't edit).
 
 ## Status
-Phase 1 done (2026-11-15): foundation, DB, CSV import/export, structural checks, eval set.
-Phase 2 done (2026-11-15): evidence layer — S1a/S1b/S3, search, fetch, Qur'an source, grounding, quotas, read-only
-web view (`qv ui`). Next: Phase 3 (judgement: S4 blind answer, S5 verification, S6 quality, S8 rules).
-Open points: METHODOLOGY.md §13.
-Run `.venv/bin/python -m pytest` before merging (see README for setup).
+- Phase 1 done (2026-11-15): foundation, DB, CSV import/export, structural checks, eval set.
+- Phase 2 done (2026-11-15): evidence layer — S1a/S1b/S3, search, fetch, Qur'an source, grounding, quotas,
+  read-only web view (`qv ui`). Merged to `main` and pushed.
+- Pilot (runs 2–3, 10 Swab Quest questions: 2,5,34,52,70,127,247,285,391,418): 80 grounded passages, 2.4 % quotes
+  dropped (target < 2 %), 90 % of questions with a passage on the need (target ≥ 85 %), $0. #70 found no evidence.
+- Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
+
+## Next work (agreed order, 2026-11-15)
+1. **Local model provider (Ollama)** — Mojeeb's Mac: M2 Pro, 32 GB, Ollama installed with `qwen3:14b`, `gemma3:12b`,
+   `mistral-nemo`. Add an `OllamaProvider` (structured output via `format` = JSON schema) to the model pools;
+   first target S3 (most calls; grounding catches bad quotes), then try S1a/S1b/S6. Not for S4/S5 until the eval set
+   says it is good enough. Config decides order (local first or Gemini first).
+2. **Phase 3 — judgement**: S4 blind answer, S5 verification, S6 quality, S8 rules engine (pure code), `validations`
+   table, `qv validate`; measure on the eval set (incl. eval/known_errors.csv). Also give the web view a plain
+   per-question summary (e.g. "Evidence: 540 ×2, 556 ×1, 558 ×2 — key 540"), clearer labels and a legend —
+   Mojeeb found the current view hard to read.
+3. **PDF library** (after Mojeeb lists the books): Ahmadiyya books as an authoritative local source in
+   `data/library/` + a metadata file (title, author, language, edition, tier, frame authority). Page-by-page text
+   (pypdf; OCR with Tesseract `urd` for scanned/Nastaliq Urdu), local full-text search (SQLite FTS5) and
+   cross-language retrieval (Urdu books, English questions). Citations as book + page; quotes stay in the original
+   language, translations are display only, never evidence. Books stay local; exports carry short excerpts only.
+4. **Reuse of stored research**: index all stored documents (+ library) and search them before the web;
+   cross-question consistency checks; suggest notes and new questions from stored passages — each suggestion
+   carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
+   new rows with new ids, never written into `game_editions/`.
+
+Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
+(`not_text`); 11 sites answered 403; Wikipedia needs `QV_CONTACT` in `.env` (Mojeeb has not set one); no hadith
+direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be checked in AI Studio.
 
 ## Decisions (Mojeeb, 2026-11-15) — replace ARCHITECTURE.md §7
 - **Free services only, $0 budget.** No paid API usage, no card-required plans. Budgets are tracked as
