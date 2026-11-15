@@ -123,6 +123,6 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 - Academy **progress tracking**: profiles, stars per topic, spaced repetition across days (see IDEAS.md)
 - **Cross-edition question mode**: on a question space the player picks an edition and topic, then gets a question from it
 - *Steal*: others answer when the active player gets a phone question wrong
-- Content review: draft action cards (both editions); Football Quest notes flagged in 2.1 (truncated notes; possible factual errors in #66, #70, #73, #86) — mark them in the 📚 Questions tab
+- Content review: draft action cards (both editions); Football Quest notes flagged in 2.1 (truncated notes) — mark them in the 📚 Questions tab. Factual errors in #66, #70, #73, #86 were fixed on 2026-11-15
 - Team mode; more editions; online multiplayer
 - Decided against (2026-10): endgame pacing rules, streaks / wagers / final round
