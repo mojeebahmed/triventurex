@@ -1,0 +1,67 @@
+# Evaluation cases with expected outcomes (METHODOLOGY.md §11, §12).
+#
+# status: hypothesis — expectation written from the methodology, to be confirmed by evidence/a person
+#         confirmed  — checked by a person (Mojeeb or the edition's reviewer)
+# dataset: an edition id (game_editions/<id>/questions.csv) or eval-known-errors (eval/known_errors.csv)
+# question_starts_with guards against a case pointing at the wrong row after content edits.
+# expect.verdict: VERIFIED | INCORRECT | AMBIGUOUS | CONTESTED | OUTDATED | UNVERIFIED
+#   `any_of` lists acceptable verdicts when the methodology leaves it open.
+# expect.review: auto_ok | needs_review | needs_specialist (optional)
+
+cases:
+  - {dataset: world-tour, id: "120", question_starts_with: "Since 2010, which building", status: hypothesis,
+     expect: {verdict: VERIFIED, review: auto_ok}, why: "Superlative with as-of; strong primary/secondary sources"}
+  - {dataset: world-tour, id: "135", question_starts_with: "In which country is Mount Kilimanjaro", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Plausible distractor Kenya; blind answer decides"}
+  - {dataset: world-tour, id: "151", question_starts_with: "Which of the Seven Wonders", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Classification claim; distractor evidence arrives as a side effect"}
+  - {dataset: world-tour, id: "56", question_starts_with: "Which is the tallest waterfall", status: hypothesis,
+     expect: {any_of: [VERIFIED, AMBIGUOUS]}, why: "Definitional conflict (uninterrupted drop) vs Tugela claims"}
+  - {dataset: world-tour, id: "102", question_starts_with: "Which language is spoken by the most people", status: hypothesis,
+     expect: {any_of: [VERIFIED, UNVERIFIED]}, why: "Echo defence: most pages trace back to one origin (Ethnologue)"}
+  - {dataset: world-tour, id: "48", question_starts_with: "Since 2023, which country has the most people", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "statistic_current; UN DESA as of 2023"}
+  - {dataset: world-tour, id: "52", question_starts_with: "What is the largest desert", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Definition stated in the question resolves the definitional conflict"}
+  - {dataset: world-tour, id: "36", question_starts_with: "Which famous city is split", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "'famous' is load-bearing; S6 should note it"}
+
+  # Football Quest — fixed on 2026-11-15 (commit 0539a77); the versions before the fix are in known_errors.
+  - {dataset: football-quest, id: "66", question_starts_with: "What is the record for the most goals", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Fixed answer: 36 goals, Haaland 2022–23"}
+  - {dataset: football-quest, id: "70", question_starts_with: "Which nation won the World Cup in 1958", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "False premise 'consecutive' removed"}
+  - {dataset: football-quest, id: "73", question_starts_with: "Which Brazilian player won the FIFA World Player", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Years corrected to 1996, 1997, 2002"}
+  - {dataset: football-quest, id: "86", question_starts_with: "Which two clubs have won the English 'double'", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Rewritten to name both clubs with three doubles each"}
+  - {dataset: eval-known-errors, id: "66", question_starts_with: "What is the highest number of goals", status: confirmed,
+     expect: {verdict: INCORRECT, defect: answer, review: needs_review}, why: "34 was the 42-game-season record; Haaland scored 36"}
+  - {dataset: eval-known-errors, id: "70", question_starts_with: "Which nation won three consecutive", status: confirmed,
+     expect: {verdict: INCORRECT, defect: question_premise, review: needs_review}, why: "England won in 1966"}
+  - {dataset: eval-known-errors, id: "73", question_starts_with: "Which Brazilian player won the FIFA World Player", status: confirmed,
+     expect: {verdict: INCORRECT, defect: question_premise, review: needs_review}, why: "Zidane won in 1998; Ronaldo's third was 2002"}
+  - {dataset: eval-known-errors, id: "86", question_starts_with: "How many clubs have won the 'double'", status: confirmed,
+     expect: {any_of: [AMBIGUOUS, INCORRECT], review: needs_review}, why: "Arsenal also has three doubles; garbled wording"}
+
+  # Prophets' Stories — frame and convention cases (profile: prophets-stories)
+  - {dataset: prophets-stories, id: "3", question_starts_with: "What did Allah teach Hadhrat Adam", status: hypothesis,
+     expect: {verdict: VERIFIED, note_status: supported}, why: "Note 2:32 under Bismillah-as-verse-1 = common 2:31"}
+  - {dataset: prophets-stories, id: "2", question_starts_with: "What was the name of the wife", status: hypothesis,
+     expect: {verdict: VERIFIED, review: needs_specialist}, why: "Note 'known from hadith' needs a narration reference"}
+  - {dataset: prophets-stories, id: "138", question_starts_with: "According to the Promised Messiah", status: hypothesis,
+     expect: {verdict: VERIFIED, contested_outside_frame: false}, why: "attribution_to_frame; P = Jesus in India"}
+  - {dataset: prophets-stories, id: "140", question_starts_with: "In which city is the tomb of Hadhrat Isa", status: hypothesis,
+     expect: {verdict: VERIFIED, within_frame: true, contested_outside_frame: true}, why: "Universal part + frame-specific premise"}
+  - {dataset: prophets-stories, id: "164", question_starts_with: "By tradition, what did a spider spin", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "Hedge makes it an attribution to tradition"}
+  - {dataset: prophets-stories, id: "170", question_starts_with: "Towards which city did Muslims first face", status: hypothesis,
+     expect: {verdict: VERIFIED}, why: "tradition_general"}
+
+  # Swab Quest
+  - {dataset: swab-quest, id: "247", question_starts_with: "Who was the first human being and first Prophet", status: hypothesis,
+     expect: {any_of: [VERIFIED, AMBIGUOUS, UNVERIFIED], review: needs_specialist}, why: "Compound question; edition position to confirm"}
+  - {dataset: swab-quest, id: "1", question_starts_with: "How many Rukuhs", status: hypothesis,
+     expect: {any_of: [VERIFIED, AMBIGUOUS]}, why: "Counting convention may differ between printed editions"}
+  - {dataset: swab-quest, id: "70", question_starts_with: "Which city did Hadhrat Musleh Maud", status: hypothesis,
+     expect: {verdict: UNVERIFIED, review: needs_specialist}, why: "Thin evidence expected; 3 options"}

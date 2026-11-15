@@ -1,0 +1,17 @@
+# METHODOLOGY.md §10 — DRAFT: the frame needs confirmation by the edition's reviewer (§13).
+edition: prophets-stories
+audience: families, ages 5+
+frame:
+  name: Ahmadiyya understanding
+  applies_to: [doctrine, attribution_to_frame, frame_specific]
+  authorities:
+    - alislam.org
+    - reviewofreligions.org
+    - "The Holy Qur'an with English translation and commentary (Ahmadiyya)"
+  confirmed: false
+conventions:
+  quran_numbering: bismillah_is_verse_1   # 2:32 here = 2:31 in the common (Hafs/Cairo) numbering
+  honorifics_in_answers: ignore            # "Hadhrat Adam (as)" == "Adam"
+  transliteration: lenient                 # Isma'il / Ismail / Ishmael
+direct_sources: [quran, hadith]
+specialist_for: [doctrine, scripture_content, hadith_or_tradition, frame_specific, attribution_to_frame]

@@ -1,0 +1,7 @@
+edition: animal-safari
+audience: families, ages 5+
+frame: none
+conventions:
+  superlatives: require_definition
+  as_of_default: dataset_import_date
+direct_sources: [wikidata]

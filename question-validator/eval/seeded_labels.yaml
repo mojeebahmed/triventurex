@@ -1,0 +1,603 @@
+seeded:
+- eval_id: '1'
+  source_dataset: animal-safari
+  source_id: '107'
+  mutation: wrong_key
+  field: answer
+  original: '2'
+  seeded: '3'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '2'
+  source_dataset: prophets-stories
+  source_id: '8'
+  mutation: wrong_key
+  field: answer
+  original: '3'
+  seeded: '4'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '3'
+  source_dataset: prophets-stories
+  source_id: '39'
+  mutation: wrong_key
+  field: answer
+  original: '3'
+  seeded: '4'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '4'
+  source_dataset: swab-quest
+  source_id: '404'
+  mutation: wrong_key
+  field: answer
+  original: '1'
+  seeded: '2'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '5'
+  source_dataset: animal-safari
+  source_id: '137'
+  mutation: wrong_key
+  field: answer
+  original: '4'
+  seeded: '2'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '6'
+  source_dataset: world-tour
+  source_id: '161'
+  mutation: wrong_key
+  field: answer
+  original: '4'
+  seeded: '2'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '7'
+  source_dataset: world-tour
+  source_id: '107'
+  mutation: wrong_key
+  field: answer
+  original: '3'
+  seeded: '4'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '8'
+  source_dataset: swab-quest
+  source_id: '306'
+  mutation: wrong_key
+  field: answer
+  original: '3'
+  seeded: '2'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '9'
+  source_dataset: swab-quest
+  source_id: '353'
+  mutation: wrong_key
+  field: answer
+  original: '1'
+  seeded: '3'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '10'
+  source_dataset: animal-safari
+  source_id: '182'
+  mutation: wrong_key
+  field: answer
+  original: '2'
+  seeded: '4'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '11'
+  source_dataset: swab-quest
+  source_id: '44'
+  mutation: wrong_year_answer
+  field: opt_a
+  original: 20 December 1905
+  seeded: 20 December 1912
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '12'
+  source_dataset: football-quest
+  source_id: '46'
+  mutation: wrong_year_answer
+  field: answer
+  original: '1992'
+  seeded: '1986'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '13'
+  source_dataset: football-quest
+  source_id: '67'
+  mutation: wrong_year_answer
+  field: opt_b
+  original: '1969'
+  seeded: '1978'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '14'
+  source_dataset: swab-quest
+  source_id: '240'
+  mutation: wrong_year_answer
+  field: answer
+  original: Hadhrat Mirza Bashir-ud-Deen Mahmood Ahmad(ra) — Khalifa II — founded Lajna Imaillah in 1922.
+  seeded: Hadhrat Mirza Bashir-ud-Deen Mahmood Ahmad(ra) — Khalifa II — founded Lajna Imaillah in 1913.
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '15'
+  source_dataset: world-tour
+  source_id: '104'
+  mutation: wrong_year_answer
+  field: answer
+  original: A language invented in the 1880s so that people from every country could talk to each other
+  seeded: A language invented in the 1886s so that people from every country could talk to each other
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '16'
+  source_dataset: football-quest
+  source_id: '66'
+  mutation: wrong_year_answer
+  field: answer
+  original: 36 goals — Erling Haaland (Manchester City, 2022–23)
+  seeded: 36 goals — Erling Haaland (Manchester City, 2016–23)
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '17'
+  source_dataset: swab-quest
+  source_id: '69'
+  mutation: wrong_year_answer
+  field: answer
+  original: The Battle of Badar. The Muslims, 313 in number, had defended themselves victoriously against 1000 Meccans.
+  seeded: The Battle of Badar. The Muslims, 313 in number, had defended themselves victoriously against 992 Meccans.
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '18'
+  source_dataset: swab-quest
+  source_id: '358'
+  mutation: wrong_year_answer
+  field: opt_a
+  original: '1965'
+  seeded: '1956'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '19'
+  source_dataset: swab-quest
+  source_id: '243'
+  mutation: wrong_year_answer
+  field: answer
+  original: An Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, opened in 2003.
+  seeded: An Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, opened in 2006.
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '20'
+  source_dataset: swab-quest
+  source_id: '225'
+  mutation: wrong_year_answer
+  field: opt_b
+  original: '1994'
+  seeded: '2000'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '21'
+  source_dataset: prophets-stories
+  source_id: '185'
+  mutation: wrong_year_question
+  field: question
+  original: Where did the Promised Messiah (as) take the first bai'at (pledge of allegiance) on 23 March 1889?
+  seeded: Where did the Promised Messiah (as) take the first bai'at (pledge of allegiance) on 23 March 1892?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '22'
+  source_dataset: football-quest
+  source_id: '73'
+  mutation: wrong_year_question
+  field: question
+  original: Which Brazilian player won the FIFA World Player of the Year award three times (1996, 1997 and 2002)?
+  seeded: Which Brazilian player won the FIFA World Player of the Year award three times (1987, 1997 and 2002)?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '23'
+  source_dataset: football-quest
+  source_id: '74'
+  mutation: wrong_year_question
+  field: question
+  original: What was unusual about the 1950 World Cup Final format?
+  seeded: What was unusual about the 1948 World Cup Final format?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '24'
+  source_dataset: football-quest
+  source_id: '80'
+  mutation: wrong_year_question
+  field: question
+  original: Which English club won the First Division title in the 1990–91 season — the last before the Premier League began?
+  seeded: Which English club won the First Division title in the 1985–91 season — the last before the Premier League began?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '25'
+  source_dataset: football-quest
+  source_id: '75'
+  mutation: wrong_year_question
+  field: question
+  original: Which club won the first Premier League title in 1992–93?
+  seeded: Which club won the first Premier League title in 1988–93?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '26'
+  source_dataset: football-quest
+  source_id: '53'
+  mutation: wrong_year_question
+  field: question
+  original: Who managed Manchester United to their treble-winning season in 1998–99?
+  seeded: Who managed Manchester United to their treble-winning season in 2001–99?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '27'
+  source_dataset: football-quest
+  source_id: '77'
+  mutation: wrong_year_question
+  field: question
+  original: Which goalkeeper famously saved three penalties in the 1994 World Cup Final shootout for Italy?
+  seeded: Which goalkeeper famously saved three penalties in the 1997 World Cup Final shootout for Italy?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '28'
+  source_dataset: world-tour
+  source_id: '120'
+  mutation: wrong_year_question
+  field: question
+  original: Since 2010, which building has been the tallest in the world?
+  seeded: Since 2007, which building has been the tallest in the world?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '29'
+  source_dataset: football-quest
+  source_id: '67'
+  mutation: wrong_year_question
+  field: question
+  original: In what year did Pelé score his 1000th goal in professional football?
+  seeded: In what year did Pelé score his 1003th goal in professional football?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '30'
+  source_dataset: football-quest
+  source_id: '48'
+  mutation: wrong_year_question
+  field: question
+  original: How many Ballon d'Or awards has Lionel Messi won in total (as of 2024)?
+  seeded: How many Ballon d'Or awards has Lionel Messi won in total (as of 2015)?
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    review: needs_review
+- eval_id: '31'
+  source_dataset: prophets-stories
+  source_id: '165'
+  mutation: wrong_number_answer
+  field: opt_d
+  original: The Hijrah (622 CE)
+  seeded: The Hijrah (501 CE)
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '32'
+  source_dataset: football-quest
+  source_id: '8'
+  mutation: wrong_number_answer
+  field: opt_c
+  original: '5'
+  seeded: '7'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '33'
+  source_dataset: prophets-stories
+  source_id: '176'
+  mutation: wrong_number_answer
+  field: answer
+  original: '63'
+  seeded: '68'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '34'
+  source_dataset: swab-quest
+  source_id: '179'
+  mutation: wrong_number_answer
+  field: answer
+  original: A peace treaty between the Holy Prophet(sa) and the Meccans in 6 AH. It seemed unfavourable but allowed the peaceful
+    spread of Islam.
+  seeded: A peace treaty between the Holy Prophet(sa) and the Meccans in 9 AH. It seemed unfavourable but allowed the peaceful
+    spread of Islam.
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '35'
+  source_dataset: swab-quest
+  source_id: '428'
+  mutation: wrong_number_answer
+  field: opt_a
+  original: '4'
+  seeded: '6'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '36'
+  source_dataset: prophets-stories
+  source_id: '205'
+  mutation: wrong_number_answer
+  field: opt_a
+  original: About 25
+  seeded: About 27
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '37'
+  source_dataset: animal-safari
+  source_id: '170'
+  mutation: wrong_number_answer
+  field: opt_c
+  original: About 8 metres
+  seeded: About 9 metres
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '38'
+  source_dataset: swab-quest
+  source_id: '60'
+  mutation: wrong_number_answer
+  field: opt_a
+  original: 105 ft / 32 m
+  seeded: 98 ft / 32 m
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '39'
+  source_dataset: animal-safari
+  source_id: '204'
+  mutation: wrong_number_answer
+  field: opt_c
+  original: '3'
+  seeded: '5'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '40'
+  source_dataset: swab-quest
+  source_id: '410'
+  mutation: wrong_number_answer
+  field: answer
+  original: Girls are part of Nasirat from a young age up to 15, after which they join Lajna Imaillah.
+  seeded: Girls are part of Nasirat from a young age up to 18, after which they join Lajna Imaillah.
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '41'
+  source_dataset: prophets-stories
+  source_id: '136'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al Imran 3:53
+  seeded: Surah Al Imran 3:58
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '42'
+  source_dataset: prophets-stories
+  source_id: '92'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah At-Tahrim 66:12. Her name is known from hadith.
+  seeded: Surah At-Tahrim 66:20. Her name is known from hadith.
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '43'
+  source_dataset: prophets-stories
+  source_id: '71'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Yusuf 12:56
+  seeded: Surah Yusuf 12:62
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '44'
+  source_dataset: prophets-stories
+  source_id: '42'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al-Baqarah 2:128
+  seeded: Surah Al-Baqarah 2:133
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '45'
+  source_dataset: prophets-stories
+  source_id: '98'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al-Baqarah 2:252
+  seeded: Surah Al-Baqarah 2:255
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '46'
+  source_dataset: prophets-stories
+  source_id: '48'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Ibrahim 14:36
+  seeded: Surah Ibrahim 14:42
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '47'
+  source_dataset: prophets-stories
+  source_id: '28'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al-A'raf 7:74
+  seeded: Surah Al-A'raf 7:77
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '48'
+  source_dataset: prophets-stories
+  source_id: '64'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah At-Tahrim 66:11
+  seeded: Surah At-Tahrim 66:20
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '49'
+  source_dataset: prophets-stories
+  source_id: '142'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al-Mu'minun 23:51 — understood as Kashmir. Rabwah in Pakistan is named after this verse.
+  seeded: Surah Al-Mu'minun 23:57 — understood as Kashmir. Rabwah in Pakistan is named after this verse.
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted
+- eval_id: '50'
+  source_dataset: prophets-stories
+  source_id: '90'
+  mutation: wrong_verse_in_note
+  field: note
+  original: Surah Al-Ma'idah 5:45
+  seeded: Surah Al-Ma'idah 5:49
+  expect:
+    any_of:
+    - VERIFIED
+    - UNVERIFIED
+    review: needs_review
+    note_status: contradicted

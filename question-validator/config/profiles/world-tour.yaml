@@ -1,0 +1,8 @@
+# METHODOLOGY.md §10
+edition: world-tour
+audience: families, ages 5+
+frame: none
+conventions:
+  superlatives: require_definition   # tallest/largest must say how it is measured if sources differ
+  as_of_default: dataset_import_date
+direct_sources: [wikidata]

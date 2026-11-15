@@ -1,0 +1,6 @@
+# Default profile: no frame, game structural rules.
+edition: general
+audience: general
+frame: none
+structural:
+  allowed_difficulties: [easy, hard]

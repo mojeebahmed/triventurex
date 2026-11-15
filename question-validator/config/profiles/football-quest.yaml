@@ -1,0 +1,6 @@
+edition: football-quest
+audience: families and football fans
+frame: none
+conventions:
+  as_of_default: dataset_import_date   # records and statistics are time-sensitive
+direct_sources: [wikidata]

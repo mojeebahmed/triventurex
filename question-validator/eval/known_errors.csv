@@ -1,0 +1,5 @@
+id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
+66,"What is the highest number of goals scored in a single Premier League season by one player, and who scored them?",open,34 goals — Erling Haaland for Manchester City in 2022–23,,,,,hard,records,,,
+70,"Which nation won three consecutive World Cups in 1958, 1962, and 1970?",open,Brazil,,,,,hard,history,,,
+73,"Which Brazilian player won the FIFA World Player of the Year award three times in a row (1996, 1997, 1998)?",multi,3,Pelé,Romário,Ronaldo (R9),,hard,players,,,
+86,"How many clubs have won the 'double' (league and FA Cup) in England most times, and which club is it?",open,"Manchester United — they have won the double three times (1994, 1996, 1999)",,,,,hard,records,,,

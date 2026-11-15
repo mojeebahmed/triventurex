@@ -1,0 +1,9 @@
+﻿id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note
+1,"Quoted, with comma",multi,2,"A ""quoted"" option",B,,D,easy,Cat,,,
+
+   
+ 2 , padded question ,open, answer ,,,,,hard,Cat,Sub,Top,"note, with comma"
+3,Short row,open,X
+4,"Open quote,open,Y,,,,,easy,c,,,
+5,Extra cells,open,Z,,,,,easy,c,,,,extra
+6,Café — ümläut,open,الله,,,,,easy,c,,,
