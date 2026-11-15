@@ -11,6 +11,7 @@ factual accuracy and quality, with traceable evidence for every conclusion.
 - [`METHODOLOGY.md`](METHODOLOGY.md) — the factual validation method: claims, evidence requirements,
   source tiers and origins, how disagreements are classified, verdict rules, worked examples from the editions.
 - [`prompts/`](prompts/) — the prompt and JSON output schema for every model stage, each with a dataset example.
+- [`CLAUDE.md`](CLAUDE.md) — working notes for Claude Code sessions in this folder.
 
 ## Relationship to the game
 
