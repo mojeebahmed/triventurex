@@ -167,6 +167,212 @@ def profiles() -> None:
         typer.echo(f"{name:18} {p.audience} — {frame}")
 
 
+# --- research (phase 2) -------------------------------------------------------------
+
+def _parse_ids(ids: str | None) -> list[str] | None:
+    """'1,2,5-7' → ['1','2','5','6','7']."""
+    if not ids:
+        return None
+    out: list[str] = []
+    for part in ids.split(","):
+        part = part.strip()
+        if "-" in part and all(x.strip().isdigit() for x in part.split("-", 1)):
+            a, b = (int(x) for x in part.split("-", 1))
+            out += [str(i) for i in range(a, b + 1)]
+        elif part:
+            out.append(part)
+    return out
+
+
+def _quota_lines(db: Database) -> list[str]:
+    """Remaining free quota per provider/model right now."""
+    from qv.config import load_providers_config
+    from qv.providers.usage import Limit, QuotaLedger
+    pcfg = load_providers_config()
+    ledger = QuotaLedger(db, reserve_fraction=pcfg.reserve_fraction)
+    g = pcfg.llm.gemini
+    lines = []
+    for m, lim in g.models.items():
+        limit = Limit("day", lim.rpd, g.daily_reset_timezone)
+        lines.append(f"  gemini {m:24} {ledger.remaining('gemini', m, limit):7.0f} of {ledger.usable(limit):.0f} "
+                     "requests left today")
+    sc = pcfg.search
+    for name, limit, unit in (("parallel", Limit("day", sc.parallel.daily_soft_cap), "searches today (own cap)"),
+                              ("tavily", Limit("month", sc.tavily.credits_per_month), "credits this month"),
+                              ("exa", Limit("month", sc.exa.usd_credit_per_month), "USD credit this month")):
+        lines.append(f"  {name:31} {ledger.remaining(name, '', limit):7.2f} of {ledger.usable(limit):.2f} {unit}")
+    return lines
+
+
+@app.command()
+def quota() -> None:
+    """Free quota left per provider (from our own ledger; the reserve is never used)."""
+    for line in _quota_lines(_db()):
+        typer.echo(line)
+
+
+@app.command()
+def research(dataset: str,
+             ids: Annotated[str | None, typer.Option(help="CSV ids, e.g. 1,5,10-12 (default: all)")] = None,
+             version: Annotated[int | None, typer.Option(help="Dataset version (default latest)")] = None,
+             max_questions: Annotated[int | None, typer.Option(help="Stop after this many questions")] = None,
+             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+    """Research questions: decomposition, searches, documents and grounded passages (uses free quotas)."""
+    from qv.services.research import build_deps, execute_run, start_run
+    settings = _settings()
+    db = _db()
+    id_list = _parse_ids(ids)
+    n = len(id_list) if id_list else None
+    with db.session() as s:
+        v = ds_service.get_version(s, dataset, version)
+        total = n or v.row_count
+    if max_questions:
+        total = min(total, max_questions)
+    from qv.config import load_research_config
+    rc = load_research_config()
+    llm_per_q = 2 + (rc.max_documents_per_question + rc.max_note_documents_per_question + 1) * rc.s3_max_windows
+    typer.echo(f"About to research up to {total} question(s) of {dataset}.")
+    typer.echo(f"Rough upper bound per question: {llm_per_q} Gemini requests (usually fewer), "
+               f"{rc.max_web_queries_per_question} web searches (cached ones are free).")
+    typer.echo("Free quota now:")
+    for line in _quota_lines(db):
+        typer.echo(line)
+    typer.echo("The run stops cleanly when a free quota runs out; `qv resume <run>` continues later.")
+    if not yes and not typer.confirm("Start?"):
+        raise typer.Exit(1)
+    run_id = start_run(db, dataset, id_list, version_no=version)
+    report = execute_run(build_deps(settings, db), run_id, max_questions=max_questions)
+    _print_run_report(report)
+
+
+@app.command()
+def resume(run_id: int, max_questions: Annotated[int | None, typer.Option()] = None) -> None:
+    """Continue an interrupted or stopped research run."""
+    from qv.services.research import build_deps, execute_run
+    db = _db()
+    _print_run_report(execute_run(build_deps(_settings(), db), run_id, max_questions=max_questions))
+
+
+def _print_run_report(report) -> None:  # noqa: ANN001
+    """Print a RunReport."""
+    for q in report.questions:
+        typer.echo(f"  id {q['id']}: {q.get('documents', 0)} documents, {q.get('passages_grounded', 0)} passages "
+                   f"({q.get('passages_dropped', 0)} dropped), searches {q.get('searches_run', 0)} run / "
+                   f"{q.get('searches_cached', 0)} cached")
+    typer.echo(f"Run {report.run_id}: {report.done} done, {report.failed} failed, {report.pending} still pending")
+    if report.stopped_reason:
+        typer.echo(f"Stopped: {report.stopped_reason}")
+    typer.echo(f"Details: qv evidence {report.run_id} <id>   ·   web view: qv ui")
+
+
+@app.command()
+def runs() -> None:
+    """List research runs."""
+    from sqlalchemy import func, select
+
+    from qv.db.models import Run, RunQuestion
+    db = _db()
+    with db.session() as s:
+        for r in s.scalars(select(Run).order_by(Run.id)):
+            counts = dict(s.execute(select(RunQuestion.status, func.count()).where(RunQuestion.run_id == r.id)
+                                    .group_by(RunQuestion.status)).all())
+            typer.echo(f"run {r.id}  {r.created_at:%Y-%m-%d %H:%M}  {r.config_json.get('dataset')} "
+                       f"v{r.config_json.get('version_no')}  {r.status}  {counts}"
+                       + (f"  ({r.stop_reason[:80]})" if r.stop_reason else ""))
+
+
+@app.command()
+def evidence(run_id: int, ext_id: str) -> None:
+    """Show what research found for one question: claims, queries, documents and passages."""
+    from sqlalchemy import select
+
+    from qv.db.models import QuestionRow, Run
+    from qv.services.research import question_evidence
+    db = _db()
+    with db.session() as s:
+        run = s.get(Run, run_id)
+        if run is None:
+            raise typer.BadParameter(f"No run {run_id}")
+        q = s.scalar(select(QuestionRow).where(QuestionRow.dataset_version_id == run.dataset_version_id,
+                                               QuestionRow.ext_id == ext_id))
+        if q is None:
+            raise typer.BadParameter(f"No id {ext_id} in that dataset version")
+        typer.echo(f"#{q.ext_id} {q.question}\n   key: {q.resolved_answer_text}   note: {q.note or '-'}")
+        qid = q.id
+    ev = question_evidence(db, run_id, qid)
+    s1a = ev["stage_outputs"].get("s1a")
+    if s1a:
+        o = s1a.output_json
+        typer.echo(f"\nS1a ({s1a.model}) need: {o['information_need']}")
+        typer.echo(f"   claim type {o['claim_type']}, frame {o['frame_class']}")
+        for p in o["presuppositions"]:
+            typer.echo(f"   {p['id']}: {p['text']}{'' if p['material'] else ' (not material)'}")
+        for x in o["queries"]:
+            typer.echo(f"   query [{x['purpose']}] {x['q']}")
+        for c in s1a.checks_json:
+            typer.echo(f"   check: {c}")
+    s1b = ev["stage_outputs"].get("s1b")
+    if s1b:
+        o = s1b.output_json
+        typer.echo(f"\nS1b ({s1b.model}) key claim: {o['key_claim']}")
+        for n in o["note_claims"]:
+            typer.echo(f"   {n['id']} [{n['kind']}] {n['text']}")
+        for c in o["challenge_queries"]:
+            typer.echo(f"   challenge [{c['angle']}] {c['q']}")
+    for d in ev["documents"]:
+        qd, doc = d["qd"], d["doc"]
+        tier = f"{qd.registry_tier}->{qd.effective_tier or '?'}" + (" frame-authority" if qd.frame_authority else "")
+        typer.echo(f"\n[{qd.mode}] doc {doc.id} {doc.final_url}\n    {tier}, {qd.page_kind or '-'}, {qd.status}, "
+                   f"{qd.grounded_count} grounded / {qd.dropped_count} dropped")
+        for p in d["passages"]:
+            ans = f" → {p.asserted_answer}" if p.asserted_answer else ""
+            opt = f" [{p.matches_option}]" if p.matches_option else ""
+            stance = f" ({p.stance})" if p.stance else ""
+            typer.echo(f"    P{p.id} {p.target}{stance}{ans}{opt}\n      \"{p.quote[:300]}\"")
+
+
+@app.command()
+def metrics(run_id: int) -> None:
+    """Evidence metrics for a run: grounding failure rate, coverage, documents by tier."""
+    from qv.services.views import run_metrics
+    for k, v in run_metrics(_db(), run_id).items():
+        typer.echo(f"  {k:32} {v}")
+
+
+@app.command()
+def usage(run: Annotated[int | None, typer.Option(help="Only this run")] = None) -> None:
+    """API usage: calls, tokens and credits per provider/model (cost is $0 on free tiers)."""
+    from sqlalchemy import func, select
+
+    from qv.db.models import ApiCall
+    db = _db()
+    with db.session() as s:
+        q = select(ApiCall.provider, ApiCall.model, ApiCall.kind, ApiCall.status, func.count(),
+                   func.sum(ApiCall.input_tokens), func.sum(ApiCall.output_tokens), func.sum(ApiCall.thinking_tokens),
+                   func.sum(ApiCall.credits), func.sum(ApiCall.cost_usd)).group_by(
+            ApiCall.provider, ApiCall.model, ApiCall.kind, ApiCall.status)
+        if run is not None:
+            q = q.where(ApiCall.run_id == run)
+        for prov, model, kind, status, n, tin, tout, tthink, credits, cost in s.execute(q):
+            typer.echo(f"  {prov:9} {model or '-':24} {kind:6} {status:8} {n:5} calls  in {tin or 0:>8}  "
+                       f"out {tout or 0:>7}  think {tthink or 0:>7}  credits {credits or 0:8.3f}  ${cost or 0:.2f}")
+
+
+@app.command()
+def ui(port: int = 8501) -> None:
+    """Open the read-only web view (Streamlit)."""
+    import subprocess
+    import sys
+    from pathlib import Path as _P
+    app_path = _P(__file__).parent / "ui" / "app.py"
+    env_dir = str(_settings().data_dir)
+    import os
+    env = {**os.environ, "QV_DATA_DIR": env_dir}
+    raise typer.Exit(subprocess.call([sys.executable, "-m", "streamlit", "run", str(app_path),
+                                      "--server.port", str(port), "--server.headless", "true",
+                                      "--browser.gatherUsageStats", "false", "--client.toolbarMode", "minimal"], env=env))
+
+
 # --- evaluation set -----------------------------------------------------------
 
 @eval_app.command("check")

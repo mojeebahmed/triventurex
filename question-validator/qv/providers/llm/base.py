@@ -1,0 +1,219 @@
+"""Provider-neutral LLM interface, structured-output validation and model pools."""
+
+from __future__ import annotations
+
+import copy
+import json
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import Any, Protocol, TypeVar
+
+from pydantic import BaseModel, ValidationError
+
+from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class LLMError(RuntimeError):
+    """A model call failed in a way the caller should know about."""
+
+
+class LLMRefusal(LLMError):
+    """The model or its safety filter declined to answer (routed to review later)."""
+
+
+class LLMSchemaError(LLMError):
+    """The response was not valid JSON for the schema, even after one retry."""
+
+    def __init__(self, message: str, raw_text: str = "") -> None:
+        """Keep the raw text for diagnosis."""
+        super().__init__(message)
+        self.raw_text = raw_text
+
+
+class DailyQuotaError(LLMError):
+    """The provider reports that this model's daily (or longer) quota is used up."""
+
+
+class RateLimitError(LLMError):
+    """The provider reports a per-minute limit; retry after `retry_after` seconds."""
+
+    def __init__(self, message: str, retry_after: float = 20.0) -> None:
+        """`retry_after` comes from the provider's RetryInfo when given."""
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class TransientError(LLMError):
+    """Server error or timeout; worth retrying with backoff."""
+
+
+@dataclass(frozen=True)
+class Message:
+    """One chat turn."""
+
+    role: str  # "user" | "model"
+    text: str
+
+
+@dataclass
+class RawResponse:
+    """What a provider returns for one request (before schema validation)."""
+
+    text: str
+    model: str
+    finish_reason: str | None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    thinking_tokens: int = 0
+    response_id: str | None = None
+    api_call_id: int | None = None
+
+
+@dataclass
+class StructuredResult:
+    """A validated structured output and how it was produced."""
+
+    output: BaseModel
+    provider: str
+    model: str
+    raw_text: str
+    attempts: int
+    api_call_ids: list[int] = field(default_factory=list)
+
+
+class LLMProvider(Protocol):
+    """One LLM provider. Implementations meter and log every request themselves."""
+
+    name: str
+
+    def generate_json(self, *, model: str, system: str, messages: Sequence[Message], schema: dict[str, Any],
+                      ctx: CallContext) -> RawResponse:
+        """Send one request that must return JSON for `schema`. Raises the errors above."""
+        ...
+
+
+def json_schema_for(model_cls: type[BaseModel]) -> dict[str, Any]:
+    """JSON Schema for structured output: refs inlined, titles and defaults removed."""
+    schema = model_cls.model_json_schema()
+    defs = schema.pop("$defs", {})
+
+    def resolve(node: Any) -> Any:
+        if isinstance(node, dict):
+            if "$ref" in node:
+                return resolve(copy.deepcopy(defs[node["$ref"].split("/")[-1]]))
+            return {k: resolve(v) for k, v in node.items() if k not in ("title", "default")}
+        if isinstance(node, list):
+            return [resolve(v) for v in node]
+        return node
+
+    return resolve(schema)
+
+
+def parse_structured(text: str, model_cls: type[T]) -> T:
+    """Parse and validate a JSON response; raises LLMSchemaError with a readable reason."""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise LLMSchemaError(f"Response is not valid JSON: {exc}", text) from exc
+    try:
+        return model_cls.model_validate(data)
+    except ValidationError as exc:
+        errors = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:10])
+        raise LLMSchemaError(f"Response does not match the schema: {errors}", text) from exc
+
+
+class ModelPool:
+    """Runs a structured request on the first model in a pool that still has free quota.
+
+    - Daily quota used up (ledger or provider 429) → the next model takes over.
+    - Per-minute limit → wait and retry the same model.
+    - Server errors → retry with backoff (bounded).
+    - Invalid JSON / schema → one retry on the same model with the error, then LLMSchemaError.
+    """
+
+    MAX_RATE_RETRIES = 4
+    MAX_TRANSIENT_RETRIES = 3
+
+    def __init__(self, provider: LLMProvider, models: list[str], limits: dict[str, list[Limit]],
+                 rpm: dict[str, int], metering: Metering) -> None:
+        """`limits`/`rpm` per model id; `models` in fallback order."""
+        if not models:
+            raise ValueError("A model pool needs at least one model")
+        self.provider = provider
+        self.models = models
+        self.limits = limits
+        self.rpm = rpm
+        self.metering = metering
+
+    def available_models(self) -> list[str]:
+        """Models in the pool that still have free quota now."""
+        return [m for m in self.models
+                if self.metering.ledger.can_spend(self.provider.name, m, 1, self.limits[m])]
+
+    def complete(self, *, system: str, user: str, schema_cls: type[T], ctx: CallContext) -> StructuredResult:
+        """Return a validated output, falling back across models; raises QuotaExhausted when none is left."""
+        schema = json_schema_for(schema_cls)
+        last_error: Exception | None = None
+        for model in self.models:
+            if not self.metering.ledger.can_spend(self.provider.name, model, 1, self.limits[model]):
+                continue
+            try:
+                return self._complete_on(model, system, user, schema, schema_cls, ctx)
+            except DailyQuotaError as exc:
+                self.metering.ledger.mark_exhausted(self.provider.name, model, self.limits[model])
+                last_error = exc
+        raise QuotaExhausted(
+            f"No free quota left today for any model in pool {self.models}"
+            + (f" (last error: {last_error})" if last_error else "")
+        )
+
+    def _complete_on(self, model: str, system: str, user: str, schema: dict[str, Any],
+                     schema_cls: type[T], ctx: CallContext) -> StructuredResult:
+        messages = [Message("user", user)]
+        call_ids: list[int] = []
+        attempts = 0
+        schema_retry_used = False
+        while True:
+            raw = self._send(model, system, messages, schema, ctx, call_ids)
+            attempts += 1
+            try:
+                out = parse_structured(raw.text, schema_cls)
+                return StructuredResult(out, self.provider.name, raw.model or model, raw.text, attempts, call_ids)
+            except LLMSchemaError as exc:
+                if schema_retry_used:
+                    raise
+                schema_retry_used = True
+                messages = [*messages, Message("model", raw.text), Message(
+                    "user", f"Your previous answer was rejected: {exc}. Reply again with JSON that matches "
+                            "the schema exactly.")]
+
+    def _send(self, model: str, system: str, messages: list[Message], schema: dict[str, Any],
+              ctx: CallContext, call_ids: list[int]) -> RawResponse:
+        rate_retries = transient_retries = 0
+        while True:
+            if not self.metering.ledger.can_spend(self.provider.name, model, 1, self.limits[model]):
+                raise DailyQuotaError(f"{model}: free daily quota used up (ledger)")
+            self.metering.limiter.wait(f"{self.provider.name}:{model}", self.rpm[model])
+            try:
+                raw = self.provider.generate_json(model=model, system=system, messages=messages,
+                                                  schema=schema, ctx=ctx)
+                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                if raw.api_call_id:
+                    call_ids.append(raw.api_call_id)
+                return raw
+            except RateLimitError as exc:
+                rate_retries += 1
+                if rate_retries > self.MAX_RATE_RETRIES:
+                    raise DailyQuotaError(f"{model}: still rate-limited after {rate_retries} waits") from exc
+                self.metering.limiter.penalise(f"{self.provider.name}:{model}", exc.retry_after)
+            except TransientError:
+                transient_retries += 1
+                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                if transient_retries > self.MAX_TRANSIENT_RETRIES:
+                    raise
+                self.metering.limiter.penalise(f"{self.provider.name}:{model}", 2 ** transient_retries)
+            except (LLMRefusal, LLMSchemaError):
+                self.metering.ledger.record(self.provider.name, model, 1, self.limits[model])
+                raise

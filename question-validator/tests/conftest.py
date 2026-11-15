@@ -56,3 +56,11 @@ def node() -> str:
 def edition_bytes(edition: str) -> bytes:
     """Bytes of an edition's questions.csv."""
     return (EDITIONS_DIR / edition / "questions.csv").read_bytes()
+
+
+@pytest.fixture(autouse=True)
+def no_network() -> Iterator[None]:
+    """Fail any HTTP request a test has not mocked (no real API calls or quota use in tests)."""
+    import respx
+    with respx.mock(assert_all_mocked=True, assert_all_called=False):
+        yield

@@ -1,0 +1,46 @@
+# Free-tier providers and their limits (decision 2026-11-15: free services only, $0 budget).
+# Limits are what we allow ourselves; set them at or below the provider's free tier.
+# Check Gemini limits on the AI Studio rate-limit page — they differ per project and change over time.
+
+reserve_fraction: 0.05      # keep 5 % of every daily/monthly quota unused as a safety margin
+
+llm:
+  gemini:
+    daily_reset_timezone: America/Los_Angeles   # Gemini daily quotas reset at midnight Pacific time
+    models:
+      gemini-3.5-flash-lite: {rpm: 15, rpd: 500}
+      gemini-3.1-flash-lite: {rpm: 15, rpd: 500}
+      gemini-3.8-flash:      {rpm: 5,  rpd: 20}
+      gemini-3.7-flash:      {rpm: 5,  rpd: 20}
+      gemini-3.6-flash:      {rpm: 5,  rpd: 20}
+    pools:                   # tried in order; the next model takes over when one's daily quota is used up
+      cheap: [gemini-3.5-flash-lite, gemini-3.1-flash-lite]
+      judge: [gemini-3.8-flash, gemini-3.7-flash, gemini-3.6-flash]
+
+stage_pools:                 # which pool each model stage uses
+  s1a: cheap
+  s1b: cheap
+  s3: cheap
+
+search:
+  order: [parallel, tavily, exa]   # tried in this order until one has results; each stops at its free limit
+  parallel:                  # free hosted MCP, anonymous; no published limits → our own soft cap
+    daily_soft_cap: 300
+    rpm: 20
+  tavily:
+    credits_per_month: 1000
+    credits_per_search: 1    # "basic" depth
+    rpm: 60
+  exa:
+    usd_credit_per_month: 10.0
+    est_usd_per_search: 0.005   # replaced by the cost Exa reports for each call
+    rpm: 30
+  wikipedia:                 # free, no key; Wikimedia asks for modest request rates
+    rpm: 60
+  alislam:                   # free; the edition's official source — be polite
+    rpm: 10
+
+fetch:
+  rpm_per_domain: 10
+  timeout_s: 20
+  max_bytes: 3000000

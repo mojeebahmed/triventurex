@@ -1,0 +1,11 @@
+# Research depth (phase 2). Lower numbers spend fewer free credits.
+max_web_queries_per_question: 4      # Tavily/Exa searches per question (blind first, then challenge/note)
+results_per_query: 5
+max_documents_per_question: 5        # web + Wikipedia documents read by S3 (mode A)
+max_note_documents_per_question: 2   # documents read for note claims (mode B)
+wikipedia_results: 1                 # free extra source per question
+alislam_search_results: 2            # free; only for profiles whose frame lists alislam.org
+search_cache_days: 60
+s3_window_chars: 40000               # long documents are read in windows of this size …
+s3_window_overlap_chars: 1000
+s3_max_windows: 2                    # … at most this many per document

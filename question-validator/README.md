@@ -3,8 +3,9 @@
 An AI-assisted tool that checks Triventurex quiz questions (and any CSV in the same format) for
 factual accuracy and quality, with traceable evidence for every conclusion.
 
-**Status:** phase 1 implemented (foundation, database, CSV import/export, structural checks,
-evaluation set). No AI or network calls yet — research and verification come in phases 2–3.
+**Status:** phases 1–2 implemented — import/structural checks, and the evidence layer (answer-blind question
+analysis, free web search, page fetching, Qur'an verses from alislam.org, verbatim passages checked against the
+stored pages). Verdicts (is the answer right?) come in phase 3. Free services only.
 
 - [`SPECIFICATION.md`](SPECIFICATION.md) — the original PRD and technical specification (unchanged copy).
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — review of the specification, the revised architecture, database
@@ -41,6 +42,11 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv export original world-tour                 # byte-identical copy of the import
 .venv/bin/qv export report world-tour                   # structural report CSV
 .venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}}
+.venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa)
+.venv/bin/qv research swab-quest --ids 1,5,10-12       # evidence for some questions (asks first)
+.venv/bin/qv resume 3                                  # continue a run stopped by a free limit
+.venv/bin/qv runs | metrics 3 | evidence 3 12 | usage  # inspect runs, one question's evidence, API use
+.venv/bin/qv ui                                        # read-only web view → http://localhost:8501
 .venv/bin/qv eval check | seed | sample out.csv        # evaluation set tools
 .venv/bin/python -m pytest                             # tests (~3 s; parity tests need node)
 ```
@@ -50,12 +56,17 @@ cp .env.example .env            # optional; data goes to ./data by default
 ```
 qv/domain/      typed models (Pydantic): Question, CsvRow, StructuralIssue, DatasetDiff …
 qv/io/          game-compatible CSV parser + byte-faithful patch writer
-qv/pipeline/    stages; structural.py = S0 (no AI)
+qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py
+qv/providers/   llm/ (Gemini + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
+                fetch.py, quran.py, usage.py (free-quota ledger, rate limits, call log)
+qv/prompts/     versioned system prompts (copied from prompts/*.md)
+qv/ui/          Streamlit read-only view (thin; queries in qv/services/views.py)
 qv/db/          SQLAlchemy models, sessions (SQLite WAL), Alembic migrations (applied automatically)
-qv/services/    application logic used by CLI/UI: datasets (import, versions, diff), exports
+qv/services/    application logic used by CLI/UI: datasets, exports, research (pipeline), views
 qv/evaluation.py  eval cases, seeded errors, stratified sampling
 qv/cli.py       `qv` command (thin)
 config/profiles/  per-edition profile: audience, frame, conventions, structural rules
+config/providers.yaml  free-tier limits, Gemini model pools, search order · research.yaml depth · sources.yaml tiers
 eval/           cases.yaml, known_errors.csv, seeded.csv + seeded_labels.yaml
 tests/          pytest
 ```

@@ -1,0 +1,73 @@
+# Source registry: default tier per domain (METHODOLOGY.md §5.1). Applied by code.
+#   P primary · S secondary · T tertiary · X excluded (never evidence)
+# A page can only be LOWERED from its registry tier by what S3 sees (e.g. a quiz page → X), never raised.
+# Subdomains inherit their parent's entry (kids.britannica.com → britannica.com) unless listed themselves.
+# Frame authorities (e.g. alislam.org for the Ahmadiyya editions) are declared in the edition profile.
+version: 1
+default_tier: T
+
+suffix_tiers:          # by end of host name, when the domain itself is not listed
+  .gov: S
+  .gov.uk: S
+  .edu: S
+  .ac.uk: S
+  .int: S
+
+domains:
+  # Ahmadiyya official sources (frame authority set per profile)
+  alislam.org: S
+  reviewofreligions.org: S
+  # Official bodies / record keepers
+  un.org: P
+  population.un.org: P
+  unesco.org: S
+  whc.unesco.org: P
+  worldbank.org: P
+  nasa.gov: P
+  usgs.gov: P
+  noaa.gov: P
+  fifa.com: P
+  uefa.com: P
+  premierleague.com: P
+  thefa.com: P
+  iucnredlist.org: P
+  # Reputable secondary
+  bbc.co.uk: S
+  bbc.com: S
+  reuters.com: S
+  apnews.com: S
+  theguardian.com: S
+  nytimes.com: S
+  nationalgeographic.com: S
+  smithsonianmag.com: S
+  si.edu: S
+  nhm.ac.uk: S
+  rsssf.org: S
+  worldwildlife.org: S
+  # Tertiary reference works
+  wikipedia.org: T
+  britannica.com: T
+  worldatlas.com: T
+  # Excluded: quiz/trivia, Q&A, forums, social, study-answer sites
+  quizlet.com: X
+  sporcle.com: X
+  funtrivia.com: X
+  jetpunk.com: X
+  triviaquestionsnow.com: X
+  quizzclub.com: X
+  playbuzz.com: X
+  brainly.com: X
+  brainly.in: X
+  quora.com: X
+  reddit.com: X
+  answers.com: X
+  chegg.com: X
+  coursehero.com: X
+  studocu.com: X
+  pinterest.com: X
+  facebook.com: X
+  instagram.com: X
+  x.com: X
+  twitter.com: X
+  tiktok.com: X
+  medium.com: X

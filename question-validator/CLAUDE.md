@@ -13,8 +13,10 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `SPECIFICATION.md` — the original PRD (unchanged copy; don't edit).
 
 ## Status
-Phase 1 done (2026-11-15): foundation, DB, CSV import/export, structural checks, eval set. Next: Phase 2
-(evidence layer), ARCHITECTURE.md §6. Open decisions: ARCHITECTURE.md §7 and METHODOLOGY.md §13.
+Phase 1 done (2026-11-15): foundation, DB, CSV import/export, structural checks, eval set.
+Phase 2 done (2026-11-15): evidence layer — S1a/S1b/S3, search, fetch, Qur'an source, grounding, quotas, read-only
+web view (`qv ui`). Next: Phase 3 (judgement: S4 blind answer, S5 verification, S6 quality, S8 rules).
+Open points: METHODOLOGY.md §13.
 Run `.venv/bin/python -m pytest` before merging (see README for setup).
 
 ## Decisions (Mojeeb, 2026-11-15) — replace ARCHITECTURE.md §7
@@ -25,8 +27,10 @@ Run `.venv/bin/python -m pytest` before merging (see README for setup).
   the free tier is small (≈20 requests/day for Flash, ≈500 for Flash-Lite, no Pro, Nov 2026), so cheap
   stages use Flash-Lite. Second independent verifier / small pilots: Claude Code itself (subscription),
   one fresh subagent per request so blind stages stay blind. No Anthropic/OpenAI API keys.
-- **Search:** several free pools behind one interface with quota tracking: Tavily (1,000 credits/month),
-  optionally Exa and Serper; Brave needs a card → not used. Direct sources first (free, no credits).
+- **Search:** several free pools behind one interface with quota tracking, in order: Parallel's free hosted
+  MCP (anonymous, own soft cap of 300/day), Tavily (1,000 credits/month), Exa ($10 credit/month). Brave needs a
+  card → not used. Direct sources first (free). Wikipedia only when `QV_CONTACT` is set (Wikimedia requires a
+  contact in the user agent; never Mojeeb's email unless he sets it).
 - **Ahmadiyya source: alislam.org.** Qur'an verses from `alislam.org/quran/app/<s>:<v>` (Arabic + Sher Ali
   English, Bismillah = verse 1, allowed by robots.txt and listed in its sitemap); site search via
   `alislam.org/?s=<query>`. Respect robots.txt (`/quran/view/`, `/quran/tafseer/`, `/library/browse/…` are
@@ -47,6 +51,20 @@ Run `.venv/bin/python -m pytest` before merging (see README for setup).
 - Schema changes → new Alembic revision in `qv/db/migrations/versions/` (never edit an applied one);
   `tests/test_db.py` fails if models and migrations differ.
 - `eval/seeded.*` are generated (`qv eval seed`); a test fails when they are stale after content edits.
+
+## Implementation invariants (phase 2)
+- **What each stage sees is enforced by the render functions** in `qv/pipeline/stages.py`; tests assert the key
+  and note never appear in S1a/S3 prompts (`tests/test_stages.py`, `tests/test_research.py`). Keep it that way.
+- **Prompts:** `qv/prompts/<stage>.v<N>.system.txt` must equal the design block in `prompts/*.md`
+  (test). Changing a prompt = new version file + bump `PROMPT_VERSIONS`. Stage output models in
+  `qv/domain/stages.py` must match the design JSON schemas (test).
+- **Only grounded passages are stored** (`qv/pipeline/grounding.py`: exact substring after normalisation; no
+  fuzzy matching). Documents and passages are immutable (triggers).
+- **Never past a free quota:** every LLM/search call goes through `QuotaLedger` (5 % reserve) and the rate
+  limiter; a provider's 429 marks it used up for the period. Model pools fall back to the next model.
+  `QuotaExhausted` stops a run cleanly; `qv resume <run>` continues (stage outputs reused by input hash —
+  the hash excludes the model so pools can switch models).
+- **Tests never touch the network** (autouse respx guard in `tests/conftest.py`).
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,
