@@ -4,8 +4,8 @@ Pages: Overview · 1 Import · 2 Validate · 3 Review · 4 Export · Advanced, f
 "Working on" in the sidebar. Queries and writes live in qv.services; this file only lays them out.
 Long work (a batch) runs as a separate `qv next` process, so the page can be closed while it works.
 
-Every table goes through `data_table` so all tables look and behave the same (always-visible
-scrollbar that starts below the header, row count, click a row to open it).
+Every table goes through `data_table` (our own component in qv/ui/table.py) so all tables look and behave the
+same: header stays put, row count, click anywhere on a row to open it, nothing editable.
 """
 
 from __future__ import annotations
@@ -20,21 +20,13 @@ from qv.db.session import Database
 from qv.pipeline.priority import SIGNALS
 from qv.services import views, worker, workflow
 from qv.services.workflow import STATUS_LABEL
+from qv.ui.table import render_table
 
 st.set_page_config(page_title="Question Validator", page_icon="✅", layout="wide")
 
 ROW_PX, HEADER_PX = 35, 36
 CSS = f"""
 <style>
-/* Tables: a scrollbar that is always visible and starts below the (fixed) header row. */
-[data-testid="stDataFrame"] .dvn-scroller {{ scrollbar-width: auto !important; scrollbar-color: auto !important; }}
-[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar {{ width: 11px; height: 11px; }}
-[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-track {{ background: #f1f2f6; border-radius: 6px; }}
-[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-track:vertical {{ margin-top: {HEADER_PX}px; }}
-[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-thumb {{
-    background: #b8bcc8; border-radius: 6px; border: 2px solid #f1f2f6; }}
-[data-testid="stDataFrame"] .dvn-scroller::-webkit-scrollbar-thumb:hover {{ background: #8d92a1; }}
-[data-testid="stDataFrame"] {{ border: 1px solid #e3e5eb; border-radius: 8px; }}
 /* Sidebar menu: a little more room per item */
 [data-testid="stSidebar"] [data-testid="stPageLink"] a {{ padding: 0.35rem 0.6rem; }}
 .qv-file {{ font-size: 0.85rem; color: #555; line-height: 1.35; margin: -0.4rem 0 0.6rem 0; }}
@@ -101,49 +93,27 @@ settings = Settings()
 
 # --- shared pieces ------------------------------------------------------------------------
 
-def _picked(state: object) -> int | None:
-    """Row of a table's current selection: a ticked row or a clicked cell."""
-    sel = getattr(state, "selection", None) or (state.get("selection") if isinstance(state, dict) else None)
-    if not sel:
-        return None
-    rows = sel.get("rows") if isinstance(sel, dict) else getattr(sel, "rows", [])
-    cells = sel.get("cells") if isinstance(sel, dict) else getattr(sel, "cells", [])
-    if rows:
-        return rows[0]
-    if cells:
-        return cells[0][0]
-    return None
-
-
 def data_table(rows: list[dict] | pd.DataFrame, *, key: str | None = None, select: bool = False,
                columns: dict | None = None, max_rows: int = 12, highlight: int | None = None) -> int | None:
     """Every table on the page: same look, height that fits, row count, optional click-a-row.
 
-    With select=True a click on any cell (or the row's tick box) picks the row; the picked row is
-    highlighted. Returns its position, else None.
+    With select=True a click anywhere on a row picks it and highlights the whole row (no tick boxes, nothing
+    editable). Returns the picked position, else None. `highlight` marks a row until one is clicked.
     """
     df = rows if isinstance(rows, pd.DataFrame) else pd.DataFrame(rows)
     if df.empty:
         st.caption("Nothing to show.")
         return None
     shown = min(len(df), max_rows)
-    picked = _picked(st.session_state.get(key)) if select and key else None
-    if highlight is not None:
-        picked = highlight
-    data = df
-    if picked is not None and picked < len(df):
-        data = df.style.apply(lambda r: ["background-color: #fff3c4; font-weight: 600" if r.name == picked else ""
-                                         for _ in r], axis=1)
-    event = st.dataframe(data, hide_index=True, width="stretch", height=HEADER_PX + ROW_PX * shown + 16, key=key,
-                         column_config=columns or {}, on_select="rerun" if select else "ignore",
-                         selection_mode=["single-row", "single-cell"] if select else "multi-row")
+    pick = render_table(df, key=key, select=select, columns=columns, height=HEADER_PX + ROW_PX * shown + 16,  # + room for a sideways scrollbar
+                        highlight=highlight)
     note = f"{len(df)} row{'s' if len(df) != 1 else ''}"
     if len(df) > max_rows:
         note += " — scroll the table to see all"
     if select:
         note += " · click a row to open it"
     st.caption(note)
-    return _picked(event) if select else None
+    return pick
 
 
 TEXT = st.column_config.TextColumn
