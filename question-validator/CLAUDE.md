@@ -10,6 +10,8 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `ARCHITECTURE.md` — stack, database design, workflow, API strategy, phased plan (§6). Where §3 differs from
   METHODOLOGY.md, METHODOLOGY.md wins.
 - `prompts/` — prompt + JSON schema per stage. Prompts are versioned: change a prompt → new version file.
+- `DATABASE.md` — tables in plain words, how to inspect the database, example queries. Update it when a table
+  or an inspecting command changes.
 - `SPECIFICATION.md` — the original PRD (unchanged copy; don't edit).
 
 ## Status

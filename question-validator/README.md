@@ -3,15 +3,17 @@
 An AI-assisted tool that checks Triventurex quiz questions (and any CSV in the same format) for
 factual accuracy and quality, with traceable evidence for every conclusion.
 
-**Status:** phases 1–2 implemented — import/structural checks, and the evidence layer (answer-blind question
+**Status:** phases 1–3 implemented — import/structural checks, the evidence layer (answer-blind question
 analysis, free web search, page fetching, Qur'an verses from alislam.org, verbatim passages checked against the
-stored pages). Verdicts (is the answer right?) come in phase 3. Free services only.
+stored pages) and judgement (blind answer, verification, quality, rule-based verdict). Free services only.
 
 - [`SPECIFICATION.md`](SPECIFICATION.md) — the original PRD and technical specification (unchanged copy).
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — review of the specification, the revised architecture, database
   design, processing workflow, API strategy and phased plan.
 - [`METHODOLOGY.md`](METHODOLOGY.md) — the factual validation method: claims, evidence requirements,
   source tiers and origins, how disagreements are classified, verdict rules, worked examples from the editions.
+- [`DATABASE.md`](DATABASE.md) — what is stored in `data/validation.db` and how to look inside (web view,
+  `qv` commands, DB Browser for SQLite, example queries).
 - [`prompts/`](prompts/) — the prompt and JSON output schema for every model stage, each with a dataset example.
 - [`CLAUDE.md`](CLAUDE.md) — working notes for Claude Code sessions in this folder.
 
