@@ -12,9 +12,10 @@ The sidebar shows:
 
 - **Working on** — the question file you are working on, with its source file name, version and date. You can
   import one file per game edition (Swab Quest, World Tour, …) and switch between them here.
-- The steps: **Overview · 1 Import · 2 Validate · 3 Review · 4 Export**, and **Advanced** for the detailed views.
+- The menu: **Overview · 1 Import · 2 Validate · 3 Review · 4 Export**, and **Advanced** for the detailed views.
 
-The **Overview** lists every file with its progress and tells you, with one button, what to do next.
+The **Overview** lists every file with its progress (click a row to work on that file) and tells you, with one
+button, what to do next. In every table, **click a row** to open it; the open row is highlighted.
 
 ## 1 · Import a file
 
@@ -49,24 +50,26 @@ questions need checking.
 
 Press **Validate next batch**. Terminal: `qv next world-tour`.
 
-- It checks the next questions, **highest priority first**, as many as today's free limits allow (about 25 a
+- It checks the next questions in the order you choose, as many as today's free limits allow (about 25 a
   day). You can close the page while it works; the Validate page shows its progress.
 - **When it stops** (free limit used up, or the internet dropped), the page says when the limits come back.
   Press the same button again then — finished work is kept, nothing is done twice. That is all you do in this
   step.
-- **Choose which questions** (optional): by category, subcategory or priority, highest priority first or in file
-  order.
-- The **Priority list** tab shows every unchecked question with *why* it comes first: numbers and dates,
-  "most / first / only" claims, facts that can go out of date, references and quotes, notes with their own claims,
-  format warnings and hard questions. It is a quick guess from the wording (no AI, free). Edited questions always
-  come first.
+- **Choose which questions** (optional): by category, subcategory, topic and difficulty.
+- **Order**: as in the file (default), hard questions first, easy questions first, or *fact-heavy wording first*.
+  Questions you edited always come first.
+- *Fact-heavy wording* (its own tab) counts kinds of wording where quiz answers most often go wrong — numbers and
+  dates, "most / first / only" claims, facts that can go out of date, references and quotes, notes with their own
+  claims. It reads only the wording (no AI); it is **not** a prediction that an answer is wrong, it only changes the
+  order. The tab lists every signal and its points.
 
 How long it takes: about 25 questions a day for free, so Swab Quest (432 questions) takes about two and a half
 weeks of daily batches. It costs nothing.
 
 ## 3 · Review the results
 
-Each checked question lands in a group:
+The Review page lists **every checked question** in a table — including the verified ones, so you can look at
+the sources behind any result. Buttons above the table show one group at a time:
 
 | Group | Meaning | What you do |
 |---|---|---|
@@ -75,13 +78,15 @@ Each checked question lands in a group:
 | 🎓 **For a specialist** | religious or doctrinal: needs the verse or an official Ahmadiyya source | ask your reviewer |
 | ❔ **Not enough evidence** | nothing reliable was found | decide, or leave for later |
 | 🎲 **Spot check** | verified, but picked at random so you can check the checker | look, then keep |
+| 👍 **Decided by you** | questions you kept, edited or removed | change your mind any time |
 
-The Review page shows one question at a time: the result in plain words, what the sources say, the answer they
-give **without** seeing yours, a suggestion, and the quotes with links. Then press one button:
+Search or filter by category, then **click a row**: below the table you see the result in plain words, what the
+sources say, the answer they give **without** seeing yours, a suggestion, the reasons and the quotes with links.
+Then press one button (after it, the next question opens by itself):
 
-- **✔ Keep as is** — you checked it, it is right
+- **✔ Keep** — you checked it, it is right
 - **✎ Edit** — change the question, options, answer or note (*Start from the suggestion* fills in the suggestion)
-- **🎓 Ask the specialist** — moves it to the specialist group; **Download the list for your specialist** gives
+- **🎓 Specialist** — moves it to the specialist group; **Download the list for your specialist** gives
   them a sheet with the questions, reasons and sources. When they answer, open the question and keep or edit it.
 - **✖ Remove** — leave it out of the export
 - **⏭ Later** — skip for now (it moves to the end)

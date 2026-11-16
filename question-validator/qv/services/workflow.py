@@ -19,7 +19,7 @@ from qv.db.models import (
     Dataset, DatasetVersion, Decision, QuestionRow, Run, RunQuestion, StructuralIssueRow, Validation,
 )
 from qv.db.session import Database
-from qv.pipeline.priority import priority
+from qv.pipeline.priority import CHANGED_SINCE_CHECK, priority
 from qv.services.datasets import get_version
 
 #: Where a question stands. Order = order of the groups on the page.
@@ -170,30 +170,62 @@ def counts(states: list[QuestionState]) -> dict[str, int]:
 
 # --- what to check next ---------------------------------------------------------------
 
+#: Batch orders. Edited questions ("changed since it was last checked") always come first.
+ORDERS: dict[str, str] = {
+    "file": "As in the file",
+    "hard": "Hard questions first",
+    "easy": "Easy questions first",
+    "risk": "Fact-heavy wording first",
+}
+_DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
+
+
 @dataclass(frozen=True)
 class Selection:
     """Which questions a batch may take, and in which order."""
 
     categories: tuple[str, ...] = ()
     subcategories: tuple[str, ...] = ()
-    levels: tuple[str, ...] = ()          # priority levels: high / medium / low
+    topics: tuple[str, ...] = ()
+    difficulties: tuple[str, ...] = ()
+    levels: tuple[str, ...] = ()          # wording-risk levels: high / medium / low
     ids: tuple[str, ...] = ()
-    order: str = "priority"               # priority | file
+    order: str = "file"                   # see ORDERS
+
+    def __post_init__(self) -> None:
+        """'priority' is the old name of 'risk'."""
+        if self.order == "priority":
+            object.__setattr__(self, "order", "risk")
+        if self.order not in ORDERS:
+            raise ValueError(f"order must be one of {sorted(ORDERS)}")
 
     def matches(self, st: QuestionState) -> bool:
         """True when a question falls inside this selection."""
         return ((not self.categories or st.category in self.categories)
                 and (not self.subcategories or st.subcategory in self.subcategories)
+                and (not self.topics or st.topic in self.topics)
+                and (not self.difficulties or st.difficulty in self.difficulties)
                 and (not self.levels or st.priority_level in self.levels)
                 and (not self.ids or st.ext_id in self.ids))
 
 
+def _sort_key(order: str):  # noqa: ANN202
+    def key(st: QuestionState) -> tuple:
+        changed = CHANGED_SINCE_CHECK not in st.priority_reasons
+        rank = _DIFFICULTY_RANK.get(st.difficulty, 1)
+        if order == "hard":
+            return (changed, -rank, st.row_no)
+        if order == "easy":
+            return (changed, rank, st.row_no)
+        if order == "risk":
+            return (changed, -st.priority_score, st.row_no)
+        return (changed, st.row_no)
+    return key
+
+
 def candidates(states: list[QuestionState], sel: Selection) -> list[QuestionState]:
-    """Questions still to check that match the selection, in batch order."""
-    out = [st for st in states if st.status in CHECKABLE and sel.matches(st)]
-    if sel.order == "priority":
-        out.sort(key=lambda st: (-st.priority_score, st.row_no))
-    return out
+    """Questions still to check that match the selection, in batch order (edited ones first)."""
+    return sorted((st for st in states if st.status in CHECKABLE and sel.matches(st)), key=_sort_key(sel.order))
 
 
 @dataclass
@@ -224,8 +256,7 @@ def plan_next_batch(db: Database, dataset: str, sel: Selection, size: int) -> Ba
                else f"No question to check in this selection ({left} left outside it).")
         return BatchPlan(dataset, "nothing", message=msg)
     return BatchPlan(dataset, "start", questions=todo,
-                     message=f"Check {len(todo)} question(s), highest priority first."
-                     if sel.order == "priority" else f"Check {len(todo)} question(s) in file order.")
+                     message=f"Check {len(todo)} question(s) — {ORDERS[sel.order].lower()}.")
 
 
 def start_batch(db: Database, plan: BatchPlan, sel: Selection) -> int | None:
@@ -236,9 +267,10 @@ def start_batch(db: Database, plan: BatchPlan, sel: Selection) -> int | None:
     if plan.action != "start":
         return None
     return start_run(db, plan.dataset, [st.ext_id for st in plan.questions], kind="validate",
-                     config={"batch": True, "selection": {"categories": list(sel.categories),
-                                                          "subcategories": list(sel.subcategories),
-                                                          "levels": list(sel.levels), "order": sel.order}})
+                     config={"batch": True, "selection": {
+                         "categories": list(sel.categories), "subcategories": list(sel.subcategories),
+                         "topics": list(sel.topics), "difficulties": list(sel.difficulties),
+                         "levels": list(sel.levels), "order": sel.order}})
 
 
 def judge_requests_left(db: Database) -> float | None:
@@ -346,3 +378,23 @@ def apply_edits_as_new_version(db: Database, dataset: str) -> int | None:
         res = import_dataset(s, result.data, dataset_name=dataset,
                              source_filename=f"{name} + {len(edits)} edit(s) {stamp}")
         return res.version_no
+
+
+def dataset_profile(db: Database, dataset: str) -> str | None:
+    """The profile a dataset was imported with."""
+    with db.session() as s:
+        return s.scalar(select(Dataset.profile).where(Dataset.name == dataset))
+
+
+#: Groups on the Review page: every checked question, the ones to look at, and the verified ones.
+CHECKED_STATUSES = ("to_review", "specialist", "no_evidence", "spot_check", "verified", "approved", "edited",
+                    "removed")
+REVIEW_GROUPS: dict[str, tuple[str, ...]] = {
+    "all": CHECKED_STATUSES,
+    "to_review": ("to_review",),
+    "specialist": ("specialist",),
+    "no_evidence": ("no_evidence",),
+    "spot_check": ("spot_check",),
+    "verified": ("verified",),
+    "decided": ("approved", "edited", "removed"),
+}

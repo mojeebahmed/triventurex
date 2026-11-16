@@ -71,9 +71,9 @@ def run_questions(db: Database, run_id: int) -> list[dict]:
         for rq, q in rows:
             v = verdicts.get(q.id)
             st = rq.stats_json or {}
-            out.append({"id": q.ext_id, "question": q.question,
+            out.append({"id": q.ext_id,
                         "verdict": v.verdict if v else "not judged", "evidence": v.evidence_strength if v else "",
-                        "next step": v.review_status.replace("_", " ") if v else "",
+                        "next step": v.review_status.replace("_", " ") if v else "", "question": q.question,
                         "quality": v.question_quality or "" if v else "",
                         "pages read": st.get("documents", 0), "passages found": st.get("passages_grounded", 0),
                         "quotes rejected": st.get("passages_dropped", 0), "research": rq.status,

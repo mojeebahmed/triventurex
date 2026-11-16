@@ -146,9 +146,16 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
 - **One batch at a time**: `qv next` holds `data/batch.lock.json` (pid); the web page starts `python -m qv.cli next
   … --yes` detached (`qv/services/worker.py`, log in `data/logs/`). A dead pid = stale lock. `qv next` first
   continues the newest unfinished validate run of the version, then plans a new one from the selection
-  (category / subcategory / priority level / ids; priority or file order); batch size = today's free judge
-  requests / 2.2, at most `research.yaml batch_size`.
-- **Priority** (`qv/pipeline/priority.py`) is pure code from the wording; it only orders work.
+  (category / subcategory / topic / difficulty / wording-risk level / ids; order file (default) | hard | easy |
+  risk; edited questions always first); batch size = today's free judge requests / 2.2, at most
+  `research.yaml batch_size`.
+- **"Fact-heavy wording"** (`qv/pipeline/priority.py`, internally "priority") is pure code from the wording; it
+  only orders work and must always be explained as *not* a prediction (Mojeeb found "priority" misleading).
+  `SIGNALS` (shown on the page) must match the scoring (test).
+- **Web page**: `st.navigation` pages (sidebar = file picker + page links). Every table goes through
+  `data_table()` (same look; always-visible scrollbar below the header via CSS on glide's `.dvn-scroller`;
+  click any cell = pick the row, highlighted with a Styler). The Review page lists every checked question
+  (incl. Verified) with the detail below the table.
 - The web page now writes (imports, decisions, new versions, starting batches) — through services only; it never
   calls a model itself. Streamlit keeps imported modules loaded: restart `qv ui` after changing `qv/services`.
 

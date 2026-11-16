@@ -47,8 +47,8 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv export original world-tour                 # byte-identical copy of the import
 .venv/bin/qv export report world-tour                   # structural report CSV
 .venv/bin/qv status                                    # where every file stands, and what to do next
-.venv/bin/qv next world-tour                           # validate the next batch (by priority); run again when it stops
-.venv/bin/qv next world-tour --category Asia --priority high --size 10   # … only some questions
+.venv/bin/qv next world-tour                           # validate the next batch; run again when it stops
+.venv/bin/qv next world-tour --category Asia --difficulty hard --order hard --size 10   # … only some questions
 .venv/bin/qv export corrected world-tour               # your decisions applied (also: verified, results)
 .venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}} instead
 .venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa; local models)
@@ -80,7 +80,7 @@ qv/io/          game-compatible CSV parser + byte-faithful patch writer
 qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py,
                 judgement.py (S4/S5/S6 prompts + checks), evidence.py (passage ids, origin clusters),
                 rules.py (S8: evidence requirements → claim statuses → verdict → review route; pure),
-                priority.py (which questions to check first, from the wording; pure)
+                priority.py ("fact-heavy wording" points: an optional batch order; pure)
 qv/providers/   llm/ (Gemini, Ollama + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
                 fetch.py, quran.py, usage.py (free-quota ledger, rate limits, call log)
 qv/prompts/     versioned system prompts (copied from prompts/*.md)

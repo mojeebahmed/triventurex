@@ -283,10 +283,14 @@ def next_batch(dataset: str,
                                                               "free quota allows, at most research.yaml batch_size)")] = None,
                category: Annotated[list[str] | None, typer.Option(help="Only this category (repeatable)")] = None,
                subcategory: Annotated[list[str] | None, typer.Option(help="Only this subcategory (repeatable)")] = None,
-               priority: Annotated[list[str] | None, typer.Option(help="Only these priority levels: high, medium, "
-                                                                       "low (repeatable)")] = None,
+               topic: Annotated[list[str] | None, typer.Option(help="Only this topic (repeatable)")] = None,
+               difficulty: Annotated[list[str] | None, typer.Option(help="Only this difficulty, e.g. hard "
+                                                                         "(repeatable)")] = None,
+               risk: Annotated[list[str] | None, typer.Option(help="Only these wording-risk levels: high, medium, "
+                                                                   "low (repeatable)")] = None,
                ids: Annotated[str | None, typer.Option(help="Only these CSV ids, e.g. 1,5,10-12")] = None,
-               order: Annotated[str, typer.Option(help="priority (default) or file")] = "priority",
+               order: Annotated[str, typer.Option(help="file (default), hard, easy or risk (fact-heavy wording "
+                                                       "first); edited questions always come first")] = "file",
                yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
     """Validate the next batch: continues a stopped batch, else the next questions by priority. Run it again
     whenever it stops."""
@@ -297,10 +301,12 @@ def next_batch(dataset: str,
     from qv.services.research import build_deps, execute_run
     settings = _settings()
     db = _db()
-    if order not in ("priority", "file"):
-        raise typer.BadParameter("order must be priority or file")
-    sel = workflow.Selection(categories=tuple(category or ()), subcategories=tuple(subcategory or ()),
-                             levels=tuple(priority or ()), ids=tuple(_parse_ids(ids) or ()), order=order)
+    try:
+        sel = workflow.Selection(categories=tuple(category or ()), subcategories=tuple(subcategory or ()),
+                                 topics=tuple(topic or ()), difficulties=tuple(difficulty or ()),
+                                 levels=tuple(risk or ()), ids=tuple(_parse_ids(ids) or ()), order=order)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     default = load_research_config().batch_size
     n = size if size is not None else workflow.suggested_batch_size(db, default)
     plan = workflow.plan_next_batch(db, dataset, sel, n)
@@ -312,7 +318,7 @@ def next_batch(dataset: str,
     if plan.action == "nothing":
         return
     for st in plan.questions[:10]:
-        typer.echo(f"  #{st.ext_id:>5} [{st.priority_level}] {st.question[:80]}")
+        typer.echo(f"  #{st.ext_id:>5} [{st.difficulty}] {st.question[:80]}")
     if len(plan.questions) > 10:
         typer.echo(f"  … and {len(plan.questions) - 10} more")
     if not yes and not typer.confirm("Start?"):

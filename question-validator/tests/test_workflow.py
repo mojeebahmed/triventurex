@@ -75,6 +75,11 @@ def test_states_before_anything_is_checked(db: Database, mini: str) -> None:
     assert plan.action == "start" and len(plan.questions) == 2
     by_file = workflow.plan_next_batch(db, mini, workflow.Selection(order="file"), 5)
     assert [s.ext_id for s in by_file.questions] == ["135", "3"]
+    with pytest.raises(ValueError):
+        workflow.Selection(order="random")
+    assert workflow.Selection(order="priority").order == "risk"
+    assert [s.ext_id for s in workflow.plan_next_batch(db, mini, workflow.Selection(topics=("Story",)), 5)
+            .questions] == ["3"]
     only = workflow.plan_next_batch(db, mini, workflow.Selection(categories=("Adam",)), 5)
     assert [s.ext_id for s in only.questions] == ["3"]
     assert workflow.plan_next_batch(db, mini, workflow.Selection(categories=("None",)), 5).action == "nothing"
@@ -165,10 +170,34 @@ def test_cli_next_and_status(db: Database, mini: str, monkeypatch: pytest.Monkey
     monkeypatch.setattr("qv.cli._db", lambda: db)
     out = CliRunner().invoke(app, ["status", "mini"]).output
     assert "not checked yet 2" in out and "qv next mini" in out
-    out = CliRunner().invoke(app, ["next", "mini", "--size", "1", "--category", "Adam"], input="n\n").output
+    out = CliRunner().invoke(app, ["next", "mini", "--size", "1", "--category", "Adam", "--difficulty", "hard"],
+                             input="n\n").output
     assert "#    3" in out and "#  135" not in out
 
 
 def test_missing_column_hint_names_the_users_column() -> None:
     issue = StructuralIssue(code=IssueCode.MISSING_COLUMN, severity=Severity.ERROR, message="m", column="answer")
     assert "'correct answer' is probably 'answer'" in hint(issue, ["id", "question", "type", "correct answer"])
+
+
+def test_signal_table_matches_the_scoring() -> None:
+    from qv.pipeline.priority import SIGNALS
+    every = q("Since 2010 the most famous record, said in 2:3", note="2:3", difficulty="hard")
+    p = priority(every, has_warnings=True, changed=True)
+    points = {r: pts for r, pts, _ in SIGNALS}
+    assert set(p.reasons) == set(points) and sum(points[r] for r in p.reasons) == p.score
+
+
+def test_difficulty_orders_keep_edited_questions_first() -> None:
+    def st(i: str, diff: str, changed: bool = False) -> workflow.QuestionState:
+        return workflow.QuestionState(
+            question_id=int(i), ext_id=i, row_no=int(i), question="q", type="open", answer="a", answer_text="a",
+            options=("", "", "", ""), note="", difficulty=diff, category="c", subcategory="s", topic="t",
+            content_hash=i, status="not_checked", priority_score=0, priority_level="low",
+            priority_reasons=(CHANGED_SINCE_CHECK,) if changed else ())
+    states = [st("1", "easy"), st("2", "hard"), st("3", "easy", changed=True), st("4", "hard")]
+    ids = lambda order: [s.ext_id for s in workflow.candidates(states, workflow.Selection(order=order))]  # noqa: E731
+    assert ids("file") == ["3", "1", "2", "4"]
+    assert ids("hard") == ["3", "2", "4", "1"]
+    assert ids("easy") == ["3", "1", "2", "4"]
+    assert [s.ext_id for s in workflow.candidates(states, workflow.Selection(difficulties=("hard",)))] == ["2", "4"]

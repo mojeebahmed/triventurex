@@ -59,3 +59,19 @@ def priority(q: Question, *, has_warnings: bool = False, changed: bool = False) 
     score = sum(p for p, _ in reasons)
     level = "high" if score >= HIGH else "medium" if score >= MEDIUM else "low"
     return Priority(score, level, tuple(r for _, r in reasons))
+
+
+#: What each signal means and its points — shown on the web page so the list is not mistaken for a
+#: prediction. (Points must match `priority` above.)
+SIGNALS: tuple[tuple[str, int, str], ...] = (
+    (CHANGED_SINCE_CHECK, 5, "You edited it after it was checked; always checked first."),
+    ("numbers or dates", 2, "A digit in the question or answer: years, counts, amounts. Easy to get slightly wrong."),
+    ("a 'most / first / only' claim", 2, "Words like most, largest, first, only, record. One counter-example "
+                                         "makes them wrong."),
+    ("can go out of date", 2, "Words like since, currently, now, latest, holds. True once, may have changed."),
+    ("a reference or quote", 1, "A verse number like 2:31, or said / wrote / hadith / surah: the reference itself "
+                                "must be right."),
+    ("the note makes its own claim", 1, "The note has numbers or a reference, so it needs checking too."),
+    ("format warning", 2, "The import check found a warning on this question."),
+    ("hard question", 1, "Marked hard in the file."),
+)
