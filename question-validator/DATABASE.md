@@ -71,6 +71,7 @@ api_calls, quota_usage                              (every call made, and the fr
 | `passages` | one exact quote from a page | `quote`, `mode` (A = about the question, B = about the note), `target`, `asserted_answer`, `matches_option`, `stance`, `char_start`/`char_end` (where in the page) |
 | `stage_outputs` | one model answer (S1a, S1b, S3, S4, S5, S6) | `stage`, `model`, `output_json`, `valid`, `checks_json`, `input_hash` (same input → reused, no new call) |
 | `validations` | the verdict for one question in one run | `verdict`, `evidence_strength`, `review_status`, `blind_answer`, `blind_matches_key`, `reasons_json`, `suggested_answer`, `passage_map_json` (P1, P2 … → passage) |
+| `source_marks` | your mark on a website (use with a trust P/S/T / don't use / needs special access / clear) — never changed, the newest per site counts; applied on top of `config/sources.yaml` | `domain`, `action`, `tier`, `note`, `created_at` |
 | `decisions` | your decision about one question (keep / edit / specialist / remove / later) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
 | `api_calls` | every call to a model, search engine or website | `provider`, `model`, `stage`, `status` (ok / error / quota), `input_tokens`, `output_tokens`, `latency_ms`, `error` |
 | `quota_usage` | free quota used per provider and day / month | `used`, `exhausted` |

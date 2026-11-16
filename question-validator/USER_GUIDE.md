@@ -8,20 +8,30 @@ Four steps, all in the web page. Each step also has **one** command if you prefe
 Double-click **`Start Question Validator.command`** in the `question-validator` folder (or run `.venv/bin/qv ui`).
 Your browser opens the validator at http://localhost:8501. Close the terminal window to stop it.
 
-The sidebar shows:
+The menu on the left has four parts:
 
-- **Working on** — the question file you are working on, with its source file name, version and date. You can
-  import one file per game edition (Swab Quest, World Tour, …) and switch between them here.
-- The menu: **Overview · 1 Import · 2 Validate · 3 Review · 4 Export**, and **Advanced** for the detailed views.
+- **Overview**
+- **Files** — *Import a file*
+- **Check questions** — *Validate · Daily run · Review · Export*
+- **Advanced** — *Batches · Files & versions · Book library · Websites · Usage & quota*
 
-The **Overview** lists every file with its progress (click a row to work on that file) and tells you, with one
-button, what to do next. In every table, **click anywhere on a row** to open it; the open row is highlighted.
+The pages that work on one question file have a bar at the top: **📄 Working on** — the file (one per game
+edition: Swab Quest, World Tour, …), its source file name, version and date, and a running batch. Switch files
+there, or by clicking a row on the Overview. *Eval sets* also lists the evaluation files used to measure the
+validator.
+
+The **Overview** lists every file with its progress and tells you, with one button, what to do next.
+
+**Tables**: click a column title to sort (again = reverse, a third time = back); longer tables have a 🔎 search
+box above them. **Click anywhere on a row** to open it — the details open in a **popup** over the page (close it
+with ✕ or Esc). Popups that belong to a list have **◀ Previous / Next ▶**, in the order you sorted the table.
 Tables are read-only — nothing in them can be changed by accident.
 
 ## 1 · Import a file
 
-Drop a CSV file on the page and choose **a new file** (give it a short name, e.g. `world-tour`, and its edition
-profile) or **a new version of an existing file**. Terminal: `qv import file.csv --dataset world-tour`.
+Three steps on the page: **1 · What are you importing?** — *an update of a file you already imported* (choose
+which) or *a new file* (give it a short name, e.g. `world-tour`, and its edition profile). **2 · Choose the file**
+(CSV). **3 · Check and import**. Terminal: `qv import file.csv --dataset world-tour`.
 
 The file needs these columns (the game's format), in any order:
 
@@ -56,26 +66,31 @@ questions need checking.
 
 ## 2 · Validate
 
-Press **Validate next batch**. Terminal: `qv next world-tour`.
+Choose the next batch in three steps, then press **▶ Start checking now** — the batch starts right away and runs in
+the background (you can close the page; the Validate page shows its progress). Terminal: `qv next world-tour`.
 
-- It checks the next questions in the order you choose, as many as today's free limits allow (about 25 a
-  day). You can close the page while it works; the Validate page shows its progress.
-- **When it stops** (free limit used up, or the internet dropped), the page says when the limits come back.
-  Press the same button again then — finished work is kept, nothing is done twice. That is all you do in this
-  step.
-- **Choose which questions** (optional): by category, subcategory, topic and difficulty.
-- **Order**: as in the file (default), hard questions first, easy questions first, or *fact-heavy wording first*.
-  Questions you edited always come first.
-- *Fact-heavy wording* (its own tab) counts kinds of wording where quiz answers most often go wrong — numbers and
-  dates, "most / first / only" claims, facts that can go out of date, references and quotes, notes with their own
-  claims. It reads only the wording (no AI); it is **not** a prediction that an answer is wrong, it only changes the
-  order. The tab lists every signal and its points.
+1. **Which questions** — *all still to check*, *only some* (by category, subcategory, topic, difficulty or
+   fact-heavy level) or *only these ids* (e.g. `1, 5, 10-12`).
+2. **In which order** — as in the file (default), hard questions first, easy questions first, or *fact-heavy
+   wording first*. Questions you edited always come first.
+3. **How many** — the page suggests what today's free limits allow.
 
-**🔁 Every day by itself** (box on the Validate page): choose the files and a time, press *Save and turn on*. Your
-Mac then validates the next batch every day — the same as pressing the button — file after file, until the day's
-free requests are used up; if the Mac is asleep, it runs when it wakes up. Turn it off in the same box. Terminal:
-`qv auto on --file swab-quest --file prophets-stories`, `qv auto status`, `qv auto off`, `qv auto run` (do today's
-work now).
+The list below shows exactly which questions the batch will check. **When it stops** (free limit used up, or the
+internet dropped), the page says when the limits come back; press the button again then — finished work is kept,
+nothing is done twice. A stopped batch is always continued first.
+
+*Fact-heavy wording* (explained at the bottom of the page) counts kinds of wording where quiz answers most often go
+wrong — numbers and dates, "most / first / only" claims, facts that can go out of date, references and quotes,
+notes with their own claims. It reads only the wording (no AI); it is **only a way to choose the order** (or a
+filter), **not** a prediction that an answer is wrong.
+
+## ⏰ Daily run
+
+Its own page under *Check questions*: choose the files and a time, press *Save and turn on*. Your Mac then starts
+a batch every day — **all questions still to check, in file order** (not the choices on the Validate page) — file
+after file, until the day's free requests are used up; if the Mac is asleep, it runs when it wakes up. Turn it
+off on the same page. Terminal: `qv auto on --file swab-quest --file prophets-stories`, `qv auto status`,
+`qv auto off`, `qv auto run` (do today's work now).
 
 How long it takes: about 25 questions a day for free, so Swab Quest (432 questions) takes about two and a half
 weeks of daily batches. It costs nothing.
@@ -87,18 +102,20 @@ the sources behind any result. Buttons above the table show one group at a time:
 
 | Group | Meaning | What you do |
 |---|---|---|
-| ✅ **Verified** | sources agree with the answer, found without seeing it | nothing |
+| 🤖 **Verified automatically** | sources agree with the answer, found without seeing it | nothing |
 | 🔍 **To review** | the sources disagree with the answer, or the question is unclear | decide |
 | 🎓 **For a specialist** | religious or doctrinal: needs the verse or an official Ahmadiyya source | ask your reviewer |
 | ❔ **Not enough evidence** | nothing reliable was found | decide, or leave for later |
 | 🎲 **Spot check** | verified, but picked at random so you can check the checker | look, then keep |
-| 👍 **Decided by you** | questions you kept, edited or removed | change your mind any time |
+| 👍 **Decided by you** | questions you confirmed, edited or removed | change your mind any time |
 
-Search or filter by category, then **click a row**: below the table you see the result in plain words, what the
-sources say, the answer they give **without** seeing yours, a suggestion, the reasons and the quotes with links.
-Then press one button (after it, the next question opens by itself):
+Search or filter by category, then **click a row**: the question opens in a popup. **📋 Result** shows the result
+in plain words, what the sources say, the answer they give **without** seeing yours, a suggestion and the reasons;
+**📄 Sources** shows the pages one at a time (◀ Previous / Next ▶) with their quotes, and *Show the quotes in
+their page*. Your decision is at the bottom of the popup — press one button and the next question opens by itself
+(close the popup to see the updated list):
 
-- **✔ Keep** — you checked it, it is right
+- **👍 Confirm** — you checked it, it is right
 - **✎ Edit** — change the question, options, answer or note (*Start from the suggestion* fills in the suggestion)
 - **🎓 Specialist** — moves it to the specialist group; **Download the list for your specialist** gives
   them a sheet with the questions, reasons and sources. When they answer, open the question and keep or edit it.
@@ -111,11 +128,17 @@ the front of the next batch. You can also export without re-checking. Every deci
 
 ## 4 · Export
 
-Download one of three files (terminal: `qv export corrected world-tour`, `… verified …`, `… results …`):
+**✅ Ready** (on the Overview and Export pages) = questions ready for the game:
+
+- 🤖 **verified automatically** — the checks verified them; you have not looked at them,
+- 👍 **confirmed by you** — you looked and pressed *Confirm*,
+- ✏️ **edited by you**.
+
+Download one of three files (terminal: `qv export corrected world-tour`, `… ready …`, `… results …`):
 
 - **Corrected file** — the whole file with your edits applied and removed questions left out, same ids and order,
   format checked again. This is the one for the game.
-- **Verified only** — just the questions that were verified or that you kept or edited.
+- **Ready questions only** — just the ready questions (the three kinds above, the page shows each number).
 - **Results report** — one line per question: result, your decision, suggestions, reasons and sources (opens in
   Excel / Numbers).
 
@@ -127,8 +150,10 @@ import the file again: only new and changed questions are checked.
 
 Everything above also works with commands: `qv status` (where every file stands) and the full set in
 `qv --help` — `research`, `validate`, `judge`, `resume`, `runs`, `verdicts`, `verdict`, `evidence`, `metrics`,
-`usage`, `quota`, `issues`, `diff`, `export`, `eval …`. The **Advanced** page in the browser has the detailed
-views (every source and quote of a question, files and format problems, batches, quota and usage). What is
+`usage`, `quota`, `issues`, `diff`, `export`, `eval …`. The **Advanced** pages in the browser have the detailed
+views: **Batches** (every batch; a question opens with its result, every page that was read and the research
+plan), **Files & versions** (imports, their questions and format problems), **Book library**, **Websites** and
+**Usage & quota**. What is
 stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a verdict is reached:
 [METHODOLOGY.md](METHODOLOGY.md).
 
@@ -138,11 +163,20 @@ Books are a source like websites, cited as **book + page** (e.g. *Basics of Reli
 are used for the editions listed for each book — today Swab Quest and Prophets' Stories — and count as an official
 Ahmadiyya source when their publisher is (alislam.org).
 
-To add a book: put the PDF in `question-validator/data/library/`, add a few lines for it to
-`config/library.yaml` (copy an existing entry), then press **Read new books** (Advanced → 📚 Book library) or run
-`qv library index`. The same tab lists the books, lets you **try a search**, and shows **books the research found
-but could not read** — PDFs met on the web (e.g. *Life of the Promised Messiah*, *Fazl-e-Umar*), candidates to
-download and add. Terminal: `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
+The **Book library** page (Advanced) has three parts:
+
+- **Books** — every book with its state. **➕ Add a book (PDF)**: upload the file, give its title, author, language,
+  publisher, trust and editions; it is read at once. Click a book to see it or **remove** it (the PDF and its pages
+  go; quotes already used stay in the results). Books added on the page are listed in
+  `data/library/books.yaml` (yours, not in git); `config/library.yaml` keeps the built-in list.
+- **Books found on the web** — PDFs the research met but could not read (e.g. *Life of the Promised Messiah*). Click
+  one: **⬇ Download and add** fetches it and adds it like an upload (if the site refuses, download it in your
+  browser and use *Add a book*), or **🙈 Not a book for the library** hides it.
+- **Search the books** — type words; the results table shows where each page matches. Click a result: the whole
+  page opens with your **search words marked**, with ◀ Previous / Next ▶ through the results.
+
+Terminal: `qv library index` (after putting a PDF in `data/library/` and listing it in `config/library.yaml` by
+hand), `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
 
 **Books in another language** (the German *Dieni Ma'loomat*): add `translate_for_search: en` to the book in
 `library.yaml` and run `qv library translate`. Every page gets a machine translation into English, so English
@@ -150,6 +184,24 @@ questions find the page. The translation is only for finding: the quote and the 
 page. It uses the free Flash-Lite requests (one per page) and continues the next day if they run out.
 
 Books stay on your Mac; exports only carry short quotes.
+
+## Websites
+
+The **Websites** page (Advanced) decides which sites the checks may read and how much to trust them. Your marks
+count from the next batch on, on top of the built-in list (`config/sources.yaml`).
+
+- **🚫 Could not be read** — sites that refused (e.g. britannica.com, 403) or failed. Open one, look at it in your
+  browser, then mark it **🔑 needs special access** (not tried again until you clear the mark), **⛔ don't use**
+  (never read, never evidence) or **✅ use** with the trust you choose.
+- **⭐ Possibly good** — sites not on the built-in list that gave quotes (e.g. ahmadipedia.org), most quotes first.
+  They count as T (encyclopaedia / summary) until you choose a better trust or mark them *don't use*.
+- **📝 Your websites** — **➕ Add a website** you know (address or domain; subdomains included) with its trust, and see or
+  change every mark. Adding a site sets how much its pages count when a search finds them; it does not make the
+  checks search that site on purpose.
+
+Click a site to open it in a popup with the mark buttons; each tab has a search box. Marks are a history like
+your review decisions: the newest one counts, **↩ Clear my mark** goes back to the
+built-in list.
 
 ## Not built yet
 

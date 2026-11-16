@@ -112,13 +112,15 @@ def workflow_export(db, dataset: str, kind: str) -> tuple[bytes, str, dict]:  # 
     """The simple workflow's downloads for the dataset's latest version.
 
     - "corrected": the whole file, decided edits applied, removed questions left out
-    - "verified":  only questions that were verified or that a person approved/edited (edits applied)
+    - "ready" (old name "verified"): only questions ready for the game — verified automatically, confirmed by a
+      person or edited by a person (edits applied)
     - "results":   one row per question: status, verdict, decision, suggestion, reasons, sources
 
     Returns (bytes, file name, summary).
     """
     from qv.services.datasets import get_version
-    from qv.services.workflow import question_states
+    from qv.services.workflow import READY_STATUSES, question_states
+    kind = "ready" if kind == "verified" else kind
     states = question_states(db, dataset)
     with db.session() as s:
         v = get_version(s, dataset)
@@ -131,8 +133,8 @@ def workflow_export(db, dataset: str, kind: str) -> tuple[bytes, str, dict]:  # 
         line_of = {r.get("id"): r.line_no for r in parsed.rows}
         if kind == "corrected":
             drop = {st.ext_id for st in states if st.status == "removed"}
-        elif kind == "verified":
-            keep = {st.ext_id for st in states if st.status in ("verified", "approved", "edited")}
+        elif kind == "ready":
+            keep = {st.ext_id for st in states if st.status in READY_STATUSES}
             drop = {st.ext_id for st in states} - keep
         else:
             raise ExportError(f"Unknown export {kind!r}")

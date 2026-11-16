@@ -434,3 +434,34 @@ DECISION_TRIGGERS: dict[str, str] = {
         BEGIN SELECT RAISE(ABORT, 'decisions are append-only'); END
     """,
 }
+
+
+class SourceMark(Base):
+    """A person's mark on a website (append-only; the newest one for a domain wins).
+
+    Applied on top of config/sources.yaml when research runs (`qv.services.websites.registry_with_marks`):
+    `use` sets the tier (P/S/T), `dont_use` = tier X (never fetched, never evidence), `needs_access` = not
+    fetched until the person clears it, `clear` = back to sources.yaml.
+    """
+
+    __tablename__ = "source_marks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    domain: Mapped[str] = mapped_column(String(200), index=True)
+    action: Mapped[str] = mapped_column(String(20))  # use | dont_use | needs_access | clear
+    tier: Mapped[str | None] = mapped_column(String(1), nullable=True)  # P | S | T for `use`
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+#: Website marks are a history too: never changed or deleted.
+SOURCE_MARK_TRIGGERS: dict[str, str] = {
+    "source_marks_no_update": """
+        CREATE TRIGGER source_marks_no_update BEFORE UPDATE ON source_marks
+        BEGIN SELECT RAISE(ABORT, 'source marks are append-only'); END
+    """,
+    "source_marks_no_delete": """
+        CREATE TRIGGER source_marks_no_delete BEFORE DELETE ON source_marks
+        BEGIN SELECT RAISE(ABORT, 'source marks are append-only'); END
+    """,
+}

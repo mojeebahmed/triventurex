@@ -28,8 +28,8 @@ STATUS_LABEL: dict[str, str] = {
     "specialist": "For a specialist",
     "no_evidence": "Not enough evidence",
     "spot_check": "Spot check",
-    "verified": "Verified",
-    "approved": "Checked by you",
+    "verified": "Verified automatically",
+    "approved": "Confirmed by you",
     "edited": "Edited by you",
     "removed": "Removed by you",
     "in_progress": "Being checked",
@@ -43,6 +43,8 @@ DECISION_STATUS = {"keep": "approved", "edit": "edited", "remove": "removed", "s
 ACTIONS = ("keep", "edit", "specialist", "remove", "later")
 #: Statuses a person should look at, in review order.
 REVIEW_STATUSES = ("to_review", "specialist", "no_evidence", "spot_check")
+#: Ready for the game: verified automatically, confirmed by a person, or edited by a person.
+READY_STATUSES = ("verified", "approved", "edited")
 #: Statuses `qv next` picks up.
 CHECKABLE = ("not_checked", "failed")
 EDITABLE_COLUMNS = ("question", "answer", "opt_a", "opt_b", "opt_c", "opt_d", "note")
@@ -183,6 +185,21 @@ ORDERS: dict[str, str] = {
     "risk": "Fact-heavy wording first",
 }
 _DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
+
+
+def parse_ids(ids: str | None) -> list[str] | None:
+    """'1,2,5-7' → ['1','2','5','6','7'] (None for nothing)."""
+    if not ids:
+        return None
+    out: list[str] = []
+    for part in ids.split(","):
+        part = part.strip()
+        if "-" in part and all(x.strip().isdigit() for x in part.split("-", 1)):
+            a, b = (int(x) for x in part.split("-", 1))
+            out += [str(i) for i in range(a, b + 1)]
+        elif part:
+            out.append(part)
+    return out or None
 
 
 @dataclass(frozen=True)

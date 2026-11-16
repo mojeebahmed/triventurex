@@ -142,7 +142,8 @@ def export(kind: Annotated[str, typer.Argument(help="corrected | verified | resu
            changes: Annotated[Path | None, typer.Option(
                help='corrected: JSON {"<id>": {"<column>": "<new value>"}} instead of your decisions')] = None
            ) -> None:
-    """Export: corrected (your decisions applied), verified (only checked questions), results (one line per
+    """Export: corrected (your decisions applied), ready (only questions ready for the game: verified automatically,
+    confirmed or edited by you; old name verified), results (one line per
     question), original (the imported file) or report (format problems)."""
     db = _db()
     with db.session() as s:
@@ -151,7 +152,7 @@ def export(kind: Annotated[str, typer.Argument(help="corrected | verified | resu
             data, suffix = export_service.export_original(v), "original.csv"
         elif kind == "report":
             data, suffix = export_service.structural_report_csv(s, v), "structural-report.csv"
-        elif kind in ("verified", "results") or (kind == "corrected" and changes is None):
+        elif kind in ("ready", "verified", "results") or (kind == "corrected" and changes is None):
             if version is not None:
                 raise typer.BadParameter(f"{kind} always uses the latest version")
             data, name, summary = export_service.workflow_export(db, dataset, kind)
@@ -185,17 +186,8 @@ def profiles() -> None:
 
 def _parse_ids(ids: str | None) -> list[str] | None:
     """'1,2,5-7' → ['1','2','5','6','7']."""
-    if not ids:
-        return None
-    out: list[str] = []
-    for part in ids.split(","):
-        part = part.strip()
-        if "-" in part and all(x.strip().isdigit() for x in part.split("-", 1)):
-            a, b = (int(x) for x in part.split("-", 1))
-            out += [str(i) for i in range(a, b + 1)]
-        elif part:
-            out.append(part)
-    return out
+    from qv.services.workflow import parse_ids
+    return parse_ids(ids)
 
 
 def _quota_lines(db: Database) -> list[str]:

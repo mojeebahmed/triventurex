@@ -51,8 +51,8 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 
 ## Simple workflow (built 2026-11-16)
 Mojeeb wants the tool usable with very few steps, in the web page: `Start Question Validator.command` → Overview
-· 1 Import · 2 Validate · 3 Review · 4 Export (+ Advanced = the detailed views). Commands: `qv status`, `qv next`,
-`qv export corrected|verified|results`, `qv auto on|off|status|run`. User-facing description: `USER_GUIDE.md` (keep
+(menu since 2026-11-16 evening: Import · Validate · Daily run · Review · Export, + Advanced pages). Commands: `qv status`, `qv next`,
+`qv export corrected|ready|results`, `qv auto on|off|status|run`. User-facing description: `USER_GUIDE.md` (keep
 it current). One-click import fixes and the automatic daily batch were added on 2026-11-16. This is ARCHITECTURE.md phases 4–5, made simple;
 all other commands stay for power users and debugging.
 
@@ -71,15 +71,25 @@ all other commands stay for power users and debugging.
    (pypdf; OCR with Tesseract `urd` for scanned/Nastaliq Urdu), local full-text search (SQLite FTS5) and
    cross-language retrieval (Urdu books, English questions). Citations as book + page; quotes stay in the original
    language, translations are display only, never evidence. Books stay local; exports carry short excerpts only.
-4. **Reuse of stored research**: index all stored documents (+ library) and search them before the web;
-   cross-question consistency checks; suggest notes and new questions from stored passages — each suggestion
-   carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
-   new rows with new ids, never written into `game_editions/`.
+4. **Reuse of stored research** — plan agreed to keep (2026-11-16; 290 stored pages ≈ 3 M chars, 596 quotes for 67
+   questions at that time). Build in this order:
+   - **A. Stored pages first**: a full-text index (FTS5, like the library) over every stored document; per question
+     search it with the same answer-blind queries as the web (S1a core + blind queries) and send the best stored
+     pages to S3 in mode A next to the web results (found_by `via: stored`). Saves search requests and fetches,
+     grows with every batch. Show "found in stored pages" as a source on the page.
+   - **B. Same question, same judgement**: find identical / near-identical questions within and across editions;
+     flag differing claim types or verdicts (e.g. #127 vs #285) in a new Review group.
+   - **C. Suggestions from stored passages** (later): notes and new questions from stored quotes — each suggestion
+     carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
+     new rows with new ids, never written into `game_editions/`.
 
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
-(`not_text`); 11 sites answered 403; Wikipedia needs `QV_CONTACT` in `.env`; no hadith
-direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be checked in AI Studio.
+(`not_text`); refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
+worth a look); no hadith direct source yet. Done 2026-11-16: `QV_CONTACT` is set (Wikipedia searches run); the
+free Gemini limits were checked in AI Studio — 4 more models with 20/day each were added to the pools
+(gemini-4-hydrogen, gemini-3-flash-preview, gemini-2.5-flash in `judge`; gemini-2.5-flash-lite in `cheap`), their
+quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
 
 ## Decisions (Mojeeb, 2026-11-15) — replace ARCHITECTURE.md §7
 - **Free services only, $0 budget.** No paid API usage, no card-required plans. Budgets are tracked as
@@ -165,11 +175,18 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
 - **"Fact-heavy wording"** (`qv/pipeline/priority.py`, internally "priority") is pure code from the wording; it
   only orders work and must always be explained as *not* a prediction (Mojeeb found "priority" misleading).
   `SIGNALS` (shown on the page) must match the scoring (test).
-- **Web page**: `st.navigation` pages (sidebar = file picker + page links). Every table goes through
-  `data_table()` → our own read-only component `qv/ui/table.py` (Streamlit components v2, inline HTML/JS, values
-  set with `textContent` only): click anywhere on a row picks it, no tick boxes, nothing editable. The pick is tied
-  to the rows' id column (`ID_COLUMNS`), so it survives live updates but not a filter change. The Review page lists every checked question
-  (incl. Verified) with the detail below the table.
+- **Web page**: `st.navigation` with sections (Overview · Files · Check questions · Advanced; `SECTIONS` in
+  `qv/ui/app.py`). The file being worked on is `st.session_state.dataset` (plain state, not a widget key, so it
+  survives pages without the file bar); the "Working on" bar (`file_header`, pages in `WITH_FILE`) edits it
+  through its own widget key. Every table goes through `data_table()` → our own read-only component
+  `qv/ui/table.py` (Streamlit components v2, inline HTML/JS, values set with `textContent` only): sort by a header
+  click and an optional search box, both **in the browser only**; rows are reported by their position in the data
+  (never the screen position), with a click id (every click is new) and the viewer's visible order. Details open in
+  a popup via `on_open` → an `@st.dialog(..., on_dismiss="rerun")`; only one dialog per script run. Popups over a
+  list use `popup_nav` (Previous / Next in the viewer's order) and change their view with `st.rerun(scope=
+  "fragment")`; a widget key changed by a move goes through a `*_next` state key (set before the widget exists).
+  "Ready" = `workflow.READY_STATUSES` (verified automatically + confirmed by you + edited by you); the export kind is
+  `ready` (old name `verified` still accepted).
 - The web page now writes (imports, decisions, new versions, starting batches) — through services only; it never
   calls a model itself. Streamlit keeps imported modules loaded: restart `qv ui` after changing `qv/services`.
 
@@ -197,6 +214,10 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   the original page; S3 quotes the original — a translation never becomes evidence (METHODOLOGY principle 5).
 - `pdfs_found_on_web` (views) lists web PDFs that research skipped (`fetches.status = not_text`, pdf) as
   candidate books (Advanced → Book library, `qv library suggestions`).
+- **Books added on the page** (`qv/services/books.py`): the person's own list `data/library/books.yaml`
+  (`books`, `removed` = config book ids hidden, `dismissed` = web PDF urls hidden), merged by `load_books`;
+  `config/library.yaml` is never written. Removing a book deletes its PDF and index rows; stored documents /
+  passages that cite it stay (immutable history). Download only on the person's click, PDF magic checked, 80 MB max.
 
 ## Implementation invariants (local models)
 - **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model
@@ -206,6 +227,15 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   is an error, never a result. `think` is off by default (qwen3).
 - **Grounding strips only our `<document>` delimiters at a quote's edges** (local models copy them); nothing else
   in a quote is changed.
+
+## Implementation invariants (websites)
+- `qv/services/websites.py`: the person's marks per domain (`source_marks`, append-only + triggers, newest wins,
+  `clear` = back to sources.yaml) are applied by `registry_with_marks` — research always builds its registry with
+  it. `use` = tier P/S/T, `dont_use` = X, `needs_access` = `Registry.skip_domains` (dropped before fetching like X,
+  tier unchanged). Subdomains inherit. A mark never touches `config/sources.yaml`.
+- Refused list = `fetches` failures grouped by domain (web PDFs excluded — they are book candidates); note that
+  failures older than `FAILURE_RETRY_AFTER` are deleted when retried, so the list shows recent problems.
+  "Possibly good" = web domains with grounded quotes that sources.yaml does not list and the person has not marked.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,

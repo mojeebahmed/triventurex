@@ -1,6 +1,7 @@
 # Free-tier providers and their limits (decision 2026-11-15: free services only, $0 budget).
 # Limits are what we allow ourselves; set them at or below the provider's free tier.
 # Check Gemini limits on the AI Studio rate-limit page — they differ per project and change over time.
+# Last checked 2026-11-16 (Mojeeb). Model ids = the API's names (GET v1beta/models), not the page's display names.
 
 reserve_fraction: 0.05      # keep 5 % of every daily/monthly quota unused as a safety margin
 
@@ -13,6 +14,12 @@ llm:
       gemini-3.8-flash:      {rpm: 5,  rpd: 20}
       gemini-3.7-flash:      {rpm: 5,  rpd: 20}
       gemini-3.6-flash:      {rpm: 5,  rpd: 20}
+      # Also free on this key (AI Studio rate-limit page, 2026-11-16) — extra capacity, quality not measured yet:
+      gemini-4-hydrogen:     {rpm: 5,  rpd: 20}
+      gemini-3-flash-preview: {rpm: 5, rpd: 20}
+      gemini-2.5-flash:      {rpm: 5,  rpd: 20}
+      gemini-2.5-flash-lite: {rpm: 10, rpd: 20}
+      # No free quota (0/0/0): gemini-2.5-pro, gemini-3.1-pro-preview, gemini-4-argon, gemini-4-carbon
   ollama:                    # local models on this Mac: $0, no daily limit, only speed
     base_url: http://localhost:11434
     timeout_s: 900
@@ -23,12 +30,13 @@ llm:
       mistral-nemo: {num_ctx: 24576}
   pools:                     # provider/model, tried in order. The next entry takes over when one's daily
                              # quota is used up or (local) Ollama is not running / the model is not pulled.
-    cheap: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite]
-    judge: [gemini/gemini-3.6-flash, gemini/gemini-3.7-flash, gemini/gemini-3.8-flash]   # 3.6 first: on 2026-11-15/16 it answered 13 of 15, 3.8 2 of 33, 3.7 0 of 8 (overloaded / timeouts)
+    cheap: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite, gemini/gemini-2.5-flash-lite]
+    judge: [gemini/gemini-3.6-flash, gemini/gemini-3.7-flash, gemini/gemini-3.8-flash, gemini/gemini-4-hydrogen,
+           gemini/gemini-3-flash-preview, gemini/gemini-2.5-flash]   # 3.6 first: on 2026-11-15/16 it answered 13 of 15, 3.8 2 of 33, 3.7 0 of 8 (overloaded / timeouts)
     # Local models are $0 but slow (S3: 1–4 min per document on an M2 Pro vs ~1.5 s on Gemini; pilot trial
     # 2026-11-15: gemma3:12b grounded 13/15 quotes, qwen3:8b 19/24, qwen3:14b 4/7). Best as overflow after
     # the free Gemini quota: a run then keeps going slowly instead of stopping.
-    cheap_then_local: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite, ollama/gemma3:12b]
+    cheap_then_local: [gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite, gemini/gemini-2.5-flash-lite, ollama/gemma3:12b]
     local_first: [ollama/gemma3:12b, gemini/gemini-3.5-flash-lite, gemini/gemini-3.1-flash-lite]
 
 stage_pools:                 # which pool each model stage uses

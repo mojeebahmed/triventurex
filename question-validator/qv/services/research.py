@@ -42,7 +42,8 @@ from qv.providers.search.router import Pool, SearchRouter
 from qv.providers.search.web import ExaSearch, ParallelMCPSearch, TavilySearch
 from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
 from qv.library import Library
-from qv.sources import Registry, effective_tier, is_frame_authority, load_registry
+from qv.services.websites import registry_with_marks
+from qv.sources import Registry, effective_tier, is_frame_authority
 from qv.services.datasets import get_version
 from qv.services.judgement import judge_question
 
@@ -150,7 +151,7 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
         db=db, runner=StageRunner(db, build_pools(providers, pcfg, metering)), named_pools=named,
         router=SearchRouter(db, build_search_pools(settings, pcfg, metering), metering,
                             cache_days=rcfg.search_cache_days),
-        fetcher=fetcher, quran=QuranSource(fetcher), registry=load_registry(), cfg=rcfg, metering=metering,
+        fetcher=fetcher, quran=QuranSource(fetcher), registry=registry_with_marks(db), cfg=rcfg, metering=metering,
         wikipedia=WikipediaSearch(metering.recorder, settings.contact) if settings.contact else None,
         alislam=AlislamSearch(metering.recorder),
         site_searches={

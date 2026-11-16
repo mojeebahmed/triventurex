@@ -38,10 +38,12 @@ class Registry(BaseModel):
     default_tier: str = Field("T", pattern="^[PSTX]$")
     suffix_tiers: dict[str, str] = Field(default_factory=dict)
     domains: dict[str, str] = Field(default_factory=dict)
+    #: Domains not fetched for now (the person marked them "needs special access"); subdomains included.
+    skip_domains: list[str] = Field(default_factory=list)
 
     def tier(self, url_or_domain: str) -> str:
         """Registry tier for a URL or domain (parent domains and suffixes are inherited)."""
-        host = domain_of(url_or_domain) if "/" in url_or_domain else url_or_domain.lower().removeprefix("www.")
+        host = _host(url_or_domain)
         parts = host.split(".")
         for i in range(len(parts) - 1):
             candidate = ".".join(parts[i:])
@@ -52,9 +54,19 @@ class Registry(BaseModel):
                 return tier
         return self.default_tier
 
+    def is_skipped(self, url_or_domain: str) -> bool:
+        """True when the domain (or a parent) is in `skip_domains`."""
+        host = _host(url_or_domain)
+        return any(host == d or host.endswith("." + d) for d in self.skip_domains)
+
     def is_excluded(self, url: str) -> bool:
-        """True for tier-X domains (dropped before fetching)."""
-        return self.tier(url) == "X"
+        """True for tier-X and skipped domains (dropped before fetching)."""
+        return self.tier(url) == "X" or self.is_skipped(url)
+
+
+def _host(url_or_domain: str) -> str:
+    """Host of a URL, or a bare domain, lower case without www."""
+    return domain_of(url_or_domain) if "/" in url_or_domain else url_or_domain.lower().removeprefix("www.")
 
 
 def effective_tier(registry_tier: str, page_kind: str | None) -> str:

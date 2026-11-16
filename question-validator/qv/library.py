@@ -73,6 +73,38 @@ def load_library_config(path: Path = CONFIG_DIR / "library.yaml") -> LibraryConf
     return cfg
 
 
+#: Books added (and config books removed) on the web page: <data_dir>/library/books.yaml — the person's own list,
+#: git-ignored like the PDFs. {books: [...], removed: [book ids from config/library.yaml], dismissed: [web PDF urls]}
+MY_BOOKS_FILE = "books.yaml"
+
+
+def load_my_books(data_dir: Path) -> dict:
+    """The person's own book list (empty parts when the file does not exist)."""
+    path = data_dir / "library" / MY_BOOKS_FILE
+    raw = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.exists() else {}
+    return {"books": raw.get("books") or [], "removed": raw.get("removed") or [], "dismissed": raw.get("dismissed") or []}
+
+
+def save_my_books(data_dir: Path, mine: dict) -> None:
+    """Write the person's own book list."""
+    path = data_dir / "library" / MY_BOOKS_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# Books added on the web page (Advanced → Book library). Edit with care.\n"
+                    + yaml.safe_dump(mine, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
+def load_books(data_dir: Path, path: Path = CONFIG_DIR / "library.yaml") -> LibraryConfig:
+    """config/library.yaml without the books removed on the page, plus the books added there."""
+    base = load_library_config(path)
+    mine = load_my_books(data_dir)
+    books = [b for b in base.books if b.id not in set(mine["removed"])]
+    books += [Book.model_validate(b) for b in mine["books"]]
+    ids = [b.id for b in books]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Duplicate book id in library.yaml / data/library/books.yaml")
+    return LibraryConfig(books=books)
+
+
 # --- page text ---------------------------------------------------------------------------
 
 _REPEAT = re.compile(r"(.{2,60}?)\1{2,}")   # "118118118118118", headings drawn five times (bold); not "1888"
@@ -163,6 +195,11 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def query_words(query: str) -> list[str]:
+    """The words a search matches on (lower case, no stopwords, no single letters), in order, once each."""
+    return list(dict.fromkeys(w for w in re.findall(r"\w+", query.lower()) if len(w) > 1 and w not in _STOPWORDS))
+
+
 def page_url(book_id: str, page: int) -> str:
     """library://<book>/p<page>"""
     return f"{SCHEME}{book_id}/p{page}"
@@ -178,9 +215,10 @@ class Library:
     """The books and their full-text index."""
 
     def __init__(self, data_dir: Path, cfg: LibraryConfig | None = None) -> None:
-        """Books from config/library.yaml (or `cfg`); files and index under <data_dir>/library/."""
+        """Books from config/library.yaml + the person's own list (or `cfg`); files and index under
+        <data_dir>/library/."""
         self.dir = data_dir / "library"
-        self.cfg = cfg if cfg is not None else load_library_config()
+        self.cfg = cfg if cfg is not None else load_books(data_dir)
         self.books = {b.id: b for b in self.cfg.books}
         self._conn: sqlite3.Connection | None = None
 
@@ -278,7 +316,7 @@ class Library:
     def search(self, query: str, *, books: list[str], limit: int = 3) -> list[PageHit]:
         """Best pages for a query (BM25), within `books`. Any shared content word counts; more and rarer
         words rank higher."""
-        words = [w for w in re.findall(r"\w+", query.lower()) if len(w) > 1 and w not in _STOPWORDS]
+        words = query_words(query)
         if not words or not books:
             return []
         match = " OR ".join(f'"{w}"' for w in dict.fromkeys(words))
@@ -325,6 +363,14 @@ class Library:
         """How many pages have a translation into `lang`."""
         return self.conn.execute("SELECT COUNT(*) FROM translations WHERE book_id = ? AND lang = ?",
                                  (book_id, lang)).fetchone()[0]
+
+    def forget(self, book_id: str) -> None:
+        """Remove a book's pages, translations and index rows."""
+        c = self.conn
+        for table in ("pages", "pages_fts", "translations"):
+            c.execute(f"DELETE FROM {table} WHERE book_id = ?", (book_id,))
+        c.execute("DELETE FROM books WHERE id = ?", (book_id,))
+        c.commit()
 
     def page(self, book_id: str, page: int) -> PageHit | None:
         """One page's stored text."""
