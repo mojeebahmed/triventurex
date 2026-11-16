@@ -84,10 +84,11 @@ def test_every_profile_loads(name: str) -> None:
     assert p.structural.allowed_difficulties
 
 
-def test_religious_frames_are_marked_draft() -> None:
+def test_religious_frames_are_confirmed_with_their_authorities() -> None:
     for name in ("prophets-stories", "swab-quest"):
         frame = load_profile(name).frame
-        assert frame is not None and not frame.confirmed
+        assert frame is not None and frame.confirmed          # METHODOLOGY.md §13 (2026-11-16)
+        assert {"alislam.org", "alhakam.org"} <= set(frame.authorities)
         assert load_profile(name).conventions["quran_numbering"] == "bismillah_is_verse_1"
 
 

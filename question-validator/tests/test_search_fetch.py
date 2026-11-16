@@ -281,3 +281,48 @@ def test_extraction_falls_back_when_precision_mode_keeps_only_the_header() -> No
             f"Community. Muslims who believe in the Messiah.</p></div><div class='x'>{body}</div></body></html>")
     text, _ = extract_main_text(page, "https://www.alislam.org/articles/x/")
     assert "third Khalifa" in text and len(text) > 2000
+
+
+# --- sitemap search (alhakam.org) ------------------------------------------------------
+
+def test_rank_by_slug_needs_two_shared_words() -> None:
+    from qv.providers.search.free import rank_by_slug
+    urls = ["https://www.alhakam.org/friday-sermon-1-may/",
+            "https://www.alhakam.org/prophets-of-allah-solomon-a-most-excellent-servant-of-god/",
+            "https://www.alhakam.org/prophets-of-allah-john-the-harbinger-of-jesus/"]
+    assert rank_by_slug(urls, "Who was Solomon's father?", 5) == []                   # only "solomon" shared
+    assert rank_by_slug(urls, "prophets of Allah Solomon", 5) == [urls[1], urls[2]]   # 3 words, then 2
+    assert rank_by_slug(urls, "Solomon", 5) == [urls[1]]                               # one-word query
+
+
+def test_sitemap_search_caches_and_refreshes_changed_sitemaps(tmp_path) -> None:
+    from qv.providers.search.free import SitemapSearch
+    from qv.providers.usage import CallContext
+    calls: list[str] = []
+    index = ("<sitemapindex><sitemap><loc>https://s.org/post-sitemap1.xml</loc><lastmod>{m}</lastmod></sitemap>"
+             "<sitemap><loc>https://s.org/page-sitemap.xml</loc></sitemap></sitemapindex>")
+    pages = {"https://s.org/sitemap.xml": index.format(m="A"),
+             "https://s.org/post-sitemap1.xml": "<urlset><url><loc>https://s.org/prophet-noah-ark/</loc></url></urlset>"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(200, text=pages[str(request.url)])
+
+    class Rec:
+        def record(self, **kw: object) -> None:
+            pass
+
+    now = [1000.0]
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    cache = tmp_path / "s.json"
+    mk = lambda: SitemapSearch("site", "https://s.org/sitemap.xml", cache, Rec(), client=client,  # noqa: E731
+                               refresh_days=1, clock=lambda: now[0])
+    ctx = CallContext(None, None, "search")
+    hits = mk().search("Noah's ark", max_results=3, ctx=ctx)
+    assert [h.url for h in hits] == ["https://s.org/prophet-noah-ark/"] and hits[0].provider == "site"
+    assert calls == ["https://s.org/sitemap.xml", "https://s.org/post-sitemap1.xml"]   # page-sitemap skipped
+    mk().search("Noah ark", max_results=3, ctx=ctx)
+    assert len(calls) == 2                                   # fresh cache: no requests
+    now[0] += 2 * 86400
+    mk().search("Noah ark", max_results=3, ctx=ctx)
+    assert len(calls) == 3                                   # index only; post sitemap unchanged (same lastmod)

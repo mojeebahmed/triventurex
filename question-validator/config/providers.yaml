@@ -56,6 +56,14 @@ search:
     rpm: 60
   alislam:                   # free; the edition's official source — be polite
     rpm: 10
+  sitemaps:                  # free sites searched by the words in their article URLs (read from the sitemap,
+                             # cached in data/cache/sitemaps/). Used for editions whose frame lists the domain.
+    alhakam:                 # Al Hakam (Ahmadiyya weekly) — e.g. the "Prophets of Allah" series; robots.txt allows
+      domain: alhakam.org
+      sitemap: https://www.alhakam.org/sitemap.xml
+      include: post-sitemap
+      refresh_days: 7
+      rpm: 10
 
 fetch:
   rpm_per_domain: 10

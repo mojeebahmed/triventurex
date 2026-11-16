@@ -139,7 +139,7 @@ we need to see to be entitled to say this is right?"* — before any searching.
 | Claim type | Sufficient positive evidence ("STRONG") | Not sufficient on its own | Extra checks |
 |---|---|---|---|
 | `scripture_content` | The verse itself (P) under the edition's numbering, whose text supports the claim | Any website saying "the Qur'an says…" | Numbering scheme; translation differences noted |
-| `hadith_or_tradition` | The narration in a named collection (P, e.g. a hadith reference site) **or** ≥ 2 independent S sources citing it | General Islamic websites without a reference | Record grading if available; a hedge in the question ("by tradition") changes the claim (§6) |
+| `hadith_or_tradition` | The narration in a named collection (P, e.g. a hadith reference site) **or** ≥ 2 independent S sources citing it **or** a frame-authority publication citing it (§13.2) | General Islamic websites without a reference | Record grading if available; a hedge in the question ("by tradition") changes the claim (§6) |
 | `attribution` | The person's own work (P) or the frame authority's publication quoting it | Third parties' summaries of what they said | Correct work and context |
 | `doctrine` (frame) | ≥ 1 frame-authority source (P/S) | Non-frame sources (recorded as context) | Mark `contested_outside_frame` when non-frame sources differ |
 | `historical_event`, `biography` | 1 P **or** ≥ 2 independent origins incl. ≥ 1 S | Two pages repeating one encyclopaedia | Dates: check calendar/era conventions |
@@ -303,7 +303,7 @@ normal, honest outcome for #140.
 | `needs_review` | verdict ∈ {INCORRECT, AMBIGUOUS, CONTESTED, OUTDATED}; S5 ≠ S5b on factual accuracy; blind answer ≠ key; decisive S7 objection; note `contradicted`; quality POOR |
 | `needs_specialist` | frame_class ∈ {frame_specific, attribution_to_frame} or claim type ∈ {scripture_content, hadith_or_tradition, doctrine} **and** anything other than a clean VERIFIED |
 | `auto_ok` | VERIFIED, STRONG, verifiers agree, no flags — still listed and reversible |
-| `audit_sample` | a random 3 % of `auto_ok` per run goes to review anyway, to measure the false-verification rate |
+| `audit_sample` | a random 5 % of `auto_ok` per run goes to review anyway, to measure the false-verification rate |
 
 `reasons` lists every rule that fired in plain words, e.g. *"Blind answer (36 goals, Haaland) differs from key
 (34 goals, Haaland). Two independent official/reputable origins support 36. Classified: factual_conflict."*
@@ -442,11 +442,20 @@ defect `question_premise`, even though "Brazil" is the right nation for the year
 
 ---
 
-## 13. Open points to confirm with you / the edition reviewer
+## 13. Decisions on the open points (Mojeeb, 2026-11-16)
 
-1. Frame authorities for Ahmadiyya questions, and which English Qur'an translation to quote.
-2. Whether hadith-based claims need a collection reference to count as STRONG, or whether frame-authority
-   books (e.g. *Seerat Khatam-un-Nabiyyin*) suffice for seerah questions.
-3. Swab Quest #247 and similar "first human" wording — the reviewer's view on the edition's position.
-4. Convention for counts that differ between printed Qur'an editions (Rukus, verses).
-5. The audit-sample percentage and whether `auto_ok` questions should still be skimmed once per edition.
+1. **Frame authorities** (Swab Quest, Prophets' Stories): alislam.org — including its book library
+   (new.alislam.org/library; downloaded books go into the local PDF library) and the Qur'an at
+   alislam.org/quran/app with the **Maulawi Sher Ali** English translation — plus alhakam.org (e.g. the
+   *Prophets of Allah* series) and reviewofreligions.org. Other editions use web search; for the non-religious
+   editions any reputable site counts, Wikipedia included (registry tiers in `config/sources.yaml`).
+2. **Hadith**: when an Ahmadiyya book cites the original collection, use that reference; otherwise the
+   frame-authority book itself is enough (its references are checked by scholars) → `hadith_or_tradition` is
+   STRONG with one frame-authority source as well (`config/evidence_requirements.yaml`).
+3. **Wording** (#247 and similar): most questions were AI-generated; wording may be changed freely. Questions that
+   have different right answers depending on context are to be reworded or given more context — S6 findings
+   about ambiguity are real work items, not noise.
+4. **Qur'an numbering**: always the Ahmadiyya numbering — Bismillah is verse 1 of each chapter
+   (`quran_numbering: bismillah_is_verse_1`).
+5. **Spot check**: 5 % of `auto_ok` questions (`audit_sample_percent: 5`). The review step goes through every
+   question anyway.

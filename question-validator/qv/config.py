@@ -206,6 +206,18 @@ class PoliteConfig(BaseModel):
     rpm: int = 30
 
 
+class SitemapSiteConfig(BaseModel):
+    """A site searched through the words in its article URLs (its own search page needs a browser)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    domain: str = Field(description="used when an edition's frame lists this domain as an authority")
+    sitemap: str
+    include: str = Field("post-sitemap", description="only sub-sitemaps whose URL contains this")
+    refresh_days: float = Field(7, gt=0)
+    rpm: int = 10
+
+
 class SearchConfig(BaseModel):
     """Search providers."""
 
@@ -217,6 +229,7 @@ class SearchConfig(BaseModel):
     exa: ExaConfig
     wikipedia: PoliteConfig = Field(default_factory=PoliteConfig)
     alislam: PoliteConfig = Field(default_factory=lambda: PoliteConfig(rpm=10))
+    sitemaps: dict[str, SitemapSiteConfig] = Field(default_factory=dict)
 
 
 class FetchConfig(BaseModel):
@@ -256,6 +269,7 @@ class ResearchConfig(BaseModel):
     max_note_documents_per_question: int = Field(2, ge=0)
     wikipedia_results: int = Field(1, ge=0)
     alislam_search_results: int = Field(2, ge=0)
+    site_search_results: int = Field(2, ge=0, description="per sitemap-searched frame site (e.g. alhakam.org)")
     search_cache_days: int = Field(60, ge=0)
     s3_window_chars: int = Field(40000, ge=2000)
     s3_window_overlap_chars: int = Field(1000, ge=0)

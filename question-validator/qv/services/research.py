@@ -37,7 +37,7 @@ from qv.providers.llm.gemini import GeminiProvider
 from qv.providers.llm.ollama import OllamaProvider
 from qv.providers.quran import QuranRefError, QuranSource
 from qv.providers.search.base import SearchError, SearchHit, SearchProvider, domain_of
-from qv.providers.search.free import AlislamSearch, WikipediaSearch
+from qv.providers.search.free import AlislamSearch, SitemapSearch, WikipediaSearch
 from qv.providers.search.router import Pool, SearchRouter
 from qv.providers.search.web import ExaSearch, ParallelMCPSearch, TavilySearch
 from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
@@ -64,6 +64,7 @@ class ResearchDeps:
     metering: Metering
     wikipedia: SearchProvider | None = None
     alislam: SearchProvider | None = None
+    site_searches: dict[str, SearchProvider] = field(default_factory=dict)  # frame domain → sitemap search
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
     audit_percent: float = 3.0
     named_pools: dict[str, ModelPool] = field(default_factory=dict)  # every llm.pools entry, for --judge-pool
@@ -150,7 +151,13 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
         fetcher=fetcher, quran=QuranSource(fetcher), registry=load_registry(), cfg=rcfg, metering=metering,
         wikipedia=WikipediaSearch(metering.recorder, settings.contact) if settings.contact else None,
         alislam=AlislamSearch(metering.recorder),
-        polite_rpm={"wikipedia": pcfg.search.wikipedia.rpm, "alislam": pcfg.search.alislam.rpm},
+        site_searches={
+            site.domain: SitemapSearch(name, site.sitemap, settings.data_dir / "cache" / "sitemaps" / f"{name}.json",
+                                       metering.recorder, include=site.include, refresh_days=site.refresh_days,
+                                       wait=lambda name=name, rpm=site.rpm: metering.limiter.wait(f"search:{name}", rpm))
+            for name, site in pcfg.search.sitemaps.items()},
+        polite_rpm={"wikipedia": pcfg.search.wikipedia.rpm, "alislam": pcfg.search.alislam.rpm,
+                    **{name: site.rpm for name, site in pcfg.search.sitemaps.items()}},
         audit_percent=rcfg.audit_sample_percent,
     )
 
@@ -349,6 +356,10 @@ def research_question(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
     if deps.alislam and deps.cfg.alislam_search_results and _uses_alislam(profile):
         for x in sorted(s1a.queries, key=lambda x: PURPOSE_PRIORITY[x.purpose])[:2]:
             _free_search(deps, deps.alislam, x.q, deps.cfg.alislam_search_results, candidates, profile, ctx, stats)
+    if deps.cfg.site_search_results:
+        for domain, provider in deps.site_searches.items():
+            if _frame_lists(profile, domain):
+                _free_search(deps, provider, core, deps.cfg.site_search_results, candidates, profile, ctx, stats)
 
     chosen: list[tuple[int, str, list[dict]]] = []
     for mode, budget in (("A", deps.cfg.max_documents_per_question), ("B", deps.cfg.max_note_documents_per_question)):
@@ -371,7 +382,12 @@ def _frame_name(profile: Profile) -> str | None:
 
 
 def _uses_alislam(profile: Profile) -> bool:
-    return bool(profile.frame and any("alislam.org" in a for a in profile.frame.authorities))
+    return _frame_lists(profile, "alislam.org")
+
+
+def _frame_lists(profile: Profile, domain: str) -> bool:
+    """True when the profile's frame names `domain` among its authorities."""
+    return bool(profile.frame and any(domain in a for a in profile.frame.authorities))
 
 
 def _plan_web_queries(s1a: Decomposition, s1b: ClaimFormulation, budget: int) -> list[tuple[str, str, str, str | None]]:

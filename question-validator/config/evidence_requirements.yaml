@@ -8,7 +8,7 @@
 # Below the bar: MODERATE = ≥ 2 clusters, or one P/S cluster; WEAK = one T cluster; NONE = nothing grounded.
 
 scripture_content:          [{p: 1}]
-hadith_or_tradition:        [{p: 1}, {s_or_better: 2}]
+hadith_or_tradition:        [{p: 1}, {s_or_better: 2}, {frame_authority: 1}]   # §13.2: an Ahmadiyya book's reference is enough
 attribution:                [{p: 1}, {frame_authority: 1}]
 doctrine:                   [{frame_authority: 1}]
 historical_event:           [{p: 1}, {clusters: 2, s_or_better: 1}]
