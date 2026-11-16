@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from qv.db.models import (
     Dataset, DatasetVersion, Decision, QuestionRow, Run, RunQuestion, StructuralIssueRow, Validation,
@@ -92,10 +92,14 @@ def dataset_names(db: Database, *, include_eval: bool = False) -> list[str]:
     return [n for n in names if include_eval or not n.startswith("eval-")]
 
 
+#: Runs made to measure another judge (`qv validate --judge-pool`) are not part of the working results.
+WORKING_RUN = func.json_extract(Run.config_json, "$.judge_pool").is_(None)
+
+
 def _unfinished_run(s, version_id: int) -> tuple[int, set[int]] | None:  # noqa: ANN001
     """The newest validate run of this version with questions left, and those question ids."""
-    for run in s.scalars(select(Run).where(Run.dataset_version_id == version_id, Run.kind == "validate")
-                         .order_by(Run.id.desc())):
+    for run in s.scalars(select(Run).where(Run.dataset_version_id == version_id, Run.kind == "validate",
+                                           WORKING_RUN).order_by(Run.id.desc())):
         left = set(s.scalars(select(RunQuestion.question_id).where(
             RunQuestion.run_id == run.id, RunQuestion.status.in_(("pending", "stopped")))))
         return (run.id, left) if left else None
@@ -116,7 +120,8 @@ def question_states(db: Database, dataset: str) -> list[QuestionState]:
         checked_ids: set[str] = set()
         for val, ext, h in s.execute(select(Validation, QuestionRow.ext_id, QuestionRow.content_hash)
                                      .join(QuestionRow, QuestionRow.id == Validation.question_id)
-                                     .where(QuestionRow.dataset_version_id.in_(same_dataset))
+                                     .join(Run, Run.id == Validation.run_id)
+                                     .where(QuestionRow.dataset_version_id.in_(same_dataset), WORKING_RUN)
                                      .order_by(Validation.id)):
             vals[(ext, h)] = val
             checked_ids.add(ext)
@@ -127,7 +132,7 @@ def question_states(db: Database, dataset: str) -> list[QuestionState]:
         in_progress = unfinished[1] if unfinished else set()
         failed = {qid for qid, st in s.execute(
             select(RunQuestion.question_id, RunQuestion.status).join(Run, Run.id == RunQuestion.run_id)
-            .where(Run.dataset_version_id == v.id).order_by(RunQuestion.id)) if st == "failed"}
+            .where(Run.dataset_version_id == v.id, WORKING_RUN).order_by(RunQuestion.id)) if st == "failed"}
         out = []
         for r in rows:
             q = question_from_row(r)

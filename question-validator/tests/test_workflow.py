@@ -201,3 +201,15 @@ def test_difficulty_orders_keep_edited_questions_first() -> None:
     assert ids("hard") == ["3", "2", "4", "1"]
     assert ids("easy") == ["3", "1", "2", "4"]
     assert [s.ext_id for s in workflow.candidates(states, workflow.Selection(difficulties=("hard",)))] == ["2", "4"]
+
+
+@respx.mock
+def test_measurement_runs_are_not_working_results(db: Database, mini: str) -> None:
+    from qv.services.research import start_run
+    mock_web()
+    deps = judging_deps(db, JudgingLLM())
+    deps.named_pools["cheap"] = deps.runner.pools["s4"]
+    run_id = start_run(db, mini, ["135"], kind="validate", config={"judge_pool": "cheap"})
+    assert workflow.plan_next_batch(db, mini, workflow.Selection(), 5).action == "start"  # not "resume"
+    execute_run(deps, run_id)
+    assert {s.ext_id: s.status for s in workflow.question_states(db, mini)}["135"] == "not_checked"
