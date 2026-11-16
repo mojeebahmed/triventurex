@@ -77,3 +77,52 @@ def test_pdfs_found_on_web_are_listed_as_candidates(db) -> None:  # noqa: ANN001
         s.add(Fetch(url="https://x.org/ok", status="ok"))
     rows = pdfs_found_on_web(db)
     assert [(r["file"], r["site"]) for r in rows] == [("Fazl-e-Umar.pdf", "files.alislam.cloud")]
+
+
+def _pool(db, answers: dict[str, str], budget: int = 100):  # noqa: ANN001, ANN202
+    import json
+
+    from qv.providers.llm.base import ModelPool, RawResponse
+    from qv.providers.usage import Limit, Metering, QuotaLedger, RateLimiter, UsageRecorder
+
+    class Fake:
+        name = "fake"
+        calls: list[str] = []
+
+        def generate_json(self, *, model, system, messages, schema, ctx):  # noqa: ANN001, ANN201
+            self.calls.append(messages[0].text)
+            text = next(v for k, v in answers.items() if k in messages[0].text)
+            return RawResponse(text=json.dumps({"translation": text}), model=model, finish_reason="STOP")
+
+    m = Metering(QuotaLedger(db, reserve_fraction=0), RateLimiter(sleep=lambda s: None), UsageRecorder(db))
+    fake = Fake()
+    return ModelPool.single(fake, ["m1"], {"m1": [Limit("day", budget)]}, {"m1": 1000}, m), fake
+
+
+def test_translation_finds_the_german_page_but_search_returns_the_original(db, tmp_path: Path) -> None:  # noqa: ANN001
+    from qv.services.translate import translate_book
+    library = Library(tmp_path, LibraryConfig(books=[Book(id="dm", file="dm.pdf", title="Dieni", language="de",
+                                                          translate_for_search="en", editions=["swab-quest"])]))
+    library.index_pages("dm", ["57\nF: Wer war der erste Kalif?\nA: Hadhrat Nuuruddin", "58\nF: Wann ist Ramadan?"])
+    assert library.search("Who was the first Caliph?", books=["dm"]) == []          # English words: no match yet
+    pool, fake = _pool(db, {"erste Kalif": "Q: Who was the first Caliph?\nA: Hadhrat Nuuruddin",
+                            "Ramadan": "Q: When is Ramadan?"})
+    rep = translate_book(library, pool, "dm")
+    assert (rep.translated, rep.left, rep.stopped) == (2, 0, None)
+    hits = library.search("Who was the first Caliph?", books=["dm"])
+    assert hits[0].page == 1 and "Wer war der erste Kalif" in hits[0].text           # evidence = original German
+    assert library.translation("dm", 1, "en").startswith("Q: Who was")
+    assert translate_book(library, pool, "dm").translated == 0                       # nothing left to do
+    library.index_pages("dm", ["57\nF: Wer war der erste Kalif?\nA: Hadhrat Nuuruddin", "58\nF: Wann ist Ramadan?"])
+    assert library.search("first Caliph", books=["dm"])                              # survives a re-index
+    assert library.status()[0]["translated for search"] == "2 pages → en"
+
+
+def test_translation_stops_cleanly_when_quota_is_used(db, tmp_path: Path) -> None:  # noqa: ANN001
+    from qv.services.translate import translate_book
+    library = Library(tmp_path, LibraryConfig(books=[Book(id="dm", file="dm.pdf", title="D", language="de",
+                                                          translate_for_search="en")]))
+    library.index_pages("dm", ["Seite eins", "Seite zwei", "Seite drei"])
+    pool, _ = _pool(db, {"Seite": "Page"}, budget=2)
+    rep = translate_book(library, pool, "dm")
+    assert (rep.translated, rep.left) == (2, 1) and rep.stopped

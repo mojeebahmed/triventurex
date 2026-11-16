@@ -144,11 +144,14 @@ To add a book: put the PDF in `question-validator/data/library/`, add a few line
 but could not read** — PDFs met on the web (e.g. *Life of the Promised Messiah*, *Fazl-e-Umar*), candidates to
 download and add. Terminal: `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
 
+**Books in another language** (the German *Dieni Ma'loomat*): add `translate_for_search: en` to the book in
+`library.yaml` and run `qv library translate`. Every page gets a machine translation into English, so English
+questions find the page. The translation is only for finding: the quote and the citation are always the original
+page. It uses the free Flash-Lite requests (one per page) and continues the next day if they run out.
+
 Books stay on your Mac; exports only carry short quotes.
 
 ## Not built yet
 
 - How far *Verified* can be trusted is still being measured on the evaluation set (a few days of free quota).
 - **Urdu books** whose PDF has no usable text (e.g. *Deeni Maloomat*) need OCR (text recognition) — not yet.
-- **German and Urdu books** are found mostly through names, places and numbers, because the questions are in
-  English — searching them in their own language is not built yet.

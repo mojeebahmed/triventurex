@@ -2,8 +2,8 @@
 # then run `qv library index`. A book is used for the editions listed under `editions`.
 #   publisher: domain of the publisher — a book is a frame authority when the edition's frame lists it
 #   tier:      P primary · S expert/secondary (default) · T summary
-#   language:  en, de, ur … — the index matches words, so a German or Urdu book is mostly found through
-#              names, places and numbers until cross-language search is added.
+#   language:  en, de, ur … — the index matches words; for a book in another language set
+#   translate_for_search: en and run `qv library translate` (a search-only translation; quotes stay original)
 books:
   - id: basics-religious-education
     file: BasicsReligiousEducation.pdf
@@ -25,6 +25,8 @@ books:
     source_url: https://new.alislam.org/library
     tier: S
     editions: [swab-quest, prophets-stories]
+    translate_for_search: en    # English questions find its pages; quotes stay German (Mojeeb, 2026-11-16:
+                                # likely a translation of the Urdu Deeni Maloomat, so Urdu OCR can wait)
 
   - id: deeni-maloomat-ur
     file: Deeni-Maloomat-Urdu.pdf

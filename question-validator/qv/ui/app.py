@@ -734,7 +734,16 @@ def page_advanced() -> None:
                 st.caption("No page matches.")
             for h in hits:
                 with st.expander(lib.title_for(h)):
-                    st.text(h.text)
+                    lang = lib.books[h.book_id].translate_for_search
+                    tr = lib.translation(h.book_id, h.page, lang) if lang else None
+                    if tr:
+                        c1, c2 = st.columns(2)
+                        c1.caption("Original (the evidence)")
+                        c1.text(h.text)
+                        c2.caption("Machine translation (only to find the page)")
+                        c2.text(tr)
+                    else:
+                        st.text(h.text)
 
     with tab_q:
         with st.expander("What the words mean"):

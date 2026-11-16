@@ -392,6 +392,34 @@ def library_status() -> None:
                    f"{r['state']}  [{r['editions']}]")
 
 
+@library_app.command("translate")
+def library_translate(book: Annotated[str | None, typer.Option(help="Only this book (default: every book with "
+                                                                   "translate_for_search)")] = None,
+                      pool: Annotated[str, typer.Option(help="Model pool from providers.yaml")] = "cheap",
+                      limit: Annotated[int | None, typer.Option(help="At most this many pages now")] = None) -> None:
+    """Machine-translate book pages for SEARCH (evidence stays the original page). Resumable; stops cleanly
+    when the free quota is used up — run it again later."""
+    from qv.library import Library
+    from qv.services.research import build_deps
+    from qv.services.translate import translate_book
+    settings = _settings()
+    lib = Library(settings.data_dir)
+    pools = build_deps(settings, _db()).named_pools
+    if pool not in pools:
+        raise typer.BadParameter(f"Unknown or unavailable pool {pool!r} (known: {', '.join(pools)})")
+    ids = [book] if book else [b.id for b in lib.cfg.books if b.translate_for_search]
+    for book_id in ids:
+        if book_id not in lib.books:
+            raise typer.BadParameter(f"Unknown book {book_id!r}")
+        typer.echo(f"{book_id}: translating for search …")
+        rep = translate_book(lib, pools[pool], book_id, limit=limit, echo=typer.echo)
+        typer.echo(f"{book_id}: {rep.translated} page(s) translated now, {rep.already} before, {rep.left} left"
+                   + (f", failed: {rep.failed}" if rep.failed else ""))
+        if rep.stopped:
+            typer.echo(f"Stopped: {rep.stopped}. Run `qv library translate` again later.")
+            break
+
+
 @library_app.command("suggestions")
 def library_suggestions() -> None:
     """PDFs the research found on the web but could not read — candidates for the library."""

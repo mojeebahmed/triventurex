@@ -39,7 +39,12 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   skipped). Day 1 (runs 4–6): 36 of 57 Flash requests were lost to overloaded 3.8/3.7 Flash (503s, 120 s
   timeouts) → pool now retries once, rests a failing model for 10 min, judge pool starts with 3.6. Known
   errors: 4/4 routed to review (#73 INCORRECT; #66/#86 UNVERIFIED with the right answer suggested; #70's
-  false premise flagged by S6 only). Seeder fixed: decades ("1880s") are no longer mutated (set regenerated;
+  false premise flagged by S6 only). **Flash-Lite as judge** (`--judge-pool cheap`, runs 7–14, 2026-11-16): 47 of 104
+  labelled before both Flash-Lite quotas ran out (run 14 stopped: `qv resume 14`, then football-quest seeded +
+  controls). Error recall 88 % (22/25 routed to review; seeded swab #2/#18 → needs_evidence), false INCORRECT 0 %
+  (0/21), 1 false verification: seeded animal-safari #37 (kangaroo hop 8 → 9 m) — 3 sources say 9 m, so the
+  mutation is probably not an error (seeder label issue). Many seeded errors come back UNVERIFIED rather than
+  INCORRECT (verdict agreement 60 %) but still reach review. Seeder fixed: decades ("1880s") are no longer mutated (set regenerated;
   40 of 50 mutations unchanged). Next: `qv resume 6`, then the remaining seeded + control datasets. Seen: #127 and #285 (same question) got different claim types from
   S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points of METHODOLOGY.md §13 were answered on 2026-11-16.
@@ -60,8 +65,8 @@ all other commands stay for power users and debugging.
    table, `qv validate`; measure on the eval set (incl. eval/known_errors.csv). Also give the web view a plain
    per-question summary (e.g. "Evidence: 540 ×2, 556 ×1, 558 ×2 — key 540"), clearer labels and a legend —
    Mojeeb found the current view hard to read.
-3. **PDF library** — built 2026-11-16 (v1, see *Implementation invariants (library)*); still open: OCR for the
-   Urdu book, cross-language search. Original plan: Ahmadiyya books as an authoritative local source in
+3. **PDF library** — built 2026-11-16 (v1, see *Implementation invariants (library)*); German book translated for
+   search (`translate_for_search`); Urdu OCR waits (the German book is probably a translation of it). Original plan: Ahmadiyya books as an authoritative local source in
    `data/library/` + a metadata file (title, author, language, edition, tier, frame authority). Page-by-page text
    (pypdf; OCR with Tesseract `urd` for scanned/Nastaliq Urdu), local full-text search (SQLite FTS5) and
    cross-language retrieval (Urdu books, English questions). Citations as book + page; quotes stay in the original
@@ -186,6 +191,10 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   core + 2 blind queries become documents `library://<book>/p<pdf page>` (source_kind `library`, title = book,
   printed page, PDF page) read by S3 in mode A. Tier = the book's tier and is **not** lowered by S3's page kind
   (the person chose the book); frame authority = the book's `publisher` is in the frame's authorities.
+- **Translations are search-only** (`qv library translate`, `qv/services/translate.py`, prompt `translate.v1` in
+  code): stored per page in the index's `translations` table keyed by the original text's hash (kept across
+  re-indexing, redone when the page text changes) and indexed as extra FTS rows (`kind` = language). Search returns
+  the original page; S3 quotes the original — a translation never becomes evidence (METHODOLOGY principle 5).
 - `pdfs_found_on_web` (views) lists web PDFs that research skipped (`fetches.status = not_text`, pdf) as
   candidate books (Advanced → Book library, `qv library suggestions`).
 

@@ -4,6 +4,9 @@
 - The PDF files live in `<data_dir>/library/` (git-ignored; books never leave the Mac).
 - `qv library index` reads every page's text (pypdf) into a local full-text index
   (`<data_dir>/library/index.sqlite`, SQLite FTS5). The index is a cache: delete it and index again.
+- A book in another language can get a machine translation per page (`qv library translate`), stored in the
+  index and searched together with the original. The translation only FINDS the page; S3 reads and quotes the
+  original page, so evidence is never a translation.
 - During research, the best-matching pages for a question become documents
   (`library://<book>/p<pdf page>`), read by S3 and grounded like any web page.
 
@@ -46,6 +49,9 @@ class Book(BaseModel):
     source_url: str = ""
     tier: str = Field("S", pattern="^[PST]$")
     editions: list[str] = Field(default_factory=list, description="game editions whose questions use this book")
+    translate_for_search: str | None = Field(
+        None, description="language code (e.g. en): a machine translation of every page is indexed too, so "
+                          "questions in that language find the page. Search only — evidence is the original text")
 
 
 class LibraryConfig(BaseModel):
@@ -153,6 +159,10 @@ class IndexReport:
     missing: list[str] = field(default_factory=list)
 
 
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def page_url(book_id: str, page: int) -> str:
     """library://<book>/p<page>"""
     return f"{SCHEME}{book_id}/p{page}"
@@ -181,13 +191,21 @@ class Library:
         if self._conn is None:
             self.dir.mkdir(parents=True, exist_ok=True)
             self._conn = sqlite3.connect(self.dir / "index.sqlite", check_same_thread=False)
+            cols = [r[1] for r in self._conn.execute("PRAGMA table_info(pages_fts)")]
+            if cols and "kind" not in cols:          # index from before translations: rebuild (it is a cache)
+                self._conn.executescript("DROP TABLE pages_fts; DROP TABLE IF EXISTS pages; "
+                                         "DROP TABLE IF EXISTS books;")
             self._conn.executescript("""
+                CREATE TABLE IF NOT EXISTS translations (book_id TEXT, page INTEGER, lang TEXT, source_sha TEXT,
+                                                         text TEXT, model TEXT, prompt_version TEXT,
+                                                         PRIMARY KEY (book_id, page, lang));
                 CREATE TABLE IF NOT EXISTS books (id TEXT PRIMARY KEY, sha256 TEXT, pages INTEGER,
                                                   status TEXT, quality REAL);
                 CREATE TABLE IF NOT EXISTS pages (book_id TEXT, page INTEGER, printed TEXT, text TEXT,
                                                   PRIMARY KEY (book_id, page));
                 CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
-                    text, book_id UNINDEXED, page UNINDEXED, tokenize = 'unicode61 remove_diacritics 2');
+                    text, book_id UNINDEXED, page UNINDEXED, kind UNINDEXED,
+                    tokenize = 'unicode61 remove_diacritics 2');
             """)
         return self._conn
 
@@ -228,7 +246,12 @@ class Library:
                 if not text:
                     continue
                 c.execute("INSERT INTO pages VALUES (?, ?, ?, ?)", (book_id, i, printed_page(text), text))
-                c.execute("INSERT INTO pages_fts (text, book_id, page) VALUES (?, ?, ?)", (text, book_id, i))
+                c.execute("INSERT INTO pages_fts (text, book_id, page, kind) VALUES (?, ?, ?, 'original')",
+                          (text, book_id, i))
+                for lang, tr in c.execute("SELECT lang, text FROM translations WHERE book_id = ? AND page = ? "
+                                          "AND source_sha = ?", (book_id, i, _sha(text))).fetchall():
+                    c.execute("INSERT INTO pages_fts (text, book_id, page, kind) VALUES (?, ?, ?, ?)",
+                              (tr, book_id, i, lang))
         c.execute("INSERT OR REPLACE INTO books VALUES (?, ?, ?, ?, ?)", (book_id, sha, len(pages), status, quality))
         c.commit()
 
@@ -242,7 +265,9 @@ class Library:
                         "pages": row[0] if row else None,
                         "state": ("searchable" if row and row[1] == "ok" else
                                   "needs OCR (no usable text in the PDF)" if row else "not indexed yet"),
-                        "text quality": round(row[2], 2) if row else None})
+                        "text quality": round(row[2], 2) if row else None,
+                        "translated for search": (f"{self.translated_count(b.id, b.translate_for_search)} pages "
+                                                  f"→ {b.translate_for_search}" if b.translate_for_search else "")})
         return out
 
     # -- search -------------------------------------------------------------------------
@@ -258,12 +283,48 @@ class Library:
             return []
         match = " OR ".join(f'"{w}"' for w in dict.fromkeys(words))
         marks = ",".join("?" * len(books))
-        rows = self.conn.execute(
-            f"SELECT f.book_id, f.page, bm25(pages_fts) AS s, p.printed, p.text FROM pages_fts f "
-            f"JOIN pages p ON p.book_id = f.book_id AND p.page = f.page "
-            f"WHERE pages_fts MATCH ? AND f.book_id IN ({marks}) ORDER BY s LIMIT ?",
-            (match, *books, limit)).fetchall()
+        ranked = self.conn.execute(
+            f"SELECT book_id, page, bm25(pages_fts) AS s FROM pages_fts "
+            f"WHERE pages_fts MATCH ? AND book_id IN ({marks}) ORDER BY s LIMIT ?",
+            (match, *books, limit * 4)).fetchall()
+        best: dict[tuple[str, int], float] = {}
+        for book_id, page, score in ranked:          # a page can match through its original and its translation
+            best.setdefault((book_id, int(page)), float(score))
+        rows = []
+        for (book_id, page), score in list(best.items())[:limit]:
+            printed, text = self.conn.execute("SELECT printed, text FROM pages WHERE book_id = ? AND page = ?",
+                                              (book_id, page)).fetchone()
+            rows.append((book_id, page, score, printed, text))
         return [PageHit(r[0], int(r[1]), r[3], -float(r[2]), r[4]) for r in rows]
+
+    # -- translations (search only) ----------------------------------------------------
+    def pages_to_translate(self, book_id: str, lang: str) -> list[tuple[int, str]]:
+        """(page, original text) of pages without a current translation into `lang`."""
+        rows = self.conn.execute("SELECT page, text FROM pages WHERE book_id = ? ORDER BY page", (book_id,)).fetchall()
+        done = {(p, sha) for p, sha in self.conn.execute(
+            "SELECT page, source_sha FROM translations WHERE book_id = ? AND lang = ?", (book_id, lang))}
+        return [(p, t) for p, t in rows if (p, _sha(t)) not in done]
+
+    def add_translation(self, book_id: str, page: int, lang: str, source_text: str, text: str, *, model: str = "",
+                        prompt_version: str = "") -> None:
+        """Store a page's translation and make it searchable (replaces an older one)."""
+        c = self.conn
+        c.execute("INSERT OR REPLACE INTO translations VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  (book_id, page, lang, _sha(source_text), text, model, prompt_version))
+        c.execute("DELETE FROM pages_fts WHERE book_id = ? AND page = ? AND kind = ?", (book_id, page, lang))
+        c.execute("INSERT INTO pages_fts (text, book_id, page, kind) VALUES (?, ?, ?, ?)", (text, book_id, page, lang))
+        c.commit()
+
+    def translation(self, book_id: str, page: int, lang: str) -> str | None:
+        """The stored translation of a page, if any."""
+        r = self.conn.execute("SELECT text FROM translations WHERE book_id = ? AND page = ? AND lang = ?",
+                              (book_id, page, lang)).fetchone()
+        return r[0] if r else None
+
+    def translated_count(self, book_id: str, lang: str) -> int:
+        """How many pages have a translation into `lang`."""
+        return self.conn.execute("SELECT COUNT(*) FROM translations WHERE book_id = ? AND lang = ?",
+                                 (book_id, lang)).fetchone()[0]
 
     def page(self, book_id: str, page: int) -> PageHit | None:
         """One page's stored text."""
