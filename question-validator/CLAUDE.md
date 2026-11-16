@@ -60,7 +60,8 @@ all other commands stay for power users and debugging.
    table, `qv validate`; measure on the eval set (incl. eval/known_errors.csv). Also give the web view a plain
    per-question summary (e.g. "Evidence: 540 ×2, 556 ×1, 558 ×2 — key 540"), clearer labels and a legend —
    Mojeeb found the current view hard to read.
-3. **PDF library** (after Mojeeb lists the books): Ahmadiyya books as an authoritative local source in
+3. **PDF library** — built 2026-11-16 (v1, see *Implementation invariants (library)*); still open: OCR for the
+   Urdu book, cross-language search. Original plan: Ahmadiyya books as an authoritative local source in
    `data/library/` + a metadata file (title, author, language, edition, tier, frame authority). Page-by-page text
    (pypdf; OCR with Tesseract `urd` for scanned/Nastaliq Urdu), local full-text search (SQLite FTS5) and
    cross-language retrieval (Urdu books, English questions). Citations as book + page; quotes stay in the original
@@ -175,6 +176,18 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   `qv auto run` at the chosen time; settings in `data/auto.json`, log `data/logs/daily.log`. `qv auto run` calls
   `qv next <file> --yes` per chosen file while `suggested_batch_size` > 0 and no batch is running. Only the person
   turns it on (page or `qv auto on`).
+
+## Implementation invariants (library)
+- `qv/library.py`: books in `config/library.yaml`, PDFs in `data/library/` (git-ignored; never shared), page text
+  (pypdf, cleaned: repeated runs collapsed, line-end hyphens joined) in `data/library/index.sqlite` (FTS5, a
+  rebuildable cache, outside the Alembic database). A book whose text quality is < 0.85 is `needs_ocr` and not
+  searchable (Mojeeb's Urdu *Deeni Maloomat* — its fonts extract as garbage).
+- Research (`_library_pages`): for editions listed on a book, the best `library_pages_per_question` pages for the
+  core + 2 blind queries become documents `library://<book>/p<pdf page>` (source_kind `library`, title = book,
+  printed page, PDF page) read by S3 in mode A. Tier = the book's tier and is **not** lowered by S3's page kind
+  (the person chose the book); frame authority = the book's `publisher` is in the frame's authorities.
+- `pdfs_found_on_web` (views) lists web PDFs that research skipped (`fetches.status = not_text`, pdf) as
+  candidate books (Advanced → Book library, `qv library suggestions`).
 
 ## Implementation invariants (local models)
 - **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model

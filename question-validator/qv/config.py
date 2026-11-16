@@ -270,6 +270,7 @@ class ResearchConfig(BaseModel):
     wikipedia_results: int = Field(1, ge=0)
     alislam_search_results: int = Field(2, ge=0)
     site_search_results: int = Field(2, ge=0, description="per sitemap-searched frame site (e.g. alhakam.org)")
+    library_pages_per_question: int = Field(2, ge=0, description="book pages (config/library.yaml) read per question")
     search_cache_days: int = Field(60, ge=0)
     s3_window_chars: int = Field(40000, ge=2000)
     s3_window_overlap_chars: int = Field(1000, ge=0)

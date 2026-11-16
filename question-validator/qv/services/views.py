@@ -291,3 +291,17 @@ def dataset_cards(db: Database, *, include_eval: bool = False) -> list[dict]:
                     "still to check": c["not_checked"] + c["failed"] + c["in_progress"],
                     "format errors": c["format_error"]})
     return out
+
+
+def pdfs_found_on_web(db: Database) -> list[dict]:
+    """PDFs that research found on the web but could not read (web PDFs are skipped): candidates for the
+    book library. Newest first."""
+    from urllib.parse import unquote, urlsplit
+
+    from qv.db.models import Fetch
+    from qv.providers.search.base import domain_of
+    with db.session() as s:
+        rows = list(s.scalars(select(Fetch).where(Fetch.status == "not_text", Fetch.error.like("%pdf%"))
+                              .order_by(Fetch.fetched_at.desc())))
+        return [{"file": unquote(urlsplit(f.url).path.rsplit("/", 1)[-1]) or f.url, "site": domain_of(f.url),
+                 "seen": f.fetched_at.strftime("%Y-%m-%d"), "url": f.url} for f in rows]

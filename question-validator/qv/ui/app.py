@@ -706,7 +706,35 @@ def page_advanced() -> None:
     st.caption("Detailed views for checking how the validator works. Everything here also exists as a `qv` "
                "command; the database is described in DATABASE.md.")
     dataset = st.session_state.get("dataset")
-    tab_q, tab_f, tab_u = st.tabs(["Checked questions (by batch)", "Files & format", "Usage & quota"])
+    tab_q, tab_f, tab_l, tab_u = st.tabs(["Checked questions (by batch)", "Files & format", "📚 Book library",
+                                          "Usage & quota"])
+
+    with tab_l:
+        from qv.library import Library
+        lib = Library(settings.data_dir)
+        st.markdown(f"Books used as a source (cited as book + page). The list is `config/library.yaml`; the PDF "
+                    f"files go into `{lib.dir}`. After adding a book, press **Read new books**.")
+        data_table(lib.status(), columns={"title": TEXT("Title", width="large")})
+        if st.button("Read new books"):
+            with st.spinner("Reading the books …"):
+                rep = lib.index_books()
+            st.success(f"Read: {', '.join(rep.indexed) or 'nothing new'}" +
+                       (f" · needs OCR: {', '.join(rep.needs_ocr)}" if rep.needs_ocr else "") +
+                       (f" · missing file: {', '.join(rep.missing)}" if rep.missing else ""))
+        found = views.pdfs_found_on_web(db)
+        with st.expander(f"Books the research found but could not read ({len(found)} PDFs) — candidates to add"):
+            st.caption("Web PDFs are skipped during research. If one is a trustworthy book, download it, put it in "
+                       "the books folder, add it to config/library.yaml and press Read new books.")
+            data_table(found, columns={"file": TEXT("File", width="medium"), "url": TEXT("Link", width="large")},
+                       max_rows=10)
+        query = st.text_input("Try a search", placeholder="e.g. first Jalsa Salana Qadian")
+        if query:
+            hits = lib.search(query, books=list(lib.books), limit=5)
+            if not hits:
+                st.caption("No page matches.")
+            for h in hits:
+                with st.expander(lib.title_for(h)):
+                    st.text(h.text)
 
     with tab_q:
         with st.expander("What the words mean"):

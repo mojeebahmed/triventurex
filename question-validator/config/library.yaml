@@ -1,0 +1,36 @@
+# Book library (qv/library.py). The PDF files go into <data_dir>/library/ (git-ignored, never shared);
+# then run `qv library index`. A book is used for the editions listed under `editions`.
+#   publisher: domain of the publisher — a book is a frame authority when the edition's frame lists it
+#   tier:      P primary · S expert/secondary (default) · T summary
+#   language:  en, de, ur … — the index matches words, so a German or Urdu book is mostly found through
+#              names, places and numbers until cross-language search is added.
+books:
+  - id: basics-religious-education
+    file: BasicsReligiousEducation.pdf
+    title: Basics of Religious Education
+    author: Sheikh Abdul Hadi
+    edition_of_book: 5th edition, revised (2008)
+    language: en
+    publisher: alislam.org
+    source_url: https://new.alislam.org/library
+    tier: S
+    editions: [swab-quest, prophets-stories]
+
+  - id: dieni-malumat-de
+    file: Dieni_Malumat_Deutsch-2.pdf
+    title: Dieni Ma'loomat (German)
+    author: Saadat Ahmed
+    language: de
+    publisher: alislam.org
+    source_url: https://new.alislam.org/library
+    tier: S
+    editions: [swab-quest, prophets-stories]
+
+  - id: deeni-maloomat-ur
+    file: Deeni-Maloomat-Urdu.pdf
+    title: Deeni Maloomat (Urdu)
+    language: ur
+    publisher: alislam.org
+    source_url: https://new.alislam.org/library
+    tier: S
+    editions: [swab-quest, prophets-stories]

@@ -132,7 +132,23 @@ views (every source and quote of a question, files and format problems, batches,
 stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a verdict is reached:
 [METHODOLOGY.md](METHODOLOGY.md).
 
+## Book library
+
+Books are a source like websites, cited as **book + page** (e.g. *Basics of Religious Education, p. 118*). They
+are used for the editions listed for each book — today Swab Quest and Prophets' Stories — and count as an official
+Ahmadiyya source when their publisher is (alislam.org).
+
+To add a book: put the PDF in `question-validator/data/library/`, add a few lines for it to
+`config/library.yaml` (copy an existing entry), then press **Read new books** (Advanced → 📚 Book library) or run
+`qv library index`. The same tab lists the books, lets you **try a search**, and shows **books the research found
+but could not read** — PDFs met on the web (e.g. *Life of the Promised Messiah*, *Fazl-e-Umar*), candidates to
+download and add. Terminal: `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
+
+Books stay on your Mac; exports only carry short quotes.
+
 ## Not built yet
 
 - How far *Verified* can be trusted is still being measured on the evaluation set (a few days of free quota).
-- The **book library** (Ahmadiyya books as PDFs, searched page by page) — next.
+- **Urdu books** whose PDF has no usable text (e.g. *Deeni Maloomat*) need OCR (text recognition) — not yet.
+- **German and Urdu books** are found mostly through names, places and numbers, because the questions are in
+  English — searching them in their own language is not built yet.

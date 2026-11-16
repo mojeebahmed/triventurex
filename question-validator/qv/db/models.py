@@ -266,7 +266,7 @@ class Document(Base):
     final_url: Mapped[str] = mapped_column(Text)
     domain: Mapped[str] = mapped_column(String(255), index=True)
     title: Mapped[str] = mapped_column(Text, default="")
-    source_kind: Mapped[str] = mapped_column(String(20))  # web | wikipedia | quran
+    source_kind: Mapped[str] = mapped_column(String(20))  # web | wikipedia | quran | library
     ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
     http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

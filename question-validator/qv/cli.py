@@ -18,6 +18,8 @@ app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Question Validator — check, import and export Triventurex question CSVs.")
 eval_app = typer.Typer(no_args_is_help=True, help="Evaluation set tools.")
 app.add_typer(eval_app, name="eval")
+library_app = typer.Typer(no_args_is_help=True, help="Book library (config/library.yaml, PDFs in data/library/).")
+app.add_typer(library_app, name="library")
 auto_app = typer.Typer(no_args_is_help=True, help="Continue automatically every day (macOS).")
 app.add_typer(auto_app, name="auto")
 
@@ -362,6 +364,56 @@ def _print_status(db: Database, dataset: str) -> None:
         typer.echo(f"Next: `qv next {dataset}` ({left} still to check)")
     if review:
         typer.echo(f"To look at: {review} question(s) on the Review page (`qv ui`)")
+
+
+@library_app.command("index")
+def library_index() -> None:
+    """Read the text of every listed book into the local search index (only changed files are read again)."""
+    from qv.library import Library
+    lib = Library(_settings().data_dir)
+    typer.echo(f"Books folder: {lib.dir}")
+    rep = lib.index_books()
+    for book, pages in rep.indexed.items():
+        typer.echo(f"  indexed   {book}: {pages} pages")
+    for book in rep.unchanged:
+        typer.echo(f"  unchanged {book}")
+    for book, q in rep.needs_ocr.items():
+        typer.echo(f"  needs OCR {book}: the PDF's text is not usable (text quality {q:.2f}) — skipped")
+    for book in rep.missing:
+        typer.echo(f"  missing   {book}: put its PDF in {lib.dir}")
+
+
+@library_app.command("status")
+def library_status() -> None:
+    """Every listed book: file found, pages, searchable or not."""
+    from qv.library import Library
+    for r in Library(_settings().data_dir).status():
+        typer.echo(f"{r['book']:<28} {r['language']:<3} {r['file']:<8} {str(r['pages'] or '-'):>5} pages  "
+                   f"{r['state']}  [{r['editions']}]")
+
+
+@library_app.command("suggestions")
+def library_suggestions() -> None:
+    """PDFs the research found on the web but could not read — candidates for the library."""
+    from qv.services import views
+    rows = views.pdfs_found_on_web(_db())
+    for r in rows:
+        typer.echo(f"{r['site']:<28} {r['file'][:60]:<60} {r['url']}")
+    typer.echo(f"{len(rows)} PDF(s)")
+
+
+@library_app.command("search")
+def library_search(query: str,
+                   edition: Annotated[str | None, typer.Option(help="Only books of this edition")] = None,
+                   limit: int = 5) -> None:
+    """Try the library search: best pages for a query."""
+    from qv.config import load_profile
+    from qv.library import Library
+    lib = Library(_settings().data_dir)
+    books = lib.books_for(load_profile(edition)) if edition else list(lib.books)
+    for h in lib.search(query, books=books, limit=limit):
+        typer.echo(f"{lib.title_for(h)}  (score {h.score:.1f})")
+        typer.echo("    " + " ".join(h.text.split())[:240])
 
 
 @auto_app.command("on")

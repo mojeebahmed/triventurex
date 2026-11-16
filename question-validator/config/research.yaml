@@ -5,6 +5,7 @@ max_documents_per_question: 5        # web + Wikipedia documents read by S3 (mod
 max_note_documents_per_question: 2   # documents read for note claims (mode B)
 wikipedia_results: 1                 # free extra source per question
 alislam_search_results: 2            # free; only for profiles whose frame lists alislam.org
+library_pages_per_question: 2        # book pages from the local library (config/library.yaml), on top of the web documents
 site_search_results: 2               # free; per sitemap site (providers.yaml search.sitemaps) the frame lists
 search_cache_days: 60
 s3_window_chars: 40000               # long documents are read in windows of this size …

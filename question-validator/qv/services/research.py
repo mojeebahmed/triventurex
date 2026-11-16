@@ -41,6 +41,7 @@ from qv.providers.search.free import AlislamSearch, SitemapSearch, WikipediaSear
 from qv.providers.search.router import Pool, SearchRouter
 from qv.providers.search.web import ExaSearch, ParallelMCPSearch, TavilySearch
 from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
+from qv.library import Library
 from qv.sources import Registry, effective_tier, is_frame_authority, load_registry
 from qv.services.datasets import get_version
 from qv.services.judgement import judge_question
@@ -65,6 +66,7 @@ class ResearchDeps:
     wikipedia: SearchProvider | None = None
     alislam: SearchProvider | None = None
     site_searches: dict[str, SearchProvider] = field(default_factory=dict)  # frame domain → sitemap search
+    library: Library | None = None                                           # local books (config/library.yaml)
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
     audit_percent: float = 3.0
     named_pools: dict[str, ModelPool] = field(default_factory=dict)  # every llm.pools entry, for --judge-pool
@@ -159,6 +161,7 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
         polite_rpm={"wikipedia": pcfg.search.wikipedia.rpm, "alislam": pcfg.search.alislam.rpm,
                     **{name: site.rpm for name, site in pcfg.search.sitemaps.items()}},
         audit_percent=rcfg.audit_sample_percent,
+        library=Library(settings.data_dir),
     )
 
 
@@ -365,6 +368,8 @@ def research_question(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
     for mode, budget in (("A", deps.cfg.max_documents_per_question), ("B", deps.cfg.max_note_documents_per_question)):
         chosen += _choose_and_fetch(deps, [c for c in candidates.values() if c.mode == mode], budget, ctx, stats)
     chosen += [(doc_id, mode, [fb]) for doc_id, mode, fb in direct_docs]
+    chosen += _library_pages(deps, profile, [core] + [x.q for x in sorted(s1a.queries, key=lambda x: PURPOSE_PRIORITY[
+        x.purpose])[:2]], stats)
 
     step("extraction")
     note_claims = [(n.id, n.text) for n in s1b.note_claims if n.kind != "explanation"]
@@ -375,6 +380,35 @@ def research_question(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
 
     stats["models"] = sorted({s1a_run.model, s1b_run.model} - {""})
     return dict(stats)
+
+
+def _library_pages(deps: ResearchDeps, profile: Profile, queries: list[str],
+                   stats: dict) -> list[tuple[int, str, list[dict]]]:
+    """The best book pages for the (answer-blind) queries, stored as documents (mode A)."""
+    lib, n = deps.library, deps.cfg.library_pages_per_question
+    books = lib.books_for(profile) if lib and n else []
+    if not books:
+        return []
+    best: dict[tuple[str, int], tuple[float, object, str]] = {}
+    for query in dict.fromkeys(queries):
+        try:
+            hits = lib.search(query, books=books, limit=n)
+        except Exception as exc:  # noqa: BLE001 — a broken index must not stop research
+            stats.setdefault("errors", []).append(f"library: {exc}"[:200])
+            return []
+        for h in hits:
+            key = (h.book_id, h.page)
+            if key not in best or h.score > best[key][0]:
+                best[key] = (h.score, h, query)
+    out = []
+    for _, h, query in sorted(best.values(), key=lambda x: -x[0])[:n]:
+        doc_id = deps.fetcher.store_text(url=h.url, final_url=h.url, title=lib.title_for(h), text=h.text,
+                                         source_kind="library", extract_method="pypdf", http_status=None,
+                                         ref=f"{h.book_id}:{h.page}")
+        stats["library_pages"] += 1
+        out.append((doc_id, "A", [{"via": "library", "query": query, "book": h.book_id, "page": h.page,
+                                   "printed_page": h.printed}]))
+    return out
 
 
 def _frame_name(profile: Profile) -> str | None:
@@ -547,11 +581,14 @@ def _extract_document(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
         if qd is not None and qd.status in ("extracted", "excluded"):
             stats["documents_already_extracted"] += 1
             return
-        reg_tier = "P" if doc.source_kind == "quran" else deps.registry.tier(doc.final_url)
+        book_tier = deps.library.tier(doc.final_url) if deps.library and doc.source_kind == "library" else None
+        reg_tier = "P" if doc.source_kind == "quran" else book_tier or deps.registry.tier(doc.final_url)
+        frame = (deps.library.is_frame_authority(doc.final_url, profile) if book_tier
+                 else is_frame_authority(doc.final_url, profile))
         if qd is None:
             qd = QuestionDocument(run_id=run_id, question_id=question_id, document_id=doc_id, mode=mode,
                                   found_by_json=found_by, registry_tier=reg_tier,
-                                  frame_authority=is_frame_authority(doc.final_url, profile), status="pending")
+                                  frame_authority=frame, status="pending")
             s.add(qd)
             s.flush()
         qd_id = qd.id
@@ -599,7 +636,8 @@ def _extract_document(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
         stats["s3_failed"] += 1
         return
 
-    eff = effective_tier(reg_tier, page.page_kind if page else None)
+    # A library book was chosen by the person (config/library.yaml): its tier is not lowered by page kind.
+    eff = reg_tier if book_tier else effective_tier(reg_tier, page.page_kind if page else None)
     excluded = eff == "X" or (page is not None and not page.about_right_subject)
     # Deduplicate identical spans found in overlapping windows.
     unique: dict[tuple[int, int, str], tuple[Any, Any, int]] = {}

@@ -107,6 +107,9 @@ class FakeLLM:
         elif "news.org" in user:
             out = {"page": page("news", right=False), "no_relevant_content_reason": None,
                    "passages": [passage("Kilimanjaro is a famous brand of coffee beans sold worldwide.")]}
+        elif "library://" in user:
+            out = {"page": page("educational"), "no_relevant_content_reason": None, "passages": [
+                passage("Kilimanjaro stands in Tanzania.", answer="Tanzania", option="B")]}
         elif "quran/app" in user:
             out = {"page": page("primary_text"), "no_relevant_content_reason": None, "passages": [
                 passage("And He taught Adam all the names", target="N1", stance="supports")]}
@@ -285,3 +288,39 @@ def test_views_and_cli_read_the_results(db: Database, dataset: None, monkeypatch
     assert GOOD_QUOTE in res.output and "need: Which country contains the mountain?" in res.output
     assert "gemini-3.5-flash-lite" in runner.invoke(app, ["quota"]).output
     assert f"run {run_id}" in runner.invoke(app, ["runs"]).output
+
+
+@respx.mock
+def test_library_pages_are_read_as_frame_authority_evidence(db: Database, dataset: None, tmp_path: Path) -> None:
+    from qv.library import Book, Library, LibraryConfig
+    mock_web()
+    lib = Library(tmp_path, LibraryConfig(books=[Book(id="basics", file="b.pdf", title="Basics", publisher="alislam.org",
+                                                      editions=["prophets-stories"])]))
+    lib.index_pages("basics", ["12\nNothing here.", "13\nKilimanjaro stands in Tanzania."])
+    deps = build(db, FakeLLM())
+    deps.library = lib
+    execute_run(deps, start_run(db, "mini", ["135"]))
+    with db.session() as s:
+        doc = s.scalar(select(Document).where(Document.source_kind == "library"))
+        assert doc.final_url == "library://basics/p2" and doc.title == "Basics, p. 13 [PDF page 2]"
+        qd = s.scalar(select(QuestionDocument).where(QuestionDocument.document_id == doc.id))
+        assert qd.found_by_json[0]["via"] == "library"
+        assert (qd.registry_tier, qd.effective_tier, qd.frame_authority) == ("S", "S", True)  # not capped to T
+        assert s.scalar(select(Passage).where(Passage.question_document_id == qd.id)).quote == \
+            "Kilimanjaro stands in Tanzania."
+
+
+@respx.mock
+def test_library_is_not_used_for_other_editions(db: Database, tmp_path: Path) -> None:
+    from qv.library import Book, Library, LibraryConfig
+    mock_web()
+    with db.session() as s:
+        import_dataset(s, CSV, dataset_name="wt", source_filename="wt.csv", profile_name="world-tour")
+    lib = Library(tmp_path, LibraryConfig(books=[Book(id="basics", file="b.pdf", title="Basics",
+                                                      editions=["prophets-stories"])]))
+    lib.index_pages("basics", ["Kilimanjaro stands in Tanzania."])
+    deps = build(db, FakeLLM())
+    deps.library = lib
+    execute_run(deps, start_run(db, "wt", ["135"]))
+    with db.session() as s:
+        assert s.scalar(select(Document).where(Document.source_kind == "library")) is None
