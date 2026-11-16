@@ -9,3 +9,4 @@ search_cache_days: 60
 s3_window_chars: 40000               # long documents are read in windows of this size …
 s3_window_overlap_chars: 1000
 s3_max_windows: 2                    # … at most this many per document
+audit_sample_percent: 3              # share of auto_ok questions routed to review anyway (METHODOLOGY §9.3)

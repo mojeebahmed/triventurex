@@ -260,6 +260,7 @@ class ResearchConfig(BaseModel):
     s3_window_chars: int = Field(40000, ge=2000)
     s3_window_overlap_chars: int = Field(1000, ge=0)
     s3_max_windows: int = Field(2, ge=1)
+    audit_sample_percent: float = Field(3.0, ge=0, le=100, description="auto_ok questions sent to review anyway")
 
 
 def load_providers_config(path: Path = CONFIG_DIR / "providers.yaml") -> ProvidersConfig:

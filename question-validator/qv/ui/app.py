@@ -17,7 +17,39 @@ from qv.services import views
 
 st.set_page_config(page_title="Question Validator", layout="wide")
 
-TIER_LABEL = {"P": "P · primary", "S": "S · secondary", "T": "T · tertiary", "X": "X · excluded"}
+TIER_LABEL = {"P": "P · primary source", "S": "S · expert source", "T": "T · encyclopaedia / summary",
+              "X": "X · not evidence"}
+STATUS_TEXT = {"extracted": "read", "excluded": "not used", "failed": "could not be read", "pending": "not read yet"}
+VERDICT_TEXT = {
+    "VERIFIED": "strong, independent evidence supports the expected answer, and reading the evidence without the "
+                "key gives the same answer.",
+    "INCORRECT": "strong evidence contradicts the expected answer or something the question takes for granted.",
+    "OUTDATED": "the answer was true once, but the evidence shows it has changed.",
+    "CONTESTED": "good sources disagree; no side clearly outweighs the other.",
+    "AMBIGUOUS": "as worded, more than one answer can be defended (or it depends on a definition the question "
+                 "does not give).",
+    "UNVERIFIED": "not enough evidence to confirm the answer — this does not mean it is wrong.",
+}
+LEGEND = """
+**Verdicts** — VERIFIED · INCORRECT · OUTDATED · CONTESTED · AMBIGUOUS · UNVERIFIED (not enough evidence; not
+the same as wrong). Only VERIFIED needs no look.
+
+**Evidence for the answer** — STRONG: meets the bar for this kind of fact (e.g. the verse itself for a Qur'an
+question; the official record or two independent expert sources for a record) · MODERATE: some independent
+support, below the bar · WEAK: one source · NONE.
+
+**Answer found without the key** — the evidence was read by a step that was *not told* the expected answer.
+"same" is the strongest sign the answer is right; "different" is the strongest sign of an error.
+
+**Sources** — P primary (the text itself, the official record, the author's own book) · S expert (scholarly,
+reputable news, official histories) · T encyclopaedia / summary · X not evidence (quiz sites, forums). A
+*frame authority* is an official source of the edition's tradition (e.g. alislam.org).
+
+**Origins (C1, C2 …)** — passages that trace back to the same source count once, however many sites repeat it.
+
+**Next step** — auto ok: nothing to do · audit sample: a random check of auto-ok questions · needs review: look at
+it · needs specialist: a religious question for the edition's reviewer · needs evidence: try more sources.
+"""
 
 
 @st.cache_resource
@@ -44,7 +76,7 @@ def highlight(text: str, passages: list[dict], context: int = 400) -> str:
 
 
 db = get_db()
-page = st.radio("View", ["Datasets", "Research", "Usage"], horizontal=True, label_visibility="collapsed")
+page = st.radio("View", ["Questions", "Datasets", "Usage"], horizontal=True, label_visibility="collapsed")
 
 if page == "Datasets":
     st.title("Datasets")
@@ -52,7 +84,7 @@ if page == "Datasets":
     if not overview:
         st.info("Nothing imported yet: `qv import <file.csv> --dataset <name>`")
         st.stop()
-    st.dataframe(table(overview, ("version_id",)), use_container_width=True, hide_index=True)
+    st.dataframe(table(overview, ("version_id",)), width="stretch", hide_index=True)
     labels = {f"{o['dataset']} v{o['version']}": o["version_id"] for o in overview}
     choice = st.selectbox("Version", list(labels))
     vid = labels[choice]
@@ -65,102 +97,131 @@ if page == "Datasets":
             rows = [r for r in rows if t in r["question"].lower() or t in r["key"].lower()
                     or t in r["category"].lower()]
         st.caption(f"{len(rows)} questions")
-        st.dataframe(table(rows), use_container_width=True, hide_index=True)
+        st.dataframe(table(rows), width="stretch", hide_index=True)
     with tab_i:
         issues = views.version_issues(db, vid)
         sev = st.multiselect("Severity", ["error", "warning", "info"], default=["error", "warning"])
-        st.dataframe(table([i for i in issues if i["severity"] in sev]), use_container_width=True, hide_index=True)
+        st.dataframe(table([i for i in issues if i["severity"] in sev]), width="stretch", hide_index=True)
 
-elif page == "Research":
-    st.title("Research runs")
+elif page == "Questions":
+    st.title("Questions")
     runs = views.runs_overview(db)
     if not runs:
-        st.info("No research yet: `qv research <dataset> --ids 1,2,3`")
+        st.info("Nothing checked yet: `qv validate <dataset> --ids 1,2,3` (or `qv research`, then `qv judge <run>`)")
         st.stop()
-    st.dataframe(table(runs), use_container_width=True, hide_index=True)
-    run_id = st.selectbox("Run", [r["run"] for r in runs])
+    with st.expander("What the words on this page mean"):
+        st.markdown(LEGEND)
+    with st.expander("Runs"):
+        st.dataframe(table(runs), width="stretch", hide_index=True)
+    run_id = st.selectbox("Run", sorted((r["run"] for r in runs), reverse=True))
     qs = views.run_questions(db, run_id)
-    st.dataframe(table(qs), use_container_width=True, hide_index=True)
     if not qs:
         st.stop()
-    labels = {f"#{q['id']} — {q['question'][:90]}": q["_qid"] for q in qs}
-    detail = views.question_detail(db, run_id, labels[st.selectbox("Question", list(labels))])
+    st.dataframe(table(qs), width="stretch", hide_index=True)
+    labels = {f"#{q['id']} — {q['verdict']} — {q['question'][:90]}": q["_qid"] for q in qs}
+    qid = labels[st.selectbox("Question", list(labels))]
+    detail = views.question_detail(db, run_id, qid)
     q = detail["question"]
 
     st.subheader(f"#{q['id']} {q['question']}")
-    cols = st.columns(3)
-    cols[0].markdown(f"**Key:** {q['key']}")
-    cols[1].markdown(f"**Category:** {q['category']}")
-    cols[2].markdown(f"**Status:** {detail['status']}")
     if q["type"] == "multi":
         st.markdown("  ·  ".join(f"**{'ABCD'[i]}.** {o}" for i, o in enumerate(q["options"]) if o))
-    if q["note"]:
-        st.markdown(f"**Note:** {q['note']}")
+    st.markdown(f"**Expected answer:** {q['key']}" + (f"  ·  **Note:** {q['note']}" if q["note"] else ""))
+    st.caption(q["category"])
 
-    s1a = detail["stages"].get("s1a")
-    s1b = detail["stages"].get("s1b")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("#### S1a · answer-blind decomposition")
-        if s1a:
-            o = s1a["output"]
-            st.markdown(f"*{s1a['model']}* — **need:** {o['information_need']}")
-            st.markdown(f"claim type `{o['claim_type']}` · frame `{o['frame_class']}` · answer `{o['answer_type']}`")
-            for p in o["presuppositions"]:
-                st.markdown(f"- **{p['id']}** {p['text']}{'' if p['material'] else ' *(not material)*'}")
-            st.markdown("**Blind queries**")
-            for x in o["queries"]:
-                st.markdown(f"- `{x['purpose']}` {x['q']}")
-            for c in s1a["checks"]:
-                st.warning(c)
-    with c2:
-        st.markdown("#### S1b · claims (sees the key)")
-        if s1b:
-            o = s1b["output"]
-            st.markdown(f"*{s1b['model']}* — **key claim:** {o['key_claim']}")
-            for k in o["key_components"]:
-                st.markdown(f"- **{k['id']}** {k['text']}")
-            if o["answer_equivalents"]:
-                st.markdown("**Equivalents:** " + ", ".join(o["answer_equivalents"]))
-            for n in o["note_claims"]:
-                st.markdown(f"- **{n['id']}** `{n['kind']}` {n['text']}")
-            st.markdown("**Challenge queries**")
-            for c in o["challenge_queries"]:
-                st.markdown(f"- `{c['angle']}` {c['q']}")
+    # --- the summary: verdict first, in plain words
+    v = views.question_verdict(db, run_id, q["id"])
+    if v is None:
+        st.info(f"Not judged yet — run `qv judge {run_id}` to get a verdict.")
+    else:
+        box = {"VERIFIED": st.success, "INCORRECT": st.error, "OUTDATED": st.error}.get(v["verdict"], st.warning)
+        box(f"**{v['verdict']}** — {VERDICT_TEXT[v['verdict']]}"
+            + (f" Problem is in the **{v['defect_location'].replace('_', ' ')}**." if v["defect_location"] else ""))
+        c = st.columns(4)
+        c[0].metric("Evidence for the answer", v["evidence_strength"])
+        c[1].metric("Answer found without the key",
+                    {True: "same", False: "different", None: "—"}[v["blind_matches_key"]])
+        c[2].metric("Question quality", v["question_quality"] or "—")
+        c[3].metric("Next step", v["review_status"].replace("_", " "))
+        st.markdown(f"**{v['evidence_summary']}**")
+        if v["blind_status"]:
+            st.markdown(f"Read **without** knowing the expected answer, the evidence gives: "
+                        f"**{v['blind_answer'] or v['blind_status'].replace('_', ' ')}**")
+        if v["suggested_answer"]:
+            st.markdown(f"Suggested answer: **{v['suggested_answer']}**")
+        if v["suggested_question"]:
+            st.markdown(f"Suggested question: **{v['suggested_question']}**")
+        if v["note_status"]:
+            st.markdown(f"Note: **{v['note_status'].replace('_', ' ')}**")
+        st.markdown("**Why**\n" + "\n".join(f"- {r}" for r in v["reasons_json"]))
+        issues = (v["quality_json"] or {}).get("issues", [])
+        if issues:
+            with st.expander(f"Quality issues ({len(issues)})"):
+                for i in issues:
+                    st.markdown(f"- **{i['type'].replace('_', ' ')}** ({i['severity']}"
+                                + (", a guess to check" if i["is_hypothesis"] else "") + f"): {i['detail']}")
+                rw = (v["quality_json"] or {}).get("suggested_rewrite")
+                if rw:
+                    st.markdown(f"Suggested rewrite: *{rw['question']}* → {rw['answer']}")
 
-    st.markdown("#### Documents and grounded passages")
-    st.caption("Every passage below was found verbatim in the stored copy of the page (grounding check). "
-               "Mode A = read without the key; mode B = read for the note's claims.")
+    # --- evidence
+    st.markdown("#### Evidence")
+    st.caption("Every passage was found word for word in the stored copy of the page. P-numbers match the "
+               "reasons above; passages with the same origin letter (C1, C2 …) count as one source.")
     for d in detail["documents"]:
         badge = TIER_LABEL.get(d["effective_tier"] or d["registry_tier"], "?")
         title = d["title"] or d["url"]
-        header = (f"[{d['mode']}] {title} — {badge}{' · frame authority' if d['frame_authority'] else ''} · "
-                  f"{d['page_kind'] or '-'} · {d['grounded']} passages")
+        purpose = "for the question" if d["mode"] == "A" else "for the note"
+        header = (f"{title} — {badge}{' · frame authority' if d['frame_authority'] else ''} · "
+                  f"{purpose} · {d['grounded']} passage{'s' if d['grounded'] != 1 else ''}")
         with st.expander(header, expanded=d["grounded"] > 0):
-            st.markdown(f"[{d['url']}]({d['url']}) · fetched {d['fetched']} · status `{d['status']}`"
-                        + (f" · {d['dropped']} quote(s) dropped by the grounding check" if d["dropped"] else ""))
+            st.markdown(f"[{d['url']}]({d['url']}) · read {d['fetched']} · {d['page_kind'] or '-'} · "
+                        f"{STATUS_TEXT.get(d['status'], d['status'])}"
+                        + (f" · {d['dropped']} quote(s) rejected (not found word for word)" if d["dropped"] else ""))
             if d["concerns"]:
                 st.warning("Concerns: " + "; ".join(d["concerns"]))
             if d["about_right_subject"] is False:
-                st.error("The reader judged this page to be about a different subject; its passages are not used.")
-            via = sorted({f"{f.get('via')}: {f.get('query') or f.get('ref')}" for f in d["found_by"]})
-            st.caption("Found by: " + " | ".join(via))
+                st.error("This page is about a different subject; its passages are not used.")
             for p in d["passages"]:
-                meta = [f"target **{p['target']}**"]
+                meta = [f"about **{p['target']}**"]
                 if p["asserted_answer"]:
                     meta.append(f"says the answer is **{p['asserted_answer']}**"
                                 + (f" (option {p['matches_option']})" if p["matches_option"] else ""))
                 if p["stance"]:
-                    meta.append(f"stance **{p['stance']}**")
-                for k, label in (("qualifiers", "qualifiers"), ("as_of", "as of"), ("origin", "origin")):
+                    meta.append(f"{p['stance']}")
+                for k, label in (("qualifiers", "only if"), ("as_of", "as of"), ("origin", "credits")):
                     if p[k]:
                         meta.append(f"{label}: {p[k]}")
-                if p["primary"]:
-                    meta.append("primary source")
                 st.markdown(f"> {p['quote']}")
-                st.caption(f"P{p['pid']} · " + " · ".join(meta))
+                st.caption(f"{p['short_id']}" + (f" · origin {p['cluster']}" if p["cluster"] else "")
+                           + " · " + " · ".join(meta))
             if d["passages"] and st.checkbox("Show passages in context", key=f"ctx{d['doc_id']}{d['mode']}"):
                 st.markdown(highlight(d["text"], d["passages"]), unsafe_allow_html=True)
+            via = sorted({f"{f.get('via')}: {f.get('query') or f.get('ref')}" for f in d["found_by"]})
+            st.caption("Found by: " + " | ".join(via))
+
+    # --- how the research was planned (details)
+    s1a = detail["stages"].get("s1a")
+    s1b = detail["stages"].get("s1b")
+    with st.expander("How the research was planned (S1a / S1b)"):
+        if s1a:
+            o = s1a["output"]
+            st.markdown(f"**Without the key** (*{s1a['model']}*): what needs to be known — {o['information_need']}")
+            st.markdown(f"kind of fact `{o['claim_type']}` · frame `{o['frame_class']}`")
+            for pr in o["presuppositions"]:
+                st.markdown(f"- **{pr['id']}** (taken for granted) {pr['text']}"
+                            + ("" if pr["material"] else " *(not essential)*"))
+            st.markdown("Searches: " + " · ".join(f"`{x['q']}`" for x in o["queries"]))
+            for c in s1a["checks"]:
+                st.warning(c)
+        if s1b:
+            o = s1b["output"]
+            st.markdown(f"**With the key** (*{s1b['model']}*): the claim being checked — {o['key_claim']}")
+            if o["answer_equivalents"]:
+                st.markdown("Also accepted: " + ", ".join(o["answer_equivalents"]))
+            for n in o["note_claims"]:
+                st.markdown(f"- **{n['id']}** (note) {n['text']}")
+            st.markdown("Searches against the key: " + " · ".join(f"`{c['q']}`" for c in o["challenge_queries"]))
     with st.expander("Research statistics"):
         st.json(detail["stats"])
 
@@ -168,4 +229,4 @@ else:
     st.title("API usage")
     st.caption("Free tiers only: cost is always $0. Credits = requests (Gemini, Parallel), "
                "credits (Tavily) or USD of free credit (Exa).")
-    st.dataframe(table(views.usage_summary(db)), use_container_width=True, hide_index=True)
+    st.dataframe(table(views.usage_summary(db)), width="stretch", hide_index=True)

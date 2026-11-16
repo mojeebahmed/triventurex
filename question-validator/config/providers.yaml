@@ -35,6 +35,9 @@ stage_pools:                 # which pool each model stage uses
   s1a: cheap
   s1b: cheap
   s3: cheap                  # cheap_then_local = keep going on gemma3:12b when Flash-Lite's free quota is used up
+  s4: judge                  # blind answer — the strongest signal, so the stronger (Flash) pool
+  s5: judge                  # verification
+  s6: cheap                  # quality (no evidence)
 
 search:
   order: [parallel, tavily, exa]   # tried in this order until one has results; each stops at its free limit

@@ -18,11 +18,19 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   read-only web view (`qv ui`). Merged to `main` and pushed.
 - Pilot (runs 2–3, 10 Swab Quest questions: 2,5,34,52,70,127,247,285,391,418): 80 grounded passages, 2.4 % quotes
   dropped (target < 2 %), 90 % of questions with a passage on the need (target ≥ 85 %), $0. #70 found no evidence.
-- Local models (2026-11-15, branch `feat/qv-ollama-provider`): `OllamaProvider`, cross-provider pools
+- Local models (2026-11-15, merged): `OllamaProvider`, cross-provider pools
   (`provider/model` entries). S3 trial on 3 pilot documents: gemma3:12b grounded 13/15 quotes, qwen3:8b 19/24,
   qwen3:14b 4/7 (Gemini ≈ 98 %), but 1–4 min per document vs ≈ 1.5 s on Gemini → local = $0 overflow after the
   free Gemini quota (`cheap_then_local` pool), not first. S3 default stays `cheap`. Relevance of local passages
   not yet judged; S1a/S1b/S6 locally not tried yet.
+- Phase 3 built (2026-11-16, branch `feat/qv-phase3-judgement`): S4/S5/S6, S8 rules, `validations` table,
+  `qv validate | judge | verdicts | verdict | eval score`, web view with a plain summary + legend. Pilot (run 3,
+  judged): 4 VERIFIED (#5, #34, #52, #418), #2 needs_review (verifier: PARTIALLY_CORRECT), #127/#247
+  needs_specialist (scripture/doctrine without the verse or a frame authority), #70/#391/#285 needs_evidence.
+  S5b and S7 stay in phase 6. **Not done yet: the exit measurement on the eval set** (import eval/known_errors.csv
+  and eval/seeded.csv as datasets, `qv validate` them, `qv eval score <run>`) — needs ~2 Flash requests per
+  question and the judge pool has ≈ 57/day. Seen: #127 and #285 (same question) got different claim types from
+  S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
 
 ## Next work (agreed order, 2026-11-15)
@@ -30,7 +38,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
    `mistral-nemo`. Add an `OllamaProvider` (structured output via `format` = JSON schema) to the model pools;
    first target S3 (most calls; grounding catches bad quotes), then try S1a/S1b/S6. Not for S4/S5 until the eval set
    says it is good enough. Config decides order (local first or Gemini first).
-2. **Phase 3 — judgement**: S4 blind answer, S5 verification, S6 quality, S8 rules engine (pure code), `validations`
+2. **Phase 3 — judgement** (built; eval measurement still to run): S4 blind answer, S5 verification, S6 quality, S8 rules engine (pure code), `validations`
    table, `qv validate`; measure on the eval set (incl. eval/known_errors.csv). Also give the web view a plain
    per-question summary (e.g. "Evidence: 540 ×2, 556 ×1, 558 ×2 — key 540"), clearer labels and a legend —
    Mojeeb found the current view hard to read.
@@ -94,6 +102,19 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   `QuotaExhausted` stops a run cleanly; `qv resume <run>` continues (stage outputs reused by input hash —
   the hash excludes the model so pools can switch models).
 - **Tests never touch the network** (autouse respx guard in `tests/conftest.py`).
+
+## Implementation invariants (phase 3)
+- **S8 is pure code** (`qv/pipeline/rules.py`, `RULES_VERSION`): it recounts origin clusters and tiers from the
+  passage ids the verifier cites, never trusting the model's own count; ids that were not shown are ignored.
+  What counts as STRONG per claim type is `config/evidence_requirements.yaml`. Interpretations of the
+  methodology are listed in the module docstring — change them there and in the tests together.
+- **No VERIFIED without grounded support** and a matching blind answer (test). S4 sees mode-A passages only
+  (note-claim passages could leak the answer); S6 sees no evidence (tests).
+- System prompts with placeholders (S5, S6) are filled by `fill_template`; the filled values are part of the
+  input hash. Passage ids P1… are numbered by `number_passages` (mode A first) and stored per validation
+  (`passage_map_json`), so reasons and the web view use the same ids.
+- A pool moves to its next model after a model's transient-error retries run out (free Flash models are often
+  overloaded); failed attempts still count in the ledger.
 
 ## Implementation invariants (local models)
 - **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model

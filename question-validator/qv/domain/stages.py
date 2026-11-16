@@ -1,4 +1,4 @@
-"""Typed outputs of the model stages S1a, S1b and S3 (prompts/ s1a, s1b, s3).
+"""Typed outputs of the model stages S1a, S1b, S3, S4, S5 and S6 (prompts/ s1a … s6).
 
 These Pydantic models are the source of truth for the JSON schemas sent to the
 model (structured output) and are used again to validate every response.
@@ -232,3 +232,193 @@ class Extraction(_Strict):
     page: PageAssessment
     passages: list[ExtractedPassage]
     no_relevant_content_reason: str | None
+
+
+# --- S4 ----------------------------------------------------------------------
+
+OptionLetter = Literal["A", "B", "C", "D"]
+
+
+class AlternativeAnswer(_Strict):
+    """Another answer the passages also support."""
+
+    answer: str
+    option: OptionLetter | None
+    passages: list[str]
+    why_defensible: str
+
+
+class PresuppositionCheck(_Strict):
+    """S4's reading of one presupposition."""
+
+    id: str
+    status: Literal["supported", "contradicted", "unclear"]
+    passages: list[str]
+
+
+class BlindAnswer(_Strict):
+    """S4 output — an answer formed from the evidence without knowing the key."""
+
+    status: Literal["answered", "multiple_defensible", "insufficient_evidence", "unanswerable_as_written"]
+    answer: str | None
+    option: OptionLetter | None
+    supporting_passages: list[str]
+    conflicting_passages: list[str]
+    alternative_answers: list[AlternativeAnswer]
+    presupposition_findings: list[PresuppositionCheck]
+    missing_evidence: str | None = Field(description="what evidence would settle it, used for the escalation round")
+    reasoning: str
+
+
+# --- S5 ----------------------------------------------------------------------
+
+class KeyAssessment(_Strict):
+    """The key compared with the evidence."""
+
+    factual_accuracy: Literal["CORRECT", "PARTIALLY_CORRECT", "INCORRECT", "UNCERTAIN"]
+    match_with_blind: Literal["same", "equivalent", "partially_overlapping", "different", "blind_insufficient",
+                              "not_shown"]
+    supporting_passages: list[str]
+    contradicting_passages: list[str]
+
+
+class ComponentAssessment(_Strict):
+    """One key component compared with the evidence."""
+
+    id: str
+    status: Literal["supported", "contradicted", "unclear"]
+    evidence_value: str | None = Field(description="the value the evidence gives, if different")
+    passages: list[str]
+
+
+class RequirementCheck(_Strict):
+    """The model's own view of the evidence requirement (S8 recounts it)."""
+
+    met: bool
+    independent_origins_supporting: int
+    highest_tier_supporting: Literal["P", "S", "T"] | None
+    explanation: str
+
+
+class OptionAssessment(_Strict):
+    """One multiple-choice option."""
+
+    option: OptionLetter
+    status: Literal["correct", "defensible", "incorrect", "unclear"]
+    passages: list[str]
+    reason: str
+
+
+class AcceptableAlternative(_Strict):
+    """An answer that should also be accepted."""
+
+    answer: str
+    basis: Literal["equivalent_wording", "transliteration", "partial_but_acceptable", "alternative_convention"]
+    passages: list[str]
+
+
+class Disagreement(_Strict):
+    """A classified disagreement between passages."""
+
+    about: str = Field(description='"key", a component id, a presupposition id or a note claim id')
+    kind: Literal["factual_conflict", "definitional", "convention", "interpretive", "temporal", "source_error"]
+    side_a_passages: list[str]
+    side_b_passages: list[str]
+    explanation: str
+
+
+class ClaimFinding(_Strict):
+    """A presupposition checked against the evidence."""
+
+    id: str
+    status: Literal["supported", "contradicted", "unclear"]
+    passages: list[str]
+    explanation: str
+
+
+class NoteFinding(_Strict):
+    """A note claim checked against the evidence."""
+
+    id: str
+    status: Literal["supported", "contradicted", "convention_mismatch", "unclear"]
+    passages: list[str]
+    explanation: str
+
+
+class Temporal(_Strict):
+    """Time sensitivity of the answer."""
+
+    time_sensitive: bool
+    judged_as_of: str | None
+    outdated: bool
+    previously_true_passages: list[str]
+    change_passages: list[str]
+
+
+class FrameFinding(_Strict):
+    """How the answer depends on the edition's frame."""
+
+    depends_on_frame: bool
+    within_frame: Literal["supported", "contradicted", "unclear", "not_applicable"]
+    contested_outside_frame: bool
+    frame_passages: list[str]
+    outside_passages: list[str]
+
+
+class Verification(_Strict):
+    """S5 / S5b output — findings about the key, options, premises and note (not the verdict)."""
+
+    key_assessment: KeyAssessment
+    component_assessments: list[ComponentAssessment]
+    evidence_requirement_met: RequirementCheck
+    option_assessments: list[OptionAssessment]
+    acceptable_alternatives: list[AcceptableAlternative]
+    disagreements: list[Disagreement]
+    presupposition_findings: list[ClaimFinding]
+    note_findings: list[NoteFinding]
+    temporal: Temporal
+    frame: FrameFinding
+    suggested_answer: str | None
+    suggested_question: str | None
+    missing_evidence: str | None
+    explanation: str
+
+
+# --- S6 ----------------------------------------------------------------------
+
+QualityIssueType = Literal[
+    "ambiguous_wording", "multiple_answers_possible", "missing_context_or_convention", "compound_question",
+    "false_precision", "answer_leak", "implausible_distractors", "distractor_possibly_correct", "too_few_options",
+    "option_format_inconsistent", "difficulty_mismatch", "age_inappropriate", "culturally_misleading",
+    "honorific_or_style_inconsistent", "spelling_or_grammar", "possible_factual_issue",
+]
+
+
+class QualityIssue(_Strict):
+    """One wording or quiz-design issue."""
+
+    type: QualityIssueType
+    severity: Literal["minor", "major"]
+    detail: str
+    is_hypothesis: bool
+    option: OptionLetter | None
+
+
+class Rewrite(_Strict):
+    """A suggested rewrite of the question."""
+
+    question: str
+    options: list[str] | None
+    answer: str
+    note: str | None
+
+
+class Quality(_Strict):
+    """S6 output — the question judged as a quiz question, without evidence."""
+
+    overall: Literal["GOOD", "NEEDS_IMPROVEMENT", "POOR"]
+    issues: list[QualityIssue]
+    difficulty_estimate: Literal["easy", "medium", "hard"]
+    audience_fit: Literal["good", "too_hard_for_young", "unsuitable"]
+    suggested_rewrite: Rewrite | None
+    rewrite_reason: str | None

@@ -170,3 +170,15 @@ def test_pools_leave_out_providers_that_are_not_set_up(db: Database) -> None:
     assert [e.label for e in entries] == ["ollama/gemma3:12b"]
     with pytest.raises(LLMError, match="No usable model"):
         build_pools(providers, pcfg, m, stages=("s1a",))  # s1a uses the Gemini-only 'cheap' pool
+
+
+def test_pool_moves_on_when_a_model_keeps_failing(db: Database) -> None:
+    """An overloaded model (503s / timeouts after the retries) hands over to the next entry."""
+    busy = Fake("gemini", [TransientError("503")] * (ModelPool.MAX_TRANSIENT_RETRIES + 1))
+    other = Fake("gemini2", ['{"city":"X"}'])
+    pool = ModelPool([PoolEntry(busy, "a", [Limit("day", 10)], 60), PoolEntry(other, "b", [Limit("day", 10)], 60)],
+                     metering(db))
+    assert pool.complete(system="s", user="u", schema_cls=Small, ctx=CallContext()).provider == "gemini2"
+    lone = ModelPool([PoolEntry(Fake("g", [TransientError("503")] * 9), "a", [], 60)], metering(db))
+    with pytest.raises(TransientError):
+        lone.complete(system="s", user="u", schema_cls=Small, ctx=CallContext())

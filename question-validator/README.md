@@ -44,6 +44,9 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}}
 .venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa; local models)
 .venv/bin/qv research swab-quest --ids 1,5,10-12       # evidence for some questions (asks first)
+.venv/bin/qv validate swab-quest --ids 1,5             # research + verdict (blind answer, verification, quality)
+.venv/bin/qv judge 3                                   # verdicts for an existing research run (stored outputs reused)
+.venv/bin/qv verdicts 3 | verdict 3 12                 # all verdicts of a run · why one question got its verdict
 .venv/bin/qv resume 3                                  # continue a run stopped by a free limit
 .venv/bin/qv runs | metrics 3 | evidence 3 12 | usage  # inspect runs, one question's evidence, API use
 .venv/bin/qv ui                                        # read-only web view → http://localhost:8501
@@ -63,17 +66,20 @@ the next entry (e.g. Gemini) takes over. Point a stage at a pool under `stage_po
 ```
 qv/domain/      typed models (Pydantic): Question, CsvRow, StructuralIssue, DatasetDiff …
 qv/io/          game-compatible CSV parser + byte-faithful patch writer
-qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py
+qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py,
+                judgement.py (S4/S5/S6 prompts + checks), evidence.py (passage ids, origin clusters),
+                rules.py (S8: evidence requirements → claim statuses → verdict → review route; pure)
 qv/providers/   llm/ (Gemini, Ollama + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
                 fetch.py, quran.py, usage.py (free-quota ledger, rate limits, call log)
 qv/prompts/     versioned system prompts (copied from prompts/*.md)
 qv/ui/          Streamlit read-only view (thin; queries in qv/services/views.py)
 qv/db/          SQLAlchemy models, sessions (SQLite WAL), Alembic migrations (applied automatically)
-qv/services/    application logic used by CLI/UI: datasets, exports, research (pipeline), views
+qv/services/    application logic used by CLI/UI: datasets, exports, research (pipeline), judgement, views
 qv/evaluation.py  eval cases, seeded errors, stratified sampling
 qv/cli.py       `qv` command (thin)
 config/profiles/  per-edition profile: audience, frame, conventions, structural rules
 config/providers.yaml  free-tier limits, local models, model pools, search order · research.yaml depth · sources.yaml tiers
+config/evidence_requirements.yaml  what counts as STRONG support per kind of fact (METHODOLOGY §4)
 eval/           cases.yaml, known_errors.csv, seeded.csv + seeded_labels.yaml
 tests/          pytest
 ```

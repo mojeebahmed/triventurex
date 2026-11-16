@@ -12,7 +12,7 @@ import pytest
 from qv.config import load_profile
 from qv.db.session import Database
 from qv.domain.question import Question
-from qv.domain.stages import ClaimFormulation, Decomposition, Extraction
+from qv.domain.stages import BlindAnswer, ClaimFormulation, Decomposition, Extraction, Quality, Verification
 from qv.pipeline.stages import (
     DocMeta, StageRunner, check_s1a, check_s1b, filter_s1b_lookups, render_s1a, render_s1b, render_s3,
     system_prompt, windows,
@@ -24,7 +24,10 @@ from tests.test_llm import make_pool
 PROMPTS = Path(__file__).parents[1] / "prompts"
 DESIGN = {"s1a": ("s1a-question-decomposition.md", Decomposition),
           "s1b": ("s1b-claim-formulation.md", ClaimFormulation),
-          "s3": ("s3-evidence-extraction.md", Extraction)}
+          "s3": ("s3-evidence-extraction.md", Extraction),
+          "s4": ("s4-blind-answer.md", BlindAnswer),
+          "s5": ("s5-verification.md", Verification),
+          "s6": ("s6-quality.md", Quality)}
 
 
 def design_schema(file: str) -> dict:

@@ -1,0 +1,23 @@
+# What counts as STRONG support for each claim type (METHODOLOGY.md §4), applied by S8 (code).
+# Each claim type lists alternatives; meeting ANY one alternative is STRONG.
+# Counts are over ORIGIN CLUSTERS (§5.2), never over pages. Per alternative:
+#   p: clusters whose best tier is P            s_or_better: clusters with tier P or S
+#   clusters: independent clusters of any tier P/S/T
+#   frame_authority: clusters from the edition's frame authorities (tier P or S)
+#   as_of: true → the supporting P passage must carry an as-of date
+# Below the bar: MODERATE = ≥ 2 clusters, or one P/S cluster; WEAK = one T cluster; NONE = nothing grounded.
+
+scripture_content:          [{p: 1}]
+hadith_or_tradition:        [{p: 1}, {s_or_better: 2}]
+attribution:                [{p: 1}, {frame_authority: 1}]
+doctrine:                   [{frame_authority: 1}]
+historical_event:           [{p: 1}, {clusters: 2, s_or_better: 1}]
+biography:                  [{p: 1}, {clusters: 2, s_or_better: 1}]
+measurement_or_superlative: [{p: 1}, {clusters: 2}]
+statistic_current:          [{p: 1, as_of: true}]
+sports_record:              [{p: 1}, {s_or_better: 2}]
+definition_or_meaning:      [{clusters: 2}]
+classification_or_list:     [{clusters: 2}]
+geography_fact:             [{p: 1}, {clusters: 2, s_or_better: 1}, {clusters: 2}]
+science_fact:               [{p: 1}, {clusters: 2, s_or_better: 1}, {clusters: 2}]
+other:                      [{p: 1}, {clusters: 2, s_or_better: 1}]

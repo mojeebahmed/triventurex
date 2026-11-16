@@ -341,6 +341,50 @@ class Passage(Base):
     is_primary_for_claim: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+# ---------------------------------------------------------------------------
+# Phase 3 — judgement
+# ---------------------------------------------------------------------------
+
+class Validation(Base):
+    """The S8 result for one question in one run (METHODOLOGY.md §9), with the stage outputs it used."""
+
+    __tablename__ = "validations"
+    __table_args__ = (UniqueConstraint("run_id", "question_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"), index=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"), index=True)
+    verdict: Mapped[str] = mapped_column(String(20))  # VERIFIED|INCORRECT|OUTDATED|CONTESTED|AMBIGUOUS|UNVERIFIED
+    defect_location: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    evidence_strength: Mapped[str] = mapped_column(String(10))  # STRONG|MODERATE|WEAK|NONE
+    factual_accuracy: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    claim_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    frame_class: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    claim_statuses_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    note_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    note_statuses_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    blind_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    blind_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    blind_matches_key: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    within_frame: Mapped[bool] = mapped_column(Boolean, default=False)
+    contested_outside_frame: Mapped[bool] = mapped_column(Boolean, default=False)
+    question_quality: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    quality_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    review_status: Mapped[str] = mapped_column(String(30))
+    routes_json: Mapped[list] = mapped_column(JSON, default=list)
+    reasons_json: Mapped[list] = mapped_column(JSON, default=list)
+    support_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    suggested_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggested_question: Mapped[str | None] = mapped_column(Text, nullable=True)
+    acceptable_alternatives_json: Mapped[list] = mapped_column(JSON, default=list)
+    passage_map_json: Mapped[dict] = mapped_column(JSON, default=dict)  # "P1" → passages.id, cluster
+    s4_output_id: Mapped[int | None] = mapped_column(ForeignKey("stage_outputs.id"), nullable=True)
+    s5_output_id: Mapped[int | None] = mapped_column(ForeignKey("stage_outputs.id"), nullable=True)
+    s6_output_id: Mapped[int | None] = mapped_column(ForeignKey("stage_outputs.id"), nullable=True)
+    rules_version: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 #: Phase 2 triggers: stored document text and passages are append-only.
 EVIDENCE_TRIGGERS: dict[str, str] = {
     "documents_no_text_update": """

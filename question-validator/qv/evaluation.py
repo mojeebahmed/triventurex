@@ -291,3 +291,48 @@ def stratified_sample(sources: dict[str, dict[str, Question]], *, n: int = 150, 
         for q in rng.sample(pool, min(quota[k], len(pool))):
             picked.append((k[0], q))
     return picked
+
+
+# --- scoring a run against the labels (METHODOLOGY.md §12) -----------------------------
+
+SEEDED_DATASET = "eval-seeded"
+ERROR_VERDICTS = {"INCORRECT", "AMBIGUOUS", "CONTESTED", "OUTDATED"}
+
+
+def expectations_for(dataset: str) -> dict[str, tuple[Expectation, str]]:
+    """Labelled ids of one dataset (an edition, eval-known-errors or eval-seeded) → (expectation, label status)."""
+    if dataset == SEEDED_DATASET:
+        return {lab.eval_id: (lab.expect, "seeded") for lab in load_seeded_labels()}
+    return {c.id: (c.expect, c.status) for c in load_cases() if c.dataset == dataset}
+
+
+def score(results: list[dict], expectations: dict[str, tuple[Expectation, str]]) -> dict:
+    """Phase 3 metrics for verdicts `results` ({id, verdict, review}) against labels.
+
+    - error_recall: labelled errors caught (error verdict or routed to review/specialist) — target ≥ 90 %
+    - false_incorrect_rate: labelled good questions marked INCORRECT — target ≤ 3 %
+    - false_verifications: labelled errors marked VERIFIED — target 0
+    - verdict_agreement: verdict accepted by the label
+    """
+    rows, errors, caught, good, false_incorrect, false_verified, agree = [], 0, 0, 0, 0, 0, 0
+    for r in results:
+        if r["id"] not in expectations:
+            continue
+        exp, status = expectations[r["id"]]
+        expected_error = bool({exp.verdict, *exp.any_of} & ERROR_VERDICTS) and "VERIFIED" not in (exp.verdict,
+                                                                                                 *exp.any_of)
+        ok = exp.accepts(r["verdict"])
+        agree += ok
+        if expected_error:
+            errors += 1
+            hit = r["verdict"] in ERROR_VERDICTS or r["review"] in ("needs_review", "needs_specialist")
+            caught += hit
+            false_verified += r["verdict"] == "VERIFIED"
+        elif exp.verdict == "VERIFIED" or "VERIFIED" in exp.any_of:
+            good += 1
+            false_incorrect += r["verdict"] == "INCORRECT"
+        rows.append({**r, "expected": exp.verdict or "/".join(exp.any_of), "label": status, "agrees": ok})
+    pct = (lambda a, b: round(100 * a / b, 1) if b else None)
+    return {"labelled": len(rows), "verdict_agreement_pct": pct(agree, len(rows)),
+            "errors": errors, "error_recall_pct": pct(caught, errors), "false_verifications": false_verified,
+            "good": good, "false_incorrect_pct": pct(false_incorrect, good), "rows": rows}

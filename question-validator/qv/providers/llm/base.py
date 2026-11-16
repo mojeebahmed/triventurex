@@ -154,7 +154,8 @@ class ModelPool:
     - Daily quota used up (ledger or provider 429) → the next entry takes over.
     - Provider unavailable (local server down, model not pulled) → the next entry, nothing marked.
     - Per-minute limit → wait and retry the same model.
-    - Server errors → retry with backoff (bounded).
+    - Server errors → retry with backoff (bounded), then the next entry takes over (overloaded models
+      are common on the free tier); only when every entry failed is the error raised.
     - Invalid JSON / schema → one retry on the same model with the error, then LLMSchemaError.
     """
 
@@ -186,6 +187,7 @@ class ModelPool:
         """Return a validated output, falling back across entries; raises QuotaExhausted when none is left."""
         schema = json_schema_for(schema_cls)
         last_error: Exception | None = None
+        transient: TransientError | None = None
         for e in self.entries:
             if not self._can_spend(e):
                 continue
@@ -197,6 +199,10 @@ class ModelPool:
                 last_error = exc
             except ProviderUnavailable as exc:
                 last_error = exc
+            except TransientError as exc:
+                last_error = transient = exc
+        if transient is not None:
+            raise transient
         raise QuotaExhausted(
             f"No model available now in pool {[e.label for e in self.entries]}"
             + (f" (last error: {last_error})" if last_error else "")

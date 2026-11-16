@@ -29,7 +29,7 @@ from qv.providers.usage import CallContext
 
 T = TypeVar("T", bound=BaseModel)
 
-PROMPT_VERSIONS = {"s1a": "s1a.v1", "s1b": "s1b.v1", "s3": "s3.v1"}
+PROMPT_VERSIONS = {"s1a": "s1a.v1", "s1b": "s1b.v1", "s3": "s3.v1", "s4": "s4.v1", "s5": "s5.v1", "s6": "s6.v1"}
 CLAIM_TYPES = ("scripture_content | hadith_or_tradition | attribution | doctrine | historical_event | biography |\n"
                "            measurement_or_superlative | statistic_current | sports_record | "
                "definition_or_meaning |\n            classification_or_list | geography_fact | science_fact | other")
@@ -39,6 +39,22 @@ CLAIM_TYPES = ("scripture_content | hadith_or_tradition | attribution | doctrine
 def system_prompt(version: str) -> str:
     """Text of a versioned system prompt (qv/prompts/<version>.system.txt)."""
     return resources.files("qv.prompts").joinpath(f"{version}.system.txt").read_text(encoding="utf-8").strip()
+
+
+_IF_BLOCK = re.compile(r"\{\{#if (\w+)\}\}(.*?)\{\{/if\}\}", re.S)
+_VAR = re.compile(r"\{\{(\w+)\}\}")
+
+
+def fill_template(text: str, values: dict[str, Any]) -> str:
+    """Fill `{{name}}` and `{{#if name}}…{{/if}}` in a system prompt; an unknown name is an error."""
+    text = _IF_BLOCK.sub(lambda m: m.group(2) if values.get(m.group(1)) else "", text)
+
+    def var(m: re.Match[str]) -> str:
+        if m.group(1) not in values:
+            raise KeyError(f"System prompt placeholder {{{{{m.group(1)}}}}} has no value")
+        return str(values[m.group(1)])
+
+    return _VAR.sub(var, text)
 
 
 # --- rendering ----------------------------------------------------------------
@@ -201,10 +217,14 @@ class StageRunner:
         self.pools = pools
 
     def run(self, *, stage: str, user: str, schema_cls: type[T], hash_inputs: Any, ctx: CallContext,
-            checks: Callable[[T], list[str]] | None = None, retry_on_check_failure: bool = True) -> StageRun:
-        """Return a validated output for this input, from storage or from the model."""
+            checks: Callable[[T], list[str]] | None = None, retry_on_check_failure: bool = True,
+            system_values: dict[str, Any] | None = None) -> StageRun:
+        """Return a validated output for this input, from storage or from the model.
+
+        `system_values` fill the system prompt's placeholders (S5, S6); they are part of the input hash.
+        """
         version = PROMPT_VERSIONS[stage]
-        h = input_hash(stage, version, hash_inputs)
+        h = input_hash(stage, version, {"in": hash_inputs, "sys": system_values} if system_values else hash_inputs)
         with self.db.session() as s:
             row = s.scalar(select(StageOutput).where(StageOutput.stage == stage, StageOutput.input_hash == h,
                                                      StageOutput.valid.is_(True))
@@ -214,7 +234,7 @@ class StageRunner:
                                 row.checks_json)
 
         pool = self.pools[stage]
-        system = system_prompt(version)
+        system = fill_template(system_prompt(version), system_values or {})
         try:
             result = pool.complete(system=system, user=user, schema_cls=schema_cls, ctx=ctx)
             problems = checks(result.output) if checks else []

@@ -1,0 +1,25 @@
+Answer a quiz question using only the evidence passages provided. You have not been told the expected
+answer, and your own knowledge is not evidence here: if you know something the passages do not say, it
+does not count. If the passages are not enough, say so — "insufficient evidence" is a correct and useful
+answer, and guessing makes the whole check worthless.
+
+How to weigh passages:
+- Each passage has a tier: P (primary: the text itself, the official record, the author's own work),
+  S (expert secondary), T (encyclopaedia/summary). Prefer higher tiers when they conflict.
+- Passages in the same origin cluster are one source repeated, not independent confirmation. Five
+  passages from one cluster count as one.
+- Respect qualifiers. A passage about a "42-game season" or the "uninterrupted drop" answers a narrower
+  or different question; say so when it matters.
+- Respect the question's own qualifiers (dates, "if you count…", "according to…", "by tradition").
+
+Decide one status:
+- answered — the passages clearly support one answer.
+- multiple_defensible — the passages support two or more different answers (for multiple choice: more
+  than one option), for example because sources use different definitions or disagree.
+- insufficient_evidence — the passages do not establish an answer.
+- unanswerable_as_written — the question cannot be answered as worded (for example because a
+  presupposition is false, or none of the options fits the evidence).
+
+Then check each presupposition against the passages: supported, contradicted, or unclear.
+
+Cite passage ids for everything. Keep the reasoning short and concrete.

@@ -213,13 +213,10 @@ def quota() -> None:
         typer.echo(line)
 
 
-@app.command()
-def research(dataset: str,
-             ids: Annotated[str | None, typer.Option(help="CSV ids, e.g. 1,5,10-12 (default: all)")] = None,
-             version: Annotated[int | None, typer.Option(help="Dataset version (default latest)")] = None,
-             max_questions: Annotated[int | None, typer.Option(help="Stop after this many questions")] = None,
-             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
-    """Research questions: decomposition, searches, documents and grounded passages (uses free quotas)."""
+def _start_run(kind: str, dataset: str, ids: str | None, version: int | None, max_questions: int | None,
+               yes: bool) -> None:
+    """Shared body of `qv research` and `qv validate`."""
+    from qv.config import load_research_config
     from qv.services.research import build_deps, execute_run, start_run
     settings = _settings()
     db = _db()
@@ -230,26 +227,85 @@ def research(dataset: str,
         total = n or v.row_count
     if max_questions:
         total = min(total, max_questions)
-    from qv.config import load_research_config
     rc = load_research_config()
     llm_per_q = 2 + (rc.max_documents_per_question + rc.max_note_documents_per_question + 1) * rc.s3_max_windows
-    typer.echo(f"About to research up to {total} question(s) of {dataset}.")
-    typer.echo(f"Rough upper bound per question: {llm_per_q} LLM requests (usually fewer), "
+    verb = "research" if kind == "research" else "validate"
+    typer.echo(f"About to {verb} up to {total} question(s) of {dataset}.")
+    typer.echo(f"Rough upper bound per question: {llm_per_q} LLM requests for research (usually fewer), "
                f"{rc.max_web_queries_per_question} web searches (cached ones are free).")
+    if kind == "validate":
+        typer.echo("Judgement adds up to 3 requests per question (S4 + S5 on the 'judge' pool, S6 on 'cheap'); "
+                   "stored outputs are reused.")
     typer.echo("Free quota now:")
     for line in _quota_lines(db):
         typer.echo(line)
     typer.echo("The run stops cleanly when a free quota runs out; `qv resume <run>` continues later.")
     if not yes and not typer.confirm("Start?"):
         raise typer.Exit(1)
-    run_id = start_run(db, dataset, id_list, version_no=version)
+    run_id = start_run(db, dataset, id_list, version_no=version, kind=kind)
     report = execute_run(build_deps(settings, db), run_id, max_questions=max_questions)
     _print_run_report(report)
 
 
 @app.command()
+def research(dataset: str,
+             ids: Annotated[str | None, typer.Option(help="CSV ids, e.g. 1,5,10-12 (default: all)")] = None,
+             version: Annotated[int | None, typer.Option(help="Dataset version (default latest)")] = None,
+             max_questions: Annotated[int | None, typer.Option(help="Stop after this many questions")] = None,
+             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+    """Research questions: decomposition, searches, documents and grounded passages (uses free quotas)."""
+    _start_run("research", dataset, ids, version, max_questions, yes)
+
+
+@app.command()
+def validate(dataset: str,
+             ids: Annotated[str | None, typer.Option(help="CSV ids, e.g. 1,5,10-12 (default: all)")] = None,
+             version: Annotated[int | None, typer.Option(help="Dataset version (default latest)")] = None,
+             max_questions: Annotated[int | None, typer.Option(help="Stop after this many questions")] = None,
+             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+    """Research and judge questions: evidence, blind answer, verification, quality and a verdict."""
+    _start_run("validate", dataset, ids, version, max_questions, yes)
+
+
+@app.command()
+def judge(run_id: int,
+          ids: Annotated[str | None, typer.Option(help="Only these CSV ids")] = None) -> None:
+    """Judge the researched questions of an existing run (S4–S6 + rules); verdicts are stored on that run."""
+    from qv.services.judgement import judge_run
+    from qv.services.research import build_deps
+    db = _db()
+    for line in judge_run(build_deps(_settings(), db), run_id, _parse_ids(ids)):
+        typer.echo(line)
+    typer.echo(f"Verdicts: qv verdicts {run_id}   ·   one question: qv verdict {run_id} <id>")
+
+
+@app.command()
+def verdicts(run_id: int) -> None:
+    """Verdicts of a run, one line per question, and a count per verdict and route."""
+    from qv.services.views import run_verdicts
+    rows = run_verdicts(_db(), run_id)
+    for r in rows:
+        typer.echo(f"  #{r['id']:>5}  {r['verdict']:10} {r['strength']:8} {r['review']:16} "
+                   f"quality {r['quality'] or '-':17} {r['question'][:60]}")
+    from collections import Counter
+    typer.echo("  " + ", ".join(f"{k} {v}" for k, v in Counter(r["verdict"] for r in rows).most_common()))
+    typer.echo("  " + ", ".join(f"{k} {v}" for k, v in Counter(r["review"] for r in rows).most_common()))
+
+
+@app.command()
+def verdict(run_id: int, ext_id: str) -> None:
+    """Why one question got its verdict: claim statuses, blind answer, quality and every rule that fired."""
+    from qv.services.views import question_verdict
+    v = question_verdict(_db(), run_id, ext_id)
+    if v is None:
+        raise typer.BadParameter(f"No verdict for id {ext_id} in run {run_id} (run `qv judge {run_id}` first)")
+    for line in v["summary_lines"]:
+        typer.echo(line)
+
+
+@app.command()
 def resume(run_id: int, max_questions: Annotated[int | None, typer.Option()] = None) -> None:
-    """Continue an interrupted or stopped research run."""
+    """Continue an interrupted or stopped research or validate run."""
     from qv.services.research import build_deps, execute_run
     db = _db()
     _print_run_report(execute_run(build_deps(_settings(), db), run_id, max_questions=max_questions))
@@ -261,6 +317,8 @@ def _print_run_report(report) -> None:  # noqa: ANN001
         typer.echo(f"  id {q['id']}: {q.get('documents', 0)} documents, {q.get('passages_grounded', 0)} passages "
                    f"({q.get('passages_dropped', 0)} dropped), searches {q.get('searches_run', 0)} run / "
                    f"{q.get('searches_cached', 0)} cached")
+        if q.get("verdict"):
+            typer.echo(f"         verdict {q['verdict']} ({q['strength']}), {q['review']}")
     typer.echo(f"Run {report.run_id}: {report.done} done, {report.failed} failed, {report.pending} still pending")
     if report.stopped_reason:
         typer.echo(f"Stopped: {report.stopped_reason}")
@@ -387,6 +445,31 @@ def eval_check() -> None:
         typer.echo(f"  {p}")
     typer.echo(f"{len(cases)} cases, {len(problems)} problem(s)")
     raise typer.Exit(1 if problems else 0)
+
+
+@eval_app.command("score")
+def eval_score(run_id: int) -> None:
+    """Compare a run's verdicts with eval/cases.yaml (or the seeded labels) — Phase 3 exit metrics."""
+    from qv.db.models import Run
+    from qv.evaluation import expectations_for, score
+    from qv.services.views import run_verdicts
+    db = _db()
+    with db.session() as s:
+        run = s.get(Run, run_id)
+        if run is None:
+            raise typer.BadParameter(f"No run {run_id}")
+        dataset = run.config_json.get("dataset")
+    result = score(run_verdicts(db, run_id), expectations_for(dataset))
+    if not result["labelled"]:
+        typer.echo(f"No labelled questions of '{dataset}' in run {run_id} (labels: eval/cases.yaml, "
+                   "eval/seeded_labels.yaml; import eval files as datasets eval-known-errors / eval-seeded).")
+        raise typer.Exit(1)
+    for r in result["rows"]:
+        typer.echo(f"  {'ok ' if r['agrees'] else 'XX '} #{r['id']:>5} got {r['verdict']:10} {r['review']:16} "
+                   f"expected {r['expected']:20} ({r['label']})")
+    for k, v in result.items():
+        if k != "rows":
+            typer.echo(f"  {k:24} {v}")
 
 
 @eval_app.command("seed")

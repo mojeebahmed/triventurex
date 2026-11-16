@@ -43,6 +43,7 @@ from qv.providers.search.web import ExaSearch, ParallelMCPSearch, TavilySearch
 from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
 from qv.sources import Registry, effective_tier, is_frame_authority, load_registry
 from qv.services.datasets import get_version
+from qv.services.judgement import judge_question
 
 PURPOSE_PRIORITY = {"core": 0, "presupposition": 1, "competitor": 2, "definition": 3, "primary_source": 4}
 
@@ -64,6 +65,7 @@ class ResearchDeps:
     wikipedia: SearchProvider | None = None
     alislam: SearchProvider | None = None
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
+    audit_percent: float = 3.0
 
 
 def pool_entries(labels: list[str], providers: dict[str, LLMProvider], pcfg: ProvidersConfig) -> list[PoolEntry]:
@@ -98,10 +100,10 @@ def build_llm_providers(settings: Settings, pcfg: ProvidersConfig, metering: Met
 
 
 def build_pools(providers: dict[str, LLMProvider], pcfg: ProvidersConfig, metering: Metering,
-                stages: tuple[str, ...] = ("s1a", "s1b", "s3")) -> dict[str, ModelPool]:
-    """One ModelPool per stage from config/providers.yaml."""
+                stages: tuple[str, ...] | None = None) -> dict[str, ModelPool]:
+    """One ModelPool per stage from config/providers.yaml (default: every stage listed there)."""
     pools = {}
-    for st in stages:
+    for st in stages or tuple(pcfg.stage_pools):
         entries = pool_entries(pcfg.pool_for(st), providers, pcfg)
         if not entries:
             raise LLMError(f"No usable model for stage {st} (pool {pcfg.pool_for(st)}): "
@@ -145,14 +147,20 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
         wikipedia=WikipediaSearch(metering.recorder, settings.contact) if settings.contact else None,
         alislam=AlislamSearch(metering.recorder),
         polite_rpm={"wikipedia": pcfg.search.wikipedia.rpm, "alislam": pcfg.search.alislam.rpm},
+        audit_percent=rcfg.audit_sample_percent,
     )
 
 
 # --- runs -------------------------------------------------------------------------
 
 def start_run(db: Database, dataset: str, ext_ids: list[str] | None, *, version_no: int | None = None,
-              config: dict[str, Any] | None = None) -> int:
-    """Create a research run for some (or all) questions of a dataset version."""
+              config: dict[str, Any] | None = None, kind: str = "research") -> int:
+    """Create a run for some (or all) questions of a dataset version.
+
+    `kind` "research" gathers evidence; "validate" also judges each question (S4–S6, S8).
+    """
+    if kind not in ("research", "validate"):
+        raise ValueError(f"Unknown run kind {kind!r}")
     with db.session() as s:
         v = get_version(s, dataset, version_no)
         q = select(QuestionRow).where(QuestionRow.dataset_version_id == v.id, QuestionRow.has_errors.is_(False))
@@ -163,7 +171,7 @@ def start_run(db: Database, dataset: str, ext_ids: list[str] | None, *, version_
             missing = wanted - {r.ext_id for r in rows}
             if missing:
                 raise ValueError(f"ids not found (or have structural errors): {sorted(missing, key=_num)}")
-        run = Run(dataset_version_id=v.id, kind="research", status="running",
+        run = Run(dataset_version_id=v.id, kind=kind, status="running",
                   config_json={**(config or {}), "dataset": dataset, "version_no": v.version_no,
                                "profile": v.profile, "ids": [r.ext_id for r in rows]})
         s.add(run)
@@ -198,6 +206,7 @@ def execute_run(deps: ResearchDeps, run_id: int, *, max_questions: int | None = 
             raise ValueError(f"No run {run_id}")
         version = s.get(DatasetVersion, run.dataset_version_id)
         profile = load_profile(version.profile)
+        judging = run.kind == "validate"
         todo = list(s.execute(select(RunQuestion.id, QuestionRow).join(QuestionRow,
                     QuestionRow.id == RunQuestion.question_id)
                     .where(RunQuestion.run_id == run_id, RunQuestion.status.in_(("pending", "stopped")))
@@ -211,6 +220,10 @@ def execute_run(deps: ResearchDeps, run_id: int, *, max_questions: int | None = 
         q = question_from_row(qrow)
         try:
             stats = research_question(deps, run_id, qrow.id, q, profile, rq_id)
+            if judging:
+                _set_rq(db, rq_id, "pending", None, None, "judgement")
+                stats.update(judge_question(db, deps.runner, run_id, qrow.id, q, profile, stats["s1a_output_id"],
+                                            stats["s1b_output_id"], audit_percent=deps.audit_percent))
             _set_rq(db, rq_id, "done", None, stats)
             report.done += 1
             report.questions.append({"id": q.ext_id, **stats})
