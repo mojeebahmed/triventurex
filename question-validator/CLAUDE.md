@@ -34,7 +34,12 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   per edition (`eval-seeded-<edition>`, judged with that edition's profile) and the seeded questions' originals
   in each edition as **controls** (label `control`: anything but an error verdict is right) — controls give the
   false-INCORRECT rate. 104 questions; ≈ 2 Flash requests each (S4 is shared when only the key/note was mutated),
-  judge pool ≈ 57/day → several days. Run results so far: see `qv runs`; score with `qv eval score <runs…>`. Seen: #127 and #285 (same question) got different claim types from
+  judge pool ≈ 57/day → several days. Score with `qv eval score <runs…>` (runs on an older eval version are
+  skipped). Day 1 (runs 4–6): 36 of 57 Flash requests were lost to overloaded 3.8/3.7 Flash (503s, 120 s
+  timeouts) → pool now retries once, rests a failing model for 10 min, judge pool starts with 3.6. Known
+  errors: 4/4 routed to review (#73 INCORRECT; #66/#86 UNVERIFIED with the right answer suggested; #70's
+  false premise flagged by S6 only). Seeder fixed: decades ("1880s") are no longer mutated (set regenerated;
+  40 of 50 mutations unchanged). Next: `qv resume 6`, then the remaining seeded + control datasets. Seen: #127 and #285 (same question) got different claim types from
   S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
 

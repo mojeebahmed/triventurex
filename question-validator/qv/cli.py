@@ -461,6 +461,10 @@ def eval_score(run_ids: Annotated[list[int], typer.Argument(help="One or more ru
             if run is None:
                 raise typer.BadParameter(f"No run {run_id}")
             dataset = run.config_json.get("dataset")
+            stale = run.dataset_version_id != ds_service.get_version(s, dataset, None).id
+        if stale:
+            typer.echo(f"  run {run_id} skipped: it used an older version of {dataset} (labels follow the latest)")
+            continue
         groups.append(([{**r, "dataset": dataset} for r in run_verdicts(db, run_id)], expectations_for(dataset)))
     result = score_many(groups)
     if not result["labelled"]:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, TypeVar
@@ -154,13 +155,16 @@ class ModelPool:
     - Daily quota used up (ledger or provider 429) → the next entry takes over.
     - Provider unavailable (local server down, model not pulled) → the next entry, nothing marked.
     - Per-minute limit → wait and retry the same model.
-    - Server errors → retry with backoff (bounded), then the next entry takes over (overloaded models
-      are common on the free tier); only when every entry failed is the error raised.
+    - Server errors → one retry with backoff, then the next entry takes over (overloaded models are
+      common on the free tier and every failed attempt may count against the small free quota); the
+      failing entry then rests for `COOLDOWN_S`, so later requests start on an entry that works. Resting
+      entries are still tried last. Only when every entry failed is the error raised.
     - Invalid JSON / schema → one retry on the same model with the error, then LLMSchemaError.
     """
 
     MAX_RATE_RETRIES = 4
-    MAX_TRANSIENT_RETRIES = 3
+    MAX_TRANSIENT_RETRIES = 1
+    COOLDOWN_S = 600.0
 
     def __init__(self, entries: list[PoolEntry], metering: Metering) -> None:
         """`entries` in fallback order."""
@@ -169,6 +173,8 @@ class ModelPool:
         self.entries = entries
         self.metering = metering
         self.last_provider = entries[0].provider.name
+        self.clock = time.monotonic
+        self._resting_until: dict[str, float] = {}
 
     @classmethod
     def single(cls, provider: LLMProvider, models: list[str], limits: dict[str, list[Limit]],
@@ -188,7 +194,9 @@ class ModelPool:
         schema = json_schema_for(schema_cls)
         last_error: Exception | None = None
         transient: TransientError | None = None
-        for e in self.entries:
+        now = self.clock()
+        resting = [e for e in self.entries if self._resting_until.get(e.label, 0) > now]
+        for e in [*(e for e in self.entries if e not in resting), *resting]:
             if not self._can_spend(e):
                 continue
             self.last_provider = e.provider.name
@@ -201,6 +209,7 @@ class ModelPool:
                 last_error = exc
             except TransientError as exc:
                 last_error = transient = exc
+                self._resting_until[e.label] = self.clock() + self.COOLDOWN_S
         if transient is not None:
             raise transient
         raise QuotaExhausted(

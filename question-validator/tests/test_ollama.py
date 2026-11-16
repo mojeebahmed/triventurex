@@ -182,3 +182,21 @@ def test_pool_moves_on_when_a_model_keeps_failing(db: Database) -> None:
     lone = ModelPool([PoolEntry(Fake("g", [TransientError("503")] * 9), "a", [], 60)], metering(db))
     with pytest.raises(TransientError):
         lone.complete(system="s", user="u", schema_cls=Small, ctx=CallContext())
+
+
+def test_a_failing_model_rests_so_later_requests_start_on_one_that_works(db: Database) -> None:
+    """Each attempt at an overloaded free model may cost quota: after it fails, skip it for a while."""
+    busy = Fake("gemini", [TransientError("503")] * 2 + ['{"city":"B"}'])
+    other = Fake("gemini2", ['{"city":"X"}', '{"city":"Y"}'])
+    pool = ModelPool([PoolEntry(busy, "a", [Limit("day", 10)], 60), PoolEntry(other, "b", [Limit("day", 10)], 60)],
+                     metering(db))
+    now = [0.0]
+    pool.clock = lambda: now[0]
+    pool.metering.limiter.penalise = lambda *a: None  # no real waiting in the test
+    ctx = CallContext()
+    assert pool.complete(system="s", user="u", schema_cls=Small, ctx=ctx).output.city == "X"
+    assert busy.calls == ModelPool.MAX_TRANSIENT_RETRIES + 1
+    assert pool.complete(system="s", user="u", schema_cls=Small, ctx=ctx).output.city == "Y"
+    assert busy.calls == 2  # resting: not tried
+    now[0] = ModelPool.COOLDOWN_S + 1  # rested: 'a' is first again
+    assert pool.complete(system="s", user="u", schema_cls=Small, ctx=ctx).output.city == "B"

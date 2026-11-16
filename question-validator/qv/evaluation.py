@@ -143,7 +143,7 @@ class SeededLabel(BaseModel):
     expect: Expectation
 
 
-_YEAR = re.compile(r"(?<!\d)(1[0-9]{3}|20[0-9]{2})(?!\d)")
+_YEAR = re.compile(r"(?<!\d)(1[0-9]{3}|20[0-9]{2})(?![\ds])")  # not decades ("1880s")
 _NUMBER = re.compile(r"(?<![\d:.,])(\d{1,3})(?![\d:])")
 _VERSE = re.compile(r"(\d{1,3}):(\d{1,3})(?![\d\-–])")
 

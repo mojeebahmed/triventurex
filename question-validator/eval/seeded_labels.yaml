@@ -1,5 +1,41 @@
 seeded:
 - eval_id: '1'
+  source_dataset: prophets-stories
+  source_id: '20'
+  mutation: wrong_key
+  field: answer
+  original: '3'
+  seeded: '4'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '2'
+  source_dataset: swab-quest
+  source_id: '70'
+  mutation: wrong_key
+  field: answer
+  original: '1'
+  seeded: '2'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '3'
+  source_dataset: animal-safari
+  source_id: '145'
+  mutation: wrong_key
+  field: answer
+  original: '4'
+  seeded: '1'
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '4'
   source_dataset: animal-safari
   source_id: '107'
   mutation: wrong_key
@@ -11,7 +47,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '2'
+- eval_id: '5'
   source_dataset: prophets-stories
   source_id: '8'
   mutation: wrong_key
@@ -23,7 +59,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '3'
+- eval_id: '6'
   source_dataset: prophets-stories
   source_id: '39'
   mutation: wrong_key
@@ -35,7 +71,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '4'
+- eval_id: '7'
   source_dataset: swab-quest
   source_id: '404'
   mutation: wrong_key
@@ -47,7 +83,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '5'
+- eval_id: '8'
   source_dataset: animal-safari
   source_id: '137'
   mutation: wrong_key
@@ -59,67 +95,43 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '6'
+- eval_id: '9'
   source_dataset: world-tour
   source_id: '161'
   mutation: wrong_key
   field: answer
   original: '4'
-  seeded: '2'
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
-- eval_id: '7'
-  source_dataset: world-tour
-  source_id: '107'
-  mutation: wrong_key
-  field: answer
-  original: '3'
-  seeded: '4'
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
-- eval_id: '8'
-  source_dataset: swab-quest
-  source_id: '306'
-  mutation: wrong_key
-  field: answer
-  original: '3'
-  seeded: '2'
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
-- eval_id: '9'
-  source_dataset: swab-quest
-  source_id: '353'
-  mutation: wrong_key
-  field: answer
-  original: '1'
-  seeded: '3'
+  seeded: '1'
   expect:
     verdict: INCORRECT
     any_of: []
     defect: answer
     review: needs_review
 - eval_id: '10'
-  source_dataset: animal-safari
-  source_id: '182'
+  source_dataset: world-tour
+  source_id: '107'
   mutation: wrong_key
   field: answer
-  original: '2'
-  seeded: '4'
+  original: '3'
+  seeded: '2'
   expect:
     verdict: INCORRECT
     any_of: []
     defect: answer
     review: needs_review
 - eval_id: '11'
+  source_dataset: swab-quest
+  source_id: '34'
+  mutation: wrong_year_answer
+  field: answer
+  original: December 1891
+  seeded: December 1896
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '12'
   source_dataset: swab-quest
   source_id: '44'
   mutation: wrong_year_answer
@@ -131,7 +143,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '12'
+- eval_id: '13'
   source_dataset: football-quest
   source_id: '46'
   mutation: wrong_year_answer
@@ -143,7 +155,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '13'
+- eval_id: '14'
   source_dataset: football-quest
   source_id: '67'
   mutation: wrong_year_answer
@@ -155,7 +167,7 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '14'
+- eval_id: '15'
   source_dataset: swab-quest
   source_id: '240'
   mutation: wrong_year_answer
@@ -167,31 +179,43 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '15'
-  source_dataset: world-tour
-  source_id: '104'
-  mutation: wrong_year_answer
-  field: answer
-  original: A language invented in the 1880s so that people from every country could talk to each other
-  seeded: A language invented in the 1886s so that people from every country could talk to each other
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
 - eval_id: '16'
   source_dataset: football-quest
-  source_id: '66'
+  source_id: '90'
   mutation: wrong_year_answer
   field: answer
-  original: 36 goals — Erling Haaland (Manchester City, 2022–23)
-  seeded: 36 goals — Erling Haaland (Manchester City, 2016–23)
+  original: '1904'
+  seeded: '1912'
   expect:
     verdict: INCORRECT
     any_of: []
     defect: answer
     review: needs_review
 - eval_id: '17'
+  source_dataset: swab-quest
+  source_id: '202'
+  mutation: wrong_year_answer
+  field: opt_a
+  original: 26 May 1908
+  seeded: 26 May 1904
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '18'
+  source_dataset: swab-quest
+  source_id: '384'
+  mutation: wrong_year_answer
+  field: opt_a
+  original: 1934-35
+  seeded: 1933-35
+  expect:
+    verdict: INCORRECT
+    any_of: []
+    defect: answer
+    review: needs_review
+- eval_id: '19'
   source_dataset: swab-quest
   source_id: '69'
   mutation: wrong_year_answer
@@ -203,37 +227,13 @@ seeded:
     any_of: []
     defect: answer
     review: needs_review
-- eval_id: '18'
-  source_dataset: swab-quest
-  source_id: '358'
-  mutation: wrong_year_answer
-  field: opt_a
-  original: '1965'
-  seeded: '1956'
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
-- eval_id: '19'
+- eval_id: '20'
   source_dataset: swab-quest
   source_id: '243'
   mutation: wrong_year_answer
   field: answer
   original: An Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, opened in 2003.
   seeded: An Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, opened in 2006.
-  expect:
-    verdict: INCORRECT
-    any_of: []
-    defect: answer
-    review: needs_review
-- eval_id: '20'
-  source_dataset: swab-quest
-  source_id: '225'
-  mutation: wrong_year_answer
-  field: opt_b
-  original: '1994'
-  seeded: '2000'
   expect:
     verdict: INCORRECT
     any_of: []
@@ -322,7 +322,7 @@ seeded:
   mutation: wrong_year_question
   field: question
   original: Since 2010, which building has been the tallest in the world?
-  seeded: Since 2007, which building has been the tallest in the world?
+  seeded: Since 2003, which building has been the tallest in the world?
   expect:
     verdict: INCORRECT
     any_of: []
