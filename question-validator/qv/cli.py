@@ -224,7 +224,7 @@ def quota() -> None:
 
 
 def _start_run(kind: str, dataset: str, ids: str | None, version: int | None, max_questions: int | None,
-               yes: bool) -> None:
+               yes: bool, judge_pool: str | None = None) -> None:
     """Shared body of `qv research` and `qv validate`."""
     from qv.config import load_research_config
     from qv.services.research import build_deps, execute_run, start_run
@@ -252,7 +252,13 @@ def _start_run(kind: str, dataset: str, ids: str | None, version: int | None, ma
     typer.echo("The run stops cleanly when a free quota runs out; `qv resume <run>` continues later.")
     if not yes and not typer.confirm("Start?"):
         raise typer.Exit(1)
-    run_id = start_run(db, dataset, id_list, version_no=version, kind=kind)
+    if judge_pool:
+        from qv.config import load_providers_config
+        if judge_pool not in load_providers_config().llm.pools:
+            raise typer.BadParameter(f"No pool '{judge_pool}' in config/providers.yaml → llm.pools")
+        typer.echo(f"S4 and S5 are judged by the '{judge_pool}' pool (kept apart from other judges' results).")
+    run_id = start_run(db, dataset, id_list, version_no=version, kind=kind,
+                       config={"judge_pool": judge_pool} if judge_pool else None)
     report = execute_run(build_deps(settings, db), run_id, max_questions=max_questions)
     _print_run_report(report)
 
@@ -272,9 +278,12 @@ def validate(dataset: str,
              ids: Annotated[str | None, typer.Option(help="CSV ids, e.g. 1,5,10-12 (default: all)")] = None,
              version: Annotated[int | None, typer.Option(help="Dataset version (default latest)")] = None,
              max_questions: Annotated[int | None, typer.Option(help="Stop after this many questions")] = None,
-             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+             yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False,
+             judge_pool: Annotated[str | None, typer.Option(help="Judge S4/S5 with this llm.pools entry instead "
+                                                                 "(e.g. cheap = Flash-Lite), to compare judges")]
+             = None) -> None:
     """Research and judge questions: evidence, blind answer, verification, quality and a verdict."""
-    _start_run("validate", dataset, ids, version, max_questions, yes)
+    _start_run("validate", dataset, ids, version, max_questions, yes, judge_pool)
 
 
 @app.command("next")
@@ -557,17 +566,19 @@ def eval_score(run_ids: Annotated[list[int], typer.Argument(help="One or more ru
                 raise typer.BadParameter(f"No run {run_id}")
             dataset = run.config_json.get("dataset")
             stale = run.dataset_version_id != ds_service.get_version(s, dataset, None).id
+            judge = run.config_json.get("judge_pool") or "default"
         if stale:
             typer.echo(f"  run {run_id} skipped: it used an older version of {dataset} (labels follow the latest)")
             continue
-        groups.append(([{**r, "dataset": dataset} for r in run_verdicts(db, run_id)], expectations_for(dataset)))
+        groups.append(([{**r, "dataset": dataset, "judge": judge} for r in run_verdicts(db, run_id)],
+                       expectations_for(dataset)))
     result = score_many(groups)
     if not result["labelled"]:
         typer.echo("No labelled questions in these runs (labels: eval/cases.yaml, eval/seeded_labels.yaml and "
                    "their originals as controls; `qv eval import` stores the eval datasets).")
         raise typer.Exit(1)
     for r in result["rows"]:
-        typer.echo(f"  {'ok ' if r['agrees'] else 'XX '} {r['dataset']:28} #{r['id']:>5} got {r['verdict']:10} "
+        typer.echo(f"  {'ok ' if r['agrees'] else 'XX '} {r['dataset']:28} {r['judge']:8} #{r['id']:>5} got {r['verdict']:10} "
                    f"{r['review']:16} expected {r['expected']:20} ({r['label']})")
     for k, v in result.items():
         if k != "rows":

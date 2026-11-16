@@ -209,3 +209,23 @@ def test_cli_verdicts(db: Database, dataset: None, monkeypatch: pytest.MonkeyPat
     assert "#  135" in out
     out = CliRunner().invoke(app, ["verdict", str(run_id), "135"]).output
     assert "VERDICT" in out and "Why:" in out
+
+
+@respx.mock
+def test_a_judge_pool_keeps_its_results_apart(db: Database, dataset: None) -> None:
+    """Judging the same question with another pool calls the model again (no reuse of the other judge's outputs)."""
+    mock_web()
+    llm = JudgingLLM()
+    deps = judging_deps(db, llm)
+    deps.named_pools["cheap"] = deps.runner.pools["s4"]
+    first = start_run(db, "mini", ["135"], kind="validate")
+    execute_run(deps, first)
+    judged = sum(1 for st, _ in llm.prompts if st in ("s4", "s5"))
+    second = start_run(db, "mini", ["135"], kind="validate", config={"judge_pool": "cheap"})
+    execute_run(deps, second)
+    assert sum(1 for st, _ in llm.prompts if st in ("s4", "s5")) == 2 * judged  # judged again
+    third = start_run(db, "mini", ["135"], kind="validate", config={"judge_pool": "cheap"})
+    execute_run(deps, third)
+    assert sum(1 for st, _ in llm.prompts if st in ("s4", "s5")) == 2 * judged  # same judge: cached
+    bad = start_run(db, "mini", ["135"], kind="validate", config={"judge_pool": "nope"})
+    assert execute_run(deps, bad).failed == 1

@@ -55,9 +55,18 @@ def _evidence_hash(passages: list[EvidencePassage]) -> list[list[Any]]:
 
 def judge_question(db: Database, runner: StageRunner, run_id: int, question_id: int, q: Question,
                    profile: Profile, s1a_output_id: int, s1b_output_id: int,
-                   requirements: dict[str, list[dict]] | None = None, audit_percent: float = 3.0) -> dict:
-    """Run S4/S5/S6 (cached), apply S8 and store the validation. Returns statistics for the run report."""
+                   requirements: dict[str, list[dict]] | None = None, audit_percent: float = 3.0,
+                   judge_pool: tuple[str, Any] | None = None) -> dict:
+    """Run S4/S5/S6 (cached), apply S8 and store the validation. Returns statistics for the run report.
+
+    `judge_pool` = (name, ModelPool) replaces the configured pool for S4 and S5 (e.g. to measure Flash-Lite
+    as the judge). Its name is part of their input hash, so outputs of different judges never mix.
+    """
     requirements = requirements or load_requirements()
+    judge_tag: dict[str, str] = {}
+    if judge_pool is not None:
+        runner = StageRunner(db, {**runner.pools, "s4": judge_pool[1], "s5": judge_pool[1]})
+        judge_tag = {"judge_pool": judge_pool[0]}
     s1a: Decomposition = _output(db, s1a_output_id, Decomposition)
     s1b = filter_s1b_lookups(_output(db, s1b_output_id, ClaimFormulation), q)
     passages = load_evidence(db, run_id, question_id)
@@ -68,13 +77,14 @@ def judge_question(db: Database, runner: StageRunner, run_id: int, question_id: 
     s4_id = s5_id = None
     if blind_passages(passages):
         r4 = runner.run(stage="s4", user=render_s4(q, s1a, passages), schema_cls=BlindAnswer,
-                        hash_inputs={**question_hash, "ev": _evidence_hash(blind_passages(passages))},
+                        hash_inputs={**question_hash, **judge_tag, "ev": _evidence_hash(blind_passages(passages))},
                         ctx=CallContext(run_id, question_id, "s4"), checks=lambda o: check_s4(o, q, passages))
         s4, s4_id = r4.output, r4.stage_output_id
         stats["s4_check_problems"] = len(r4.checks)
     if passages:
         r5 = runner.run(stage="s5", user=render_s5(q, s1a, s1b, profile, passages), schema_cls=Verification,
-                        hash_inputs={**question_hash, "key": q.answer, "note": q.note, "s1b": s1b_output_id,
+                        hash_inputs={**question_hash, **judge_tag, "key": q.answer, "note": q.note,
+                                     "s1b": s1b_output_id,
                                      "ev": _evidence_hash(passages), "s4": s4_id},
                         system_values=s5_system_values(q, s1a, profile, s4, requirements),
                         ctx=CallContext(run_id, question_id, "s5"), checks=lambda o: check_s5(o, q, passages))
@@ -132,11 +142,13 @@ def judge_run(deps: Any, run_id: int, ext_ids: list[str] | None = None) -> list[
     from qv.providers.usage import QuotaExhausted
     from qv.services.research import question_from_row
 
+    from qv.services.research import judge_pool_of
     db = deps.db
     with db.session() as s:
         run = s.get(Run, run_id)
         if run is None:
             raise ValueError(f"No run {run_id}")
+        judge_pool = judge_pool_of(deps, run.config_json.get("judge_pool"))
         profile = load_profile(s.get(DatasetVersion, run.dataset_version_id).profile)
         rows = list(s.execute(select(RunQuestion.stats_json, QuestionRow).join(
             QuestionRow, QuestionRow.id == RunQuestion.question_id).where(
@@ -152,7 +164,7 @@ def judge_run(deps: Any, run_id: int, ext_ids: list[str] | None = None) -> list[
             continue
         try:
             st = judge_question(db, deps.runner, run_id, qrow.id, q, profile, stats["s1a_output_id"],
-                                stats["s1b_output_id"], requirements, deps.audit_percent)
+                                stats["s1b_output_id"], requirements, deps.audit_percent, judge_pool)
             lines.append(f"  #{q.ext_id}: {st['verdict']} ({st['strength']}), {st['review']}")
         except QuotaExhausted as exc:
             lines.append(f"Stopped: {exc}. Run `qv judge {run_id}` again later; finished stages are reused.")

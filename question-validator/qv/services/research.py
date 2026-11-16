@@ -66,6 +66,7 @@ class ResearchDeps:
     alislam: SearchProvider | None = None
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
     audit_percent: float = 3.0
+    named_pools: dict[str, ModelPool] = field(default_factory=dict)  # every llm.pools entry, for --judge-pool
 
 
 def pool_entries(labels: list[str], providers: dict[str, LLMProvider], pcfg: ProvidersConfig) -> list[PoolEntry]:
@@ -139,8 +140,11 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
     metering = Metering.for_db(db, pcfg.reserve_fraction)
     fetcher = Fetcher(db, metering.recorder, metering.limiter, pcfg.fetch, contact=settings.contact)
     rcfg = load_research_config()
+    providers = build_llm_providers(settings, pcfg, metering)
+    named = {name: ModelPool(entries, metering) for name, labels in pcfg.llm.pools.items()
+             if (entries := pool_entries(labels, providers, pcfg))}
     return ResearchDeps(
-        db=db, runner=StageRunner(db, build_pools(build_llm_providers(settings, pcfg, metering), pcfg, metering)),
+        db=db, runner=StageRunner(db, build_pools(providers, pcfg, metering)), named_pools=named,
         router=SearchRouter(db, build_search_pools(settings, pcfg, metering), metering,
                             cache_days=rcfg.search_cache_days),
         fetcher=fetcher, quran=QuranSource(fetcher), registry=load_registry(), cfg=rcfg, metering=metering,
@@ -207,6 +211,7 @@ def execute_run(deps: ResearchDeps, run_id: int, *, max_questions: int | None = 
         version = s.get(DatasetVersion, run.dataset_version_id)
         profile = load_profile(version.profile)
         judging = run.kind == "validate"
+        judge_name = run.config_json.get("judge_pool")
         todo = list(s.execute(select(RunQuestion.id, QuestionRow).join(QuestionRow,
                     QuestionRow.id == RunQuestion.question_id)
                     .where(RunQuestion.run_id == run_id, RunQuestion.status.in_(("pending", "stopped")))
@@ -223,7 +228,8 @@ def execute_run(deps: ResearchDeps, run_id: int, *, max_questions: int | None = 
             if judging:
                 _set_rq(db, rq_id, "pending", None, None, "judgement")
                 stats.update(judge_question(db, deps.runner, run_id, qrow.id, q, profile, stats["s1a_output_id"],
-                                            stats["s1b_output_id"], audit_percent=deps.audit_percent))
+                                            stats["s1b_output_id"], audit_percent=deps.audit_percent,
+                                            judge_pool=judge_pool_of(deps, judge_name)))
             _set_rq(db, rq_id, "done", None, stats)
             report.done += 1
             report.questions.append({"id": q.ext_id, **stats})
@@ -245,6 +251,15 @@ def execute_run(deps: ResearchDeps, run_id: int, *, max_questions: int | None = 
         else:
             run.status = "done" if not any(st == "failed" for st in statuses) else "done_with_failures"
     return report
+
+
+def judge_pool_of(deps: ResearchDeps, name: str | None) -> tuple[str, ModelPool] | None:
+    """The pool a run asked to judge with (S4/S5), or None for the configured one."""
+    if not name:
+        return None
+    if name not in deps.named_pools:
+        raise LLMError(f"Judge pool '{name}' is not configured or has no usable model")
+    return name, deps.named_pools[name]
 
 
 def _set_rq(db: Database, rq_id: int, status: str, error: str | None, stats: dict | None, step: str | None = None) -> None:
