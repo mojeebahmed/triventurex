@@ -186,7 +186,7 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   list use `popup_nav` (Previous / Next in the viewer's order) and change their view with `st.rerun(scope=
   "fragment")`; a widget key changed by a move goes through a `*_next` state key (set before the widget exists).
   **Help rule**: each page has `page_title(title, key, intro)` → a Help button opening `qv/ui/help_text.py`
-  `HELP[key]`; on the page only a one-line intro, state messages and short captions; field explanations are `help=`
+  `HELP[key]` (sections → tabs, each scrolling in a medium popup); on the page only a one-line intro, state messages and short captions; field explanations are `help=`
   tooltips; expanders only for data (logs, format problems), never for explanations. Layout CSS (in `CSS`): the
   collapsed sidebar is kept as a 56 px icon strip (page names as hover tooltips from the nav link's `label`
   attribute; « / » inside the menu), the "Working on" bar is `position: fixed` in the app header (right).

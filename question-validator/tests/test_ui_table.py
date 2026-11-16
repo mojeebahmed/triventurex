@@ -40,3 +40,11 @@ def test_component_key_never_contains_double_underscore() -> None:
     k = component_key("review_swab-quest_all__")          # empty search + no categories
     assert k and "__" not in k and k == component_key("review_swab-quest_all__")
     assert component_key(None) is None
+
+
+def test_every_help_page_has_titled_sections() -> None:
+    from qv.ui.help_text import HELP, help_for
+    for page in HELP:
+        sections = help_for(page)
+        assert sections and all(title and text.strip() for title, text in sections), page
+    assert "| Signal | Points |" in dict(help_for("validate"))["Fact-heavy wording"]

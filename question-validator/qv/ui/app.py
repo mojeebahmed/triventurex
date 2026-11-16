@@ -50,7 +50,11 @@ section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarN
   justify-content: center; padding: 0.45rem 0; margin: 0.1rem 6px; }
 /* « / » sit inside the menu, at its top: « always visible when open, » on the icon strip when closed */
 [data-testid="stSidebarCollapseButton"] { display: flex !important; visibility: visible !important; opacity: 1 !important; }
-body:has(section[data-testid="stSidebar"][data-collapsed="true"]) [data-testid="stHeader"] { z-index: 1000003; }
+/* the strip's top 60 px is see-through and click-through, so » (in the app header, under the menu) shows there
+   without covering the strip's edge or the Overview tooltip */
+section[data-testid="stSidebar"][data-collapsed="true"] { pointer-events: none;
+  background: linear-gradient(to bottom, transparent 60px, rgb(248, 248, 247) 60px) !important; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"] { pointer-events: auto; }
 [data-testid="stExpandSidebarButton"] { position: fixed !important; left: 0; top: 0; width: 56px; height: 60px;
   justify-content: center; align-items: center; border-radius: 0; background: rgb(248, 248, 247) !important; }
 section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"] > span[label] {
@@ -64,7 +68,8 @@ section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarN
 /* "Working on" sits in the app's top bar (right side), taking no room on the page */
 .st-key-qv_header { position: fixed; top: 0.55rem; right: 3.6rem; z-index: 1000004; width: auto !important; }
 .st-key-qv_header [data-testid="stSelectbox"] { min-width: 190px; }
-[data-testid="stMainBlockContainer"] { padding-top: 3.6rem; }
+[data-testid="stMainBlockContainer"] { padding-top: 2.6rem; padding-bottom: 1.5rem; }
+[data-testid="stMainBlockContainer"] h1 { padding-top: 0.25rem; }
 mark { background: #ffe066; padding: 0 2px; border-radius: 3px; }
 .qv-page { white-space: pre-wrap; font-size: 0.92em; line-height: 1.5; max-height: 55vh; overflow: auto;
   border: 1px solid rgba(49, 51, 63, 0.15); border-radius: 8px; padding: 0.75rem; }
@@ -212,20 +217,26 @@ def snippet(text: str, words: list[str], width: int = 90) -> str | None:
 
 
 def page_title(title: str, help_key: str, intro: str | None = None) -> None:
-    """The page title with a Help button (opens the page's help in a popup) and an optional one-line intro."""
+    """The page title with a Help button on the right (opens the page's help in a popup), and an optional
+    one-line intro."""
     c = st.columns([6, 1], vertical_alignment="center")
     c[0].title(title)
-    if c[1].button("Help", icon=":material/help:", key=f"help_{help_key}", type="tertiary",
-                   help="What this page is for and how it works"):
-        help_dialog(help_key)
+    with c[1].container(horizontal=True, horizontal_alignment="right"):
+        if st.button("Help", icon=":material/help:", key=f"help_{help_key}", type="tertiary",
+                     help="What this page is for and how it works"):
+            help_dialog(help_key)
     if intro:
         st.caption(intro)
 
 
-@st.dialog("Help", width="large")
+@st.dialog("Help", width="medium")
 def help_dialog(key: str) -> None:
-    """The help text of one page."""
-    st.markdown(help_for(key))
+    """The help of one page: its sections as tabs, each scrolling inside the popup."""
+    sections = help_for(key)
+    tabs = st.tabs([t for t, _ in sections]) if len(sections) > 1 else [st.container()]
+    for tab, (_, text) in zip(tabs, sections):
+        with tab, st.container(height=380, border=False):
+            st.markdown(text)
 
 
 def current() -> str:
