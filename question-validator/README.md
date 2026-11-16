@@ -7,6 +7,9 @@ factual accuracy and quality, with traceable evidence for every conclusion.
 analysis, free web search, page fetching, Qur'an verses from alislam.org, verbatim passages checked against the
 stored pages) and judgement (blind answer, verification, quality, rule-based verdict). Free services only.
 
+**New here? Start with [`USER_GUIDE.md`](USER_GUIDE.md)** — the four-step workflow (import, validate, review,
+export).
+
 - [`SPECIFICATION.md`](SPECIFICATION.md) — the original PRD and technical specification (unchanged copy).
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — review of the specification, the revised architecture, database
   design, processing workflow, API strategy and phased plan.

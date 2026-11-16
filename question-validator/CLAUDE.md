@@ -10,6 +10,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `ARCHITECTURE.md` — stack, database design, workflow, API strategy, phased plan (§6). Where §3 differs from
   METHODOLOGY.md, METHODOLOGY.md wins.
 - `prompts/` — prompt + JSON schema per stage. Prompts are versioned: change a prompt → new version file.
+- `USER_GUIDE.md` — the simple four-step workflow for Mojeeb (and what of it is built).
 - `DATABASE.md` — tables in plain words, how to inspect the database, example queries. Update it when a table
   or an inspecting command changes.
 - `SPECIFICATION.md` — the original PRD (unchanged copy; don't edit).
@@ -42,6 +43,12 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   40 of 50 mutations unchanged). Next: `qv resume 6`, then the remaining seeded + control datasets. Seen: #127 and #285 (same question) got different claim types from
   S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
+
+## Simple workflow (proposed 2026-11-16, waiting for Mojeeb's go-ahead)
+Mojeeb wants the tool usable with very few steps, preferably in the web page: import → validate next batch
+(one button / `qv next`, press again when it stops) → review with one-click decisions → export. Target and
+build plan: `USER_GUIDE.md` (keep its 🟢/🟡/⚪ markers current). This is ARCHITECTURE.md phases 4–5, made
+simple; all existing commands stay for power users and debugging.
 
 ## Next work (agreed order, 2026-11-15)
 1. **Local model provider (Ollama)** — Mojeeb's Mac: M2 Pro, 32 GB, Ollama installed with `qwen3:14b`, `gemma3:12b`,
