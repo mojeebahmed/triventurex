@@ -94,3 +94,45 @@ def test_religious_frames_are_marked_draft() -> None:
 def test_unknown_profile() -> None:
     with pytest.raises(FileNotFoundError, match="available"):
         load_profile("nope")
+
+
+# --- measuring phase 3 on the eval set ---------------------------------------------------
+
+def test_eval_import_plan_splits_seeded_by_edition_and_adds_controls() -> None:
+    from qv.domain.question import Question
+    from qv.evaluation import (
+        EVAL_DIR, KNOWN_ERRORS_DATASET, SEEDED_DATASET, eval_import_plan, load_questions, load_seeded_labels)
+    labels = {lab.eval_id: lab for lab in load_seeded_labels()}
+    seeded = load_questions(EVAL_DIR / "seeded.csv")
+    plan = eval_import_plan()
+    assert plan[0]["dataset"] == KNOWN_ERRORS_DATASET and plan[0]["profile"] == "football-quest"
+    split = [p for p in plan if p["dataset"].startswith(SEEDED_DATASET + "-")]
+    assert sorted(i for p in split for i in p["ids"]) == sorted(labels)  # every seeded question once
+    for p in split:
+        parsed = parse_csv(p["data"])
+        qs = [Question.from_row(r, parsed.header) for r in parsed.rows]
+        assert [q.ext_id for q in qs] == p["ids"]
+        assert all(labels[q.ext_id].source_dataset == p["profile"] for q in qs)  # judged with its own edition
+        assert all(q.question == seeded[q.ext_id].question and q.answer == seeded[q.ext_id].answer for q in qs)
+    controls = {p["dataset"]: p["ids"] for p in plan if p["dataset"] in EDITIONS}
+    assert {(e, i) for e, ids in controls.items() for i in ids} == \
+        {(lab.source_dataset, lab.source_id) for lab in labels.values()}
+
+
+def test_expectations_include_controls_and_seeded_subsets() -> None:
+    from qv.evaluation import CONTROL, expectations_for, load_seeded_labels
+    lab = load_seeded_labels()[0]
+    assert expectations_for(f"eval-seeded-{lab.source_dataset}")[lab.eval_id][1] == "seeded"
+    exp = expectations_for(lab.source_dataset)
+    assert exp[lab.source_id] == (CONTROL, "control") or exp[lab.source_id][1] in ("hypothesis", "confirmed")
+
+
+def test_score_many_combines_runs() -> None:
+    from qv.evaluation import CONTROL, Expectation, score_many
+    seeded = {"1": (Expectation(verdict="INCORRECT"), "seeded")}
+    control = {"107": (CONTROL, "control")}
+    res = score_many([([{"id": "1", "verdict": "INCORRECT", "review": "needs_review"}], seeded),
+                      ([{"id": "107", "verdict": "UNVERIFIED", "review": "needs_evidence"},
+                        {"id": "1", "verdict": "VERIFIED", "review": "auto_ok"}], control)])  # id 1 unlabelled here
+    assert (res["labelled"], res["errors"], res["error_recall_pct"]) == (2, 1, 100.0)
+    assert (res["good"], res["false_incorrect_pct"], res["verdict_agreement_pct"]) == (1, 0.0, 100.0)

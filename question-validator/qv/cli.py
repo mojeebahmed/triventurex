@@ -448,28 +448,50 @@ def eval_check() -> None:
 
 
 @eval_app.command("score")
-def eval_score(run_id: int) -> None:
-    """Compare a run's verdicts with eval/cases.yaml (or the seeded labels) — Phase 3 exit metrics."""
+def eval_score(run_ids: Annotated[list[int], typer.Argument(help="One or more runs, scored together")]) -> None:
+    """Compare runs' verdicts with the labels (eval/cases.yaml, seeded labels, controls) — Phase 3 exit metrics."""
     from qv.db.models import Run
-    from qv.evaluation import expectations_for, score
+    from qv.evaluation import expectations_for, score_many
     from qv.services.views import run_verdicts
     db = _db()
-    with db.session() as s:
-        run = s.get(Run, run_id)
-        if run is None:
-            raise typer.BadParameter(f"No run {run_id}")
-        dataset = run.config_json.get("dataset")
-    result = score(run_verdicts(db, run_id), expectations_for(dataset))
+    groups = []
+    for run_id in run_ids:
+        with db.session() as s:
+            run = s.get(Run, run_id)
+            if run is None:
+                raise typer.BadParameter(f"No run {run_id}")
+            dataset = run.config_json.get("dataset")
+        groups.append(([{**r, "dataset": dataset} for r in run_verdicts(db, run_id)], expectations_for(dataset)))
+    result = score_many(groups)
     if not result["labelled"]:
-        typer.echo(f"No labelled questions of '{dataset}' in run {run_id} (labels: eval/cases.yaml, "
-                   "eval/seeded_labels.yaml; import eval files as datasets eval-known-errors / eval-seeded).")
+        typer.echo("No labelled questions in these runs (labels: eval/cases.yaml, eval/seeded_labels.yaml and "
+                   "their originals as controls; `qv eval import` stores the eval datasets).")
         raise typer.Exit(1)
     for r in result["rows"]:
-        typer.echo(f"  {'ok ' if r['agrees'] else 'XX '} #{r['id']:>5} got {r['verdict']:10} {r['review']:16} "
-                   f"expected {r['expected']:20} ({r['label']})")
+        typer.echo(f"  {'ok ' if r['agrees'] else 'XX '} {r['dataset']:28} #{r['id']:>5} got {r['verdict']:10} "
+                   f"{r['review']:16} expected {r['expected']:20} ({r['label']})")
     for k, v in result.items():
         if k != "rows":
             typer.echo(f"  {k:24} {v}")
+
+
+@eval_app.command("import")
+def eval_import() -> None:
+    """Store the eval set as datasets (seeded questions split by edition) and print the runs to start."""
+    from qv.evaluation import eval_import_plan
+    db = _db()
+    commands = []
+    for item in eval_import_plan():
+        with db.session() as s:
+            res = ds_service.import_dataset(s, item["data"], dataset_name=item["dataset"],
+                                            source_filename=item["filename"], profile_name=item["profile"])
+        state = f"version {res.version_no}" + ("" if res.created else " (unchanged)")
+        typer.echo(f"  {item['dataset']:30} {state:22} {len(item['ids']):3} question(s) to validate")
+        commands.append(f"qv validate {item['dataset']} --ids {','.join(item['ids'])}")
+    typer.echo("Validate them (each asks before it starts; a stopped run continues with `qv resume <run>`):")
+    for c in commands:
+        typer.echo(f"  {c}")
+    typer.echo("Then: qv eval score <run> [<run> …]")
 
 
 @eval_app.command("seed")

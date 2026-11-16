@@ -297,17 +297,68 @@ def stratified_sample(sources: dict[str, dict[str, Question]], *, n: int = 150, 
 
 SEEDED_DATASET = "eval-seeded"
 ERROR_VERDICTS = {"INCORRECT", "AMBIGUOUS", "CONTESTED", "OUTDATED"}
+CONTROL = Expectation(any_of=("VERIFIED", "UNVERIFIED"))
+"""A seeded question's unchanged original: believed correct, so anything but INCORRECT/AMBIGUOUS/… is fine."""
+
+
+def seeded_dataset_name(edition: str) -> str:
+    """Dataset name of the seeded questions made from one edition (each keeps that edition's profile)."""
+    return f"{SEEDED_DATASET}-{edition}"
+
+
+def eval_import_plan(seeded_csv: Path = EVAL_DIR / "seeded.csv",
+                     known_csv: Path = EVAL_DIR / "known_errors.csv") -> list[dict]:
+    """What `qv eval import` stores, as {dataset, profile, filename, data, ids}.
+
+    - eval-known-errors (Football Quest's profile — all four come from it)
+    - eval-seeded-<edition>: seeded.csv split by source edition, so each question is judged with its own
+      edition's profile (frame, audience, specialist topics)
+    - <edition>: the edition's current questions.csv; `ids` are the originals of its seeded questions, used as
+      controls for the false-INCORRECT rate (METHODOLOGY.md §12)
+    """
+    labels = load_seeded_labels()
+    by_edition: dict[str, list[SeededLabel]] = defaultdict(list)
+    for lab in labels:
+        by_edition[lab.source_dataset].append(lab)
+    raw = seeded_csv.read_bytes()
+    parsed = parse_csv(raw)
+    header = raw.split(b"\n", 1)[0].rstrip(b"\r")
+    line_of = {Question.from_row(r, parsed.header).ext_id: r.raw_line for r in parsed.rows}
+    plan = [{"dataset": KNOWN_ERRORS_DATASET, "profile": "football-quest", "filename": known_csv.name,
+             "data": known_csv.read_bytes(), "ids": sorted(load_questions(known_csv), key=int)}]
+    for edition in sorted(by_edition):
+        ids = [lab.eval_id for lab in by_edition[edition]]
+        body = b"\n".join([header, *(line_of[i].encode("utf-8") for i in ids)]) + b"\n"
+        plan.append({"dataset": seeded_dataset_name(edition), "profile": edition,
+                     "filename": f"seeded-{edition}.csv", "data": body, "ids": ids})
+    for edition in sorted(by_edition):
+        path = EDITIONS_DIR / edition / "questions.csv"
+        plan.append({"dataset": edition, "profile": edition, "filename": path.name, "data": path.read_bytes(),
+                     "ids": sorted({lab.source_id for lab in by_edition[edition]}, key=int)})
+    return plan
 
 
 def expectations_for(dataset: str) -> dict[str, tuple[Expectation, str]]:
-    """Labelled ids of one dataset (an edition, eval-known-errors or eval-seeded) → (expectation, label status)."""
-    if dataset == SEEDED_DATASET:
+    """Labelled ids of one dataset → (expectation, label status).
+
+    eval-seeded / eval-seeded-<edition>: the seeded labels. An edition: its cases.yaml entries plus, as
+    "control", the originals of its seeded questions (a case wins over a control).
+    """
+    if dataset == SEEDED_DATASET or dataset.startswith(SEEDED_DATASET + "-"):
         return {lab.eval_id: (lab.expect, "seeded") for lab in load_seeded_labels()}
-    return {c.id: (c.expect, c.status) for c in load_cases() if c.dataset == dataset}
+    out: dict[str, tuple[Expectation, str]] = {
+        lab.source_id: (CONTROL, "control") for lab in load_seeded_labels() if lab.source_dataset == dataset}
+    out.update({c.id: (c.expect, c.status) for c in load_cases() if c.dataset == dataset})
+    return out
 
 
 def score(results: list[dict], expectations: dict[str, tuple[Expectation, str]]) -> dict:
-    """Phase 3 metrics for verdicts `results` ({id, verdict, review}) against labels.
+    """Phase 3 metrics for verdicts `results` ({id, verdict, review}) against labels."""
+    return score_many([(results, expectations)])
+
+
+def score_many(groups: list[tuple[list[dict], dict[str, tuple[Expectation, str]]]]) -> dict:
+    """Phase 3 metrics over several runs, each with its own labels.
 
     - error_recall: labelled errors caught (error verdict or routed to review/specialist) — target ≥ 90 %
     - false_incorrect_rate: labelled good questions marked INCORRECT — target ≤ 3 %
@@ -315,23 +366,23 @@ def score(results: list[dict], expectations: dict[str, tuple[Expectation, str]])
     - verdict_agreement: verdict accepted by the label
     """
     rows, errors, caught, good, false_incorrect, false_verified, agree = [], 0, 0, 0, 0, 0, 0
-    for r in results:
-        if r["id"] not in expectations:
-            continue
-        exp, status = expectations[r["id"]]
-        expected_error = bool({exp.verdict, *exp.any_of} & ERROR_VERDICTS) and "VERIFIED" not in (exp.verdict,
-                                                                                                 *exp.any_of)
-        ok = exp.accepts(r["verdict"])
-        agree += ok
-        if expected_error:
-            errors += 1
-            hit = r["verdict"] in ERROR_VERDICTS or r["review"] in ("needs_review", "needs_specialist")
-            caught += hit
-            false_verified += r["verdict"] == "VERIFIED"
-        elif exp.verdict == "VERIFIED" or "VERIFIED" in exp.any_of:
-            good += 1
-            false_incorrect += r["verdict"] == "INCORRECT"
-        rows.append({**r, "expected": exp.verdict or "/".join(exp.any_of), "label": status, "agrees": ok})
+    for results, expectations in groups:
+        for r in results:
+            if r["id"] not in expectations:
+                continue
+            exp, status = expectations[r["id"]]
+            accepted = (exp.verdict, *exp.any_of)
+            expected_error = bool(set(accepted) & ERROR_VERDICTS) and "VERIFIED" not in accepted
+            ok = exp.accepts(r["verdict"])
+            agree += ok
+            if expected_error:
+                errors += 1
+                caught += r["verdict"] in ERROR_VERDICTS or r["review"] in ("needs_review", "needs_specialist")
+                false_verified += r["verdict"] == "VERIFIED"
+            elif "VERIFIED" in accepted:
+                good += 1
+                false_incorrect += r["verdict"] == "INCORRECT"
+            rows.append({**r, "expected": exp.verdict or "/".join(exp.any_of), "label": status, "agrees": ok})
     pct = (lambda a, b: round(100 * a / b, 1) if b else None)
     return {"labelled": len(rows), "verdict_agreement_pct": pct(agree, len(rows)),
             "errors": errors, "error_recall_pct": pct(caught, errors), "false_verifications": false_verified,
