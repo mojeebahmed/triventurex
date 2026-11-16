@@ -70,6 +70,11 @@ all other commands stay for power users and debugging.
    carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
    new rows with new ids, never written into `game_editions/`.
 
+**Web tables — fix later (Mojeeb, 2026-11-16):** Streamlit's table (glide) is a stop-gap. Wanted: click anywhere on a
+row selects and highlights the whole row; no tick-box column unless several rows can be picked for an action; no
+cell highlight on click; double-click must not open a cell editor. Probably our own table component or another
+table library (e.g. AG Grid via streamlit-aggrid, or a small custom component) behind `data_table()`.
+
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
 (`not_text`); 11 sites answered 403; Wikipedia needs `QV_CONTACT` in `.env` (Mojeeb has not set one); no hadith
 direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be checked in AI Studio.
