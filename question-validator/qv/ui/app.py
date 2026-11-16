@@ -21,9 +21,9 @@ import streamlit as st
 
 from qv.config import Settings, available_profiles, load_profile, load_research_config
 from qv.db.session import Database
-from qv.pipeline.priority import SIGNALS
 from qv.services import views, worker, workflow
 from qv.services.workflow import STATUS_LABEL
+from qv.ui.help_text import help_for
 from qv.ui.table import render_table
 
 st.set_page_config(page_title="Question Validator", page_icon="✅", layout="wide")
@@ -34,8 +34,37 @@ CSS = """
 [data-testid="stSidebar"] [data-testid="stNavSectionHeader"] { font-weight: 700; letter-spacing: .02em; }
 [data-testid="stSidebarNav"]::before { content: "✅ Question Validator"; display: block; font-size: 1.25rem;
   font-weight: 700; padding: 0 0 0.8rem 0.6rem; }
-.st-key-qv_header { border-bottom: 1px solid rgba(49, 51, 63, 0.15); padding-bottom: 0.6rem; margin-bottom: 0.4rem; }
-.qv-file { font-size: 0.85rem; color: #666; line-height: 1.35; }
+/* Collapsed menu = a narrow strip of icons; the page name shows as a tooltip on hover */
+section[data-testid="stSidebar"][data-collapsed="true"] { transform: none !important; width: 56px !important;
+  min-width: 56px !important; max-width: 56px !important; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarContent"],
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNav"],
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavItems"] { overflow: visible !important; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNav"] { padding-top: 3.2rem; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNav"]::before,
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarUserContent"],
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarHeader"] { display: none !important; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stNavSectionHeader"] { height: 1px;
+  overflow: hidden; color: transparent; background: rgba(49, 51, 63, 0.15); margin: 0.5rem 0.6rem; padding: 0; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"] { position: relative;
+  justify-content: center; padding: 0.45rem 0; margin: 0.1rem 6px; }
+/* « / » sit inside the menu, at its top: « always visible when open, » on the icon strip when closed */
+[data-testid="stSidebarCollapseButton"] { display: flex !important; visibility: visible !important; opacity: 1 !important; }
+body:has(section[data-testid="stSidebar"][data-collapsed="true"]) [data-testid="stHeader"] { z-index: 1000003; }
+[data-testid="stExpandSidebarButton"] { position: fixed !important; left: 0; top: 0; width: 56px; height: 60px;
+  justify-content: center; align-items: center; border-radius: 0; background: rgb(248, 248, 247) !important; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"] > span[label] {
+  display: none; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"]:hover > span[label] {
+  display: block; position: absolute; left: 50px; top: 50%; transform: translateY(-50%); z-index: 1000001;
+  background: #31333f; color: #fff; padding: 3px 10px; border-radius: 6px; white-space: nowrap; font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); pointer-events: none; }
+section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarNavLink"]:hover > span[label] p {
+  color: #fff; margin: 0; }
+/* "Working on" sits in the app's top bar (right side), taking no room on the page */
+.st-key-qv_header { position: fixed; top: 0.55rem; right: 3.6rem; z-index: 1000004; width: auto !important; }
+.st-key-qv_header [data-testid="stSelectbox"] { min-width: 190px; }
+[data-testid="stMainBlockContainer"] { padding-top: 3.6rem; }
 mark { background: #ffe066; padding: 0 2px; border-radius: 3px; }
 .qv-page { white-space: pre-wrap; font-size: 0.92em; line-height: 1.5; max-height: 55vh; overflow: auto;
   border: 1px solid rgba(49, 51, 63, 0.15); border-radius: 8px; padding: 0.75rem; }
@@ -76,23 +105,6 @@ GROUP_HELP = {
 }
 READY_HELP = ("Ready for the game = 🤖 verified automatically + 👍 confirmed by you + ✏️ edited by you. "
               "These are the questions in the *Ready questions only* download.")
-LEGEND = """
-**Verdicts** — VERIFIED · INCORRECT · OUTDATED · CONTESTED · AMBIGUOUS · UNVERIFIED (not enough evidence; not
-the same as wrong).
-
-**Evidence for the answer** — STRONG: meets the bar for this kind of fact (e.g. the verse itself for a Qur'an
-question; the official record or two independent expert sources for a record) · MODERATE: some independent
-support, below the bar · WEAK: one source · NONE.
-
-**Answer found without the key** — the evidence was read by a step that was *not told* the expected answer.
-"same" is the strongest sign the answer is right; "different" is the strongest sign of an error.
-
-**Sources** — P primary (the text itself, the official record, the author's own book) · S expert (scholarly,
-reputable news, official histories) · T encyclopaedia / summary · X not evidence (quiz sites, forums). A
-*frame authority* is an official source of the edition's tradition (e.g. alislam.org).
-
-**Origins (C1, C2 …)** — passages that trace back to the same source count once, however many sites repeat it.
-"""
 
 
 @st.cache_resource
@@ -197,6 +209,23 @@ def snippet(text: str, words: list[str], width: int = 90) -> str | None:
         lo += 1
     hi = min(len(text), at + width)
     return ("…" if lo else "") + " ".join(text[lo:hi].split()) + ("…" if hi < len(text) else "")
+
+
+def page_title(title: str, help_key: str, intro: str | None = None) -> None:
+    """The page title with a Help button (opens the page's help in a popup) and an optional one-line intro."""
+    c = st.columns([6, 1], vertical_alignment="center")
+    c[0].title(title)
+    if c[1].button("Help", icon=":material/help:", key=f"help_{help_key}", type="tertiary",
+                   help="What this page is for and how it works"):
+        help_dialog(help_key)
+    if intro:
+        st.caption(intro)
+
+
+@st.dialog("Help", width="large")
+def help_dialog(key: str) -> None:
+    """The help text of one page."""
+    st.markdown(help_for(key))
 
 
 def current() -> str:
@@ -335,43 +364,47 @@ def popup_nav(pos_key: str, n: int, what: str, on_move: Callable[[], None] | Non
 # --- header bar: the file being worked on --------------------------------------------------
 
 def file_header() -> None:
-    """The bar on top of the pages that work on one file: which file, its import, a running batch."""
+    """The file being worked on, in the app's top bar: picker, ⓘ details, a running batch, evaluation sets."""
     names = workflow.dataset_names(db, include_eval=st.session_state.get("show_eval", False))
-    with st.container(key="qv_header"):
-        cols = st.columns([3, 5, 2], vertical_alignment="center")
+    with st.container(key="qv_header", horizontal=True, vertical_alignment="center", gap="small"):
         if not names:
-            cols[0].info("No file yet — start with **Import**.")
+            st.caption("No file yet — start with Import")
             return
+        batch = worker.status(settings.data_dir)
+        if batch.running:
+            st.markdown("⏳", help=f"Checking {batch.dataset} since {batch.started}")
         if st.session_state.get("_file_pick") != st.session_state.get("dataset"):
             st.session_state["_file_pick"] = st.session_state.get("dataset")
 
         def picked() -> None:
             st.session_state.dataset = st.session_state["_file_pick"]
 
-        cols[0].selectbox("📄 Working on", names, key="_file_pick", on_change=picked)
+        st.selectbox("Working on", names, key="_file_pick", on_change=picked, label_visibility="collapsed",
+                     icon=":material/description:", width=220)
         card = {c["file"]: c for c in views.dataset_cards(db, include_eval=True)}.get(st.session_state.dataset)
-        batch = worker.status(settings.data_dir)
-        if card:
-            cols[1].markdown(f"<div class='qv-file'><b>{html.escape(card['source file'])}</b> · version "
-                             f"{card['version']} · imported {card['imported']} · {card['questions']} questions · "
-                             f"profile <i>{html.escape(card['profile'])}</i>"
-                             + (f"<br>⏳ checking <b>{html.escape(batch.dataset)}</b> since {batch.started}"
-                                if batch.running else "") + "</div>", unsafe_allow_html=True)
-        cols[2].toggle("Eval sets", key="show_eval", help="Also list the eval-… files used to measure the "
-                                                                "validator")
+        with st.popover("", icon=":material/info:", help="About this file", type="tertiary"):
+            if card:
+                st.markdown(f"**{card['file']}**  \nSource file: {card['source file']}  \nVersion {card['version']} "
+                            f"· imported {card['imported']}  \n{card['questions']} questions · profile "
+                            f"*{card['profile']}*")
+            if batch.running:
+                st.markdown(f"⏳ Checking **{batch.dataset}** since {batch.started}")
+            st.caption("Switch files here or by clicking a row on the Overview.")
+        st.toggle("Eval sets", key="show_eval", help="Also list the evaluation files (eval-…) used to measure how "
+                                                     "well the validator works")
 
 
 # ===========================================================================================
 def page_overview() -> None:
     """Every file with its progress, and the next step for the current one."""
-    st.title("Overview")
+    page_title("Overview", "overview")
     cards = views.dataset_cards(db, include_eval=st.session_state.get("show_eval", False))
     if not cards:
         st.info("Nothing imported yet. Import a question file (one per game edition) to begin.")
         if st.button("Go to Import", type="primary"):
             st.switch_page(PAGES["import"])
         return
-    st.markdown("Your question files — one per game edition. **Click a row** to work on that file.")
+    st.caption("Your question files — one per game edition. Click a row to work on that file.")
     here = next((i for i, c in enumerate(cards) if c["file"] == st.session_state.get("dataset")), None)
 
     def switch(row: int, _order: list[int]) -> None:
@@ -392,14 +425,6 @@ def page_overview() -> None:
     st.caption(f"Ready = 🤖 {c['verified']} verified automatically · 👍 {c['approved']} confirmed by you · "
                f"✏️ {c['edited']} edited by you")
     next_step(name)
-    with st.expander("How it works"):
-        st.markdown("1. **Import** a question file (the game's CSV format) — its format is checked first.\n"
-                    "2. **Validate**: press *Start checking now*. The free AI limits allow a few dozen questions a "
-                    "day; when a batch stops, press it again later (or turn on the **Daily run**). Finished work "
-                    "is never repeated.\n"
-                    "3. **Review** the results: look at what needs a person, and at any verified question you "
-                    "want to double-check. Confirm, edit, ask the specialist or remove.\n"
-                    "4. **Export** the corrected file and copy it into the game.")
 
 
 # ===========================================================================================
@@ -408,7 +433,7 @@ def page_import() -> None:
     from qv.services import datasets as ds_service
     from qv.services.import_fixes import suggest_fixes
     from qv.services.import_help import hint
-    st.title("Import a question file")
+    page_title("Import a question file", "import")
     existing = workflow.dataset_names(db, include_eval=True)
     dataset = st.session_state.get("dataset")
 
@@ -431,12 +456,10 @@ def page_import() -> None:
                                     "Ahmadiyya understanding")
 
     st.markdown("#### 2 · Choose the file")
-    with st.expander("Which format?"):
-        st.markdown("The game's CSV format — one question per line. Columns (any order): **id, question, type, "
-                    "answer**, opt_a, opt_b, opt_c, opt_d, difficulty, category, subcategory, topic, note. "
-                    "The first four are required. For `multi`, the answer is the option number 1–4.")
     up = st.file_uploader("Question file (.csv)", type=["csv"], disabled=not name,
-                          help=None if name else "Give the new file a name first")
+                          help="The game's CSV format: id, question, type, answer (required), opt_a–opt_d, "
+                               "difficulty, category, subcategory, topic, note — details under Help"
+                          if name else "Give the new file a name first")
     if up is None or not name:
         return
 
@@ -519,7 +542,7 @@ def page_import() -> None:
 def page_validate() -> None:
     """Choose the next batch (which questions, order, size), start it; follow a running batch."""
     name = current()
-    st.title("Validate")
+    page_title("Validate", "validate")
     states = workflow.question_states(db, name)
     c = progress(states)
 
@@ -564,7 +587,8 @@ def page_validate() -> None:
             sel_diffs = f[3].multiselect("Difficulty", sorted({s.difficulty for s in left if s.difficulty}),
                                          placeholder="any")
             sel_levels = f[4].multiselect("Fact-heavy wording", ["high", "medium", "low"], placeholder="any",
-                                          help="Explained at the bottom of this page")
+                                          help="Wording where quiz answers most often go wrong (numbers, "
+                                               "'first / only', dates …) — not a prediction. Details under Help")
         elif which == "ids":
             text = st.text_input("Ids", placeholder="e.g. 1, 5, 10-12", label_visibility="collapsed")
             ids = workflow.parse_ids(text) or []
@@ -572,8 +596,8 @@ def page_validate() -> None:
         st.markdown("**2 · In which order**")
         order = st.radio("Order", list(workflow.ORDERS), format_func=workflow.ORDERS.get, horizontal=True,
                          key=f"order_{name}", label_visibility="collapsed",
-                         help="Questions you edited always come first. 'Fact-heavy wording' is explained at the "
-                              "bottom of this page.")
+                         help="Questions you edited always come first. 'Fact-heavy wording' only changes the order "
+                              "— explained under Help.")
 
         st.markdown("**3 · How many**")
         default = load_research_config().batch_size
@@ -620,21 +644,6 @@ def page_validate() -> None:
         st.warning(f"{c['format_error']} question(s) have format errors and are skipped — fix them in the file "
                    "and import it again.")
 
-    with st.expander("ℹ️ What does 'fact-heavy wording' mean?"):
-        st.markdown(
-            "It is **only a way to choose the order** (and, under *Only some*, a filter): check *fact-heavy* "
-            "questions first. It reads only the wording — no AI, no sources — and counts the kinds of wording where "
-            "quiz answers most often turn out wrong.\n\n"
-            "It does **not** say how likely an answer is wrong. A question with many points can be perfectly right, "
-            "and a question with none can be wrong. Every question still gets the full check.")
-        data_table([{"signal": r, "points": pts, "meaning": m} for r, pts, m in SIGNALS], key="signals",
-                   columns={"meaning": TEXT("Meaning", width="large")}, max_rows=10, search=False)
-        st.caption("4 points or more = high · 2–3 = medium · 0–1 = low")
-        rows = [{"id": s.ext_id, "points": s.priority_score, "level": s.priority_level,
-                 "why": ", ".join(s.priority_reasons) or "—", "difficulty": s.difficulty, "question": s.question}
-                for s in sorted(left, key=lambda s: (-s.priority_score, s.row_no))]
-        st.markdown(f"**Questions still to check, by points** ({len(rows)})")
-        data_table(rows, key=f"risk_{name}", columns={**COLS_QUESTION, "why": TEXT("Why", width="medium")})
 
 
 # ===========================================================================================
@@ -643,16 +652,12 @@ def page_daily() -> None:
     from datetime import time as _time
 
     from qv.services import daily
-    st.title("⏰ Daily run")
+    page_title("⏰ Daily run", "daily", "Your Mac starts a batch every day by itself: all questions still to check, "
+                                         "in file order, for the files you choose.")
     stat = daily.status(settings.data_dir)
     (st.success if stat.on else st.info)(
         f"**On** — every day at {stat.settings.time_text} for {', '.join(stat.settings.datasets)}" if stat.on
         else "**Off** — batches only run when you press *Start checking now* on the Validate page.")
-    st.markdown("Your Mac starts a batch every day by itself — the same as pressing *Start checking now* with **all "
-                "questions still to check, in file order** (edited questions first) — for the files you choose, in "
-                "that order, until the day's free requests are used up. It does **not** use the choices on the "
-                "Validate page. If the Mac is asleep at that time, it runs when the Mac wakes up. Results show up "
-                "in Review as usual.")
     with st.container(border=True):
         names = workflow.dataset_names(db)
         here = st.session_state.get("dataset")
@@ -679,15 +684,14 @@ def page_daily() -> None:
     if text:
         st.markdown("**Last daily run**")
         st.code(text, language=None)
-    st.caption("Terminal: `qv auto status` · `qv auto on --file <name>` · `qv auto off` · `qv auto run` (run "
-               "today's work now).")
+
 
 
 # ===========================================================================================
 def page_review() -> None:
     """Every checked question in a table; click one to open it in a popup and decide."""
     name = current()
-    st.title("Review")
+    page_title("Review", "review")
     states = workflow.question_states(db, name)
     edits = workflow.pending_edits(states)
     if edits:
@@ -858,7 +862,7 @@ def page_export() -> None:
     """The three downloads and what to do with them."""
     from qv.services.exports import ExportError, workflow_export
     name = current()
-    st.title("Export")
+    page_title("Export", "export")
     states = workflow.question_states(db, name)
     c = workflow.counts(states)
     open_ = sum(c[k] for k in workflow.REVIEW_STATUSES) + c["not_checked"] + c["failed"]
@@ -894,21 +898,15 @@ def page_export() -> None:
             except ExportError as exc:
                 cols[0].button(label, disabled=True, key=f"x_{kind}")
                 cols[1].error(f"Cannot build this file: {exc}")
-    st.markdown("#### Then, in the game")
-    st.markdown("Copy the corrected file to `game_editions/<edition>/questions.csv`, run `npm run build:content` and "
-                "play a round. The validator never writes into the game's folders itself. When you change questions "
-                "in the game later, import the file again: only new and changed questions are checked.")
+    st.caption("Then copy the corrected file to `game_editions/<edition>/questions.csv` and run "
+               "`npm run build:content` — see Help.")
 
 
 # ===========================================================================================
 # Advanced
 def page_batches() -> None:
     """Batches and their questions; a question opens with every source in a popup."""
-    st.title("Batches")
-    st.caption("Every batch that was run, and everything about each checked question. `qv runs` / `qv verdict` "
-               "show the same in the terminal.")
-    with st.expander("What the words mean"):
-        st.markdown(LEGEND)
+    page_title("Batches", "batches", "Every batch that was run, and everything about each checked question.")
     dataset = st.session_state.get("dataset")
     runs = views.runs_overview(db)
     mine = st.toggle(f"Only batches of {dataset}", value=True) if dataset else False
@@ -964,8 +962,8 @@ def batch_question_dialog() -> None:
 
 def page_files() -> None:
     """Imported files and versions; a version's questions and format problems."""
-    st.title("Files & versions")
-    st.caption("Every imported file and version. Imports are never changed; corrections exist only in exports.")
+    page_title("Files & versions", "files", "Every imported file and version. Imports are never changed; "
+                                           "corrections exist only in exports.")
     overview = views.datasets_overview(db)
     st.markdown("**Imported files and versions** — click one to see its questions and format problems")
     v_pick = data_table(overview, key="adv_versions", select=True, max_rows=8, columns={"version_id": None})
@@ -985,7 +983,7 @@ def page_files() -> None:
 
 def page_usage() -> None:
     """Free quota left and calls so far."""
-    st.title("Usage & quota")
+    page_title("Usage & quota", "usage")
     st.markdown("**Free quota left now**")
     data_table(views.quota_rows(db), key="quota", max_rows=15)
     st.caption(f"Gemini's daily limits come back at {workflow.next_reset_local():%H:%M} local time.")
@@ -1127,90 +1125,88 @@ def search_hit_dialog(words: list[str]) -> None:
 
 
 def page_library() -> None:
-    """Books read, add / remove a book, books found on the web, search the books."""
+    """Tabs: search the books (first), the books, books found on the web."""
     from qv.library import Library, query_words
     from qv.services.books import dismissed
-    st.title("📚 Book library")
-    st.caption("Books used as a source, cited as book + page. They count as an official source of the edition when "
-               "their publisher is one (alislam.org). Books stay on your Mac.")
+    page_title("📚 Book library", "library", "Books used as a source, cited as book + page. They stay on your Mac.")
     lib = Library(settings.data_dir)
-
-    st.markdown("### Books")
-    c = st.columns([2, 2, 6])
-    if c[0].button("➕ Add a book (PDF)", type="primary", width="stretch"):
-        add_book_dialog()
-    if c[1].button("🔄 Read new books", width="stretch",
-                   help="For PDFs put into the books folder by hand and listed in config/library.yaml"):
-        with st.spinner("Reading the books …"):
-            report_index(lib.index_books())
     books = lib.status()
-    data_table(books, key="lib_books", search=False, columns={"title": TEXT("Title", width="large")},
-               on_open=lambda row, _o: book_dialog(books[row]["book"]))
-
     gone = dismissed(settings.data_dir)
     known = {b.source_url for b in lib.books.values()}
     found = [f for f in views.pdfs_found_on_web(db) if f["url"] not in gone and f["url"] not in known]
-    st.markdown(f"### Books found on the web ({len(found)})")
-    st.caption("PDFs the research met but could not read (web PDFs are skipped). Open one to download and add it, "
-               "or to hide it.")
-    data_table(found, key="lib_found", max_rows=8,
-               columns={"file": TEXT("File", width="medium"), "url": TEXT("Link", width="large")},
-               on_open=lambda row, _o: candidate_dialog(found[row]))
+    t_search, t_books, t_found = st.tabs(["🔎 Search", f"📚 Books ({len(books)})",
+                                          f"🌐 Found on the web ({len(found)})"])
 
-    st.markdown("### Search the books")
-    c = st.columns([4, 3])
-    query = c[0].text_input("Search", placeholder="e.g. first Jalsa Salana Qadian", label_visibility="collapsed")
-    searchable = [r["book"] for r in books if r["state"] == "searchable"]
-    which = c[1].multiselect("Books", searchable, default=searchable, label_visibility="collapsed",
-                             format_func=lambda b: lib.books[b].title)
-    if not query:
-        return
-    words = query_words(query)
-    hits = lib.search(query, books=which, limit=20)
-    if not hits:
-        st.caption("No page matches.")
-        return
+    with t_books:
+        c = st.columns([2, 2, 6], vertical_alignment="center")
+        if c[0].button("➕ Add a book (PDF)", type="primary", width="stretch"):
+            add_book_dialog()
+        if c[1].button("🔄 Refresh", width="stretch",
+                       help="Reads PDFs you put into the books folder yourself and listed in config/library.yaml "
+                            "(books added with ➕ are read at once)"):
+            with st.spinner("Reading the books …"):
+                report_index(lib.index_books())
+        data_table(books, key="lib_books", search=False, columns={"title": TEXT("Title", width="large")},
+                   on_open=lambda row, _o: book_dialog(books[row]["book"]))
 
-    def open_hit(row: int, order: list[int]) -> None:
-        st.session_state["lib_hits"] = [(hits[i].book_id, hits[i].page) for i in order]
-        st.session_state["lib_pos"] = order.index(row) if row in order else 0
-        search_hit_dialog(words)
+    with t_found:
+        st.caption("PDFs the research met but could not read. Click one to download and add it, or to hide it.")
+        data_table(found, key="lib_found", max_rows=10,
+                   columns={"file": TEXT("File", width="medium"), "url": TEXT("Link", width="large")},
+                   on_open=lambda row, _o: candidate_dialog(found[row]))
 
-    def where(h) -> str:  # noqa: ANN001
-        lang = lib.books[h.book_id].translate_for_search
-        tr = lib.translation(h.book_id, h.page, lang) if lang else None
-        return (snippet(h.text, words) or (f"(translation) {snippet(tr, words)}" if tr and snippet(tr, words)
-                                           else snippet(h.text, words[:1]) or h.text[:90]))
+    with t_search:
+        c = st.columns([4, 3])
+        query = c[0].text_input("Search", placeholder="🔎 e.g. first Jalsa Salana Qadian",
+                                label_visibility="collapsed")
+        searchable = [r["book"] for r in books if r["state"] == "searchable"]
+        which = c[1].multiselect("Books", searchable, default=searchable, label_visibility="collapsed",
+                                 format_func=lambda b: lib.books[b].title, placeholder="Which books")
+        if not query:
+            st.caption("Type words to find the pages that contain them; click a result to read the page with your "
+                       "words marked.")
+            return
+        words = query_words(query)
+        hits = lib.search(query, books=which, limit=20)
+        if not hits:
+            st.caption("No page matches.")
+            return
 
-    data_table([{"book": lib.books[h.book_id].title, "page": h.printed or "", "pdf page": h.page,
-                 "match": where(h), "score": round(h.score, 1)} for h in hits],
-               key=f"lib_hits_{query}_{','.join(which)}", search=False,
-               columns={"match": TEXT("Where it matches", width="large")}, on_open=open_hit)
+        def open_hit(row: int, order: list[int]) -> None:
+            st.session_state["lib_hits"] = [(hits[i].book_id, hits[i].page) for i in order]
+            st.session_state["lib_pos"] = order.index(row) if row in order else 0
+            search_hit_dialog(words)
+
+        def where(h) -> str:  # noqa: ANN001
+            lang = lib.books[h.book_id].translate_for_search
+            tr = lib.translation(h.book_id, h.page, lang) if lang else None
+            return (snippet(h.text, words) or (f"(translation) {snippet(tr, words)}" if tr and snippet(tr, words)
+                                               else snippet(h.text, words[:1]) or h.text[:90]))
+
+        data_table([{"book": lib.books[h.book_id].title, "page": h.printed or "", "pdf page": h.page,
+                     "match": where(h), "score": round(h.score, 1)} for h in hits],
+                   key=f"lib_hits_{query}_{','.join(which)}", search=False,
+                   columns={"match": TEXT("Where it matches", width="large")}, on_open=open_hit)
 
 
 # --- websites ------------------------------------------------------------------------------
 def page_websites() -> None:
     """Websites research could not read, unlisted sites that gave quotes, and the person's own list."""
     from qv.services import websites as ws
-    st.title("🌐 Websites")
-    st.caption("Which websites the checks may read and how much to trust them. Your marks are used from the next "
-               "batch on, on top of the built-in list (`config/sources.yaml`).")
+    page_title("🌐 Websites", "websites", "Which websites the checks may read and how much to trust them. Click a "
+                                        "site to mark it; marks count from the next batch on.")
     refused, cands, mine = ws.refused_sites(db), ws.candidate_sites(db), ws.marked_sites(db)
     t1, t2, t3 = st.tabs([f"🚫 Could not be read ({len(refused)})", f"⭐ Possibly good ({len(cands)})",
                           f"📝 Your websites ({len(mine)})"])
     with t1:
-        st.markdown("Sites that refused or failed when the checks tried to read them. Open one to look at it in your "
-                    "browser, then mark it: **🔑 needs special access** (not tried again until you clear the mark), "
-                    "**⛔ don't use** (never read, never evidence) or **✅ use** (read it again, with the trust you "
-                    "choose). PDFs are listed in the Book library.")
+        st.caption("Sites that refused or failed when the checks tried to read them. PDFs are in the Book library.")
         data_table(refused, key="ws_refused", search="🔎 Search sites or problems",
                    columns={"site": TEXT("Site", width="medium"), "problem": TEXT("Problem", width="large"),
                             "example": TEXT("Example page", width="medium")},
                    on_open=lambda row, _o: website_dialog(refused[row]["site"], refused[row]["example"]))
     with t2:
-        st.markdown("Sites that are **not on the built-in list** but gave quotes, most quotes first. They count as "
-                    "**T** (encyclopaedia / summary) until you choose otherwise. *Pages judged weak* = pages the "
-                    "check found to be a quiz, content farm, forum or about something else.")
+        st.caption("Sites not on the built-in list that gave quotes, most first — they count as T until you choose. "
+                   "*Pages judged weak*: quiz, content farm, forum or another subject.")
         data_table(cands, key="ws_cands", search="🔎 Search sites",
                    columns={"site": TEXT("Site", width="medium"), "example": TEXT("Example page", width="medium")},
                    on_open=lambda row, _o: website_dialog(cands[row]["site"], cands[row]["example"]))
@@ -1218,9 +1214,8 @@ def page_websites() -> None:
         c = st.columns([2, 6])
         if c[0].button("➕ Add a website", type="primary", width="stretch"):
             add_website_dialog()
-        c[1].caption("Adding a site sets how much its pages count when a search finds them. It does not make the "
-                     "checks search that site on purpose (only alislam.org, alhakam.org, the Qur'an and Wikipedia "
-                     "are searched directly).")
+        c[1].caption("A site you add counts with the trust you give it when a search finds it (it is not searched "
+                     "on purpose).")
         data_table(mine, key="ws_mine", search="🔎 Search your sites",
                    columns={"site": TEXT("Site", width="medium"), "note": TEXT("Note", width="large")},
                    on_open=lambda row, _o: website_dialog(mine[row]["site"], None))

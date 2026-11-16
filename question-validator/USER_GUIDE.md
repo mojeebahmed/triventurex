@@ -15,10 +15,16 @@ The menu on the left has four parts:
 - **Check questions** — *Validate · Daily run · Review · Export*
 - **Advanced** — *Batches · Files & versions · Book library · Websites · Usage & quota*
 
-The pages that work on one question file have a bar at the top: **📄 Working on** — the file (one per game
-edition: Swab Quest, World Tour, …), its source file name, version and date, and a running batch. Switch files
-there, or by clicking a row on the Overview. *Eval sets* also lists the evaluation files used to measure the
-validator.
+**«** at the top of the menu folds it into a narrow strip of icons (hover an icon to see the page name); **»**
+opens it again.
+
+The pages that work on one question file show it at the top right: the file picker (one file per game edition:
+Swab Quest, World Tour, …), **ⓘ** for its details (source file, version, import date, profile) and *Eval sets* —
+also list the evaluation files used to measure the validator. A ⏳ appears there while a batch runs. Switch files
+there, or by clicking a row on the Overview.
+
+**Help** next to every page title opens what that page is for and how it works. Small ⓘ / ? icons next to a
+field explain that field.
 
 The **Overview** lists every file with its progress and tells you, with one button, what to do next.
 
@@ -163,8 +169,9 @@ Books are a source like websites, cited as **book + page** (e.g. *Basics of Reli
 are used for the editions listed for each book — today Swab Quest and Prophets' Stories — and count as an official
 Ahmadiyya source when their publisher is (alislam.org).
 
-The **Book library** page (Advanced) has three parts:
+The **Book library** page (Advanced) has three tabs:
 
+- **🔎 Search** (opens first) — see below.
 - **Books** — every book with its state. **➕ Add a book (PDF)**: upload the file, give its title, author, language,
   publisher, trust and editions; it is read at once. Click a book to see it or **remove** it (the PDF and its pages
   go; quotes already used stay in the results). Books added on the page are listed in
@@ -172,11 +179,11 @@ The **Book library** page (Advanced) has three parts:
 - **Books found on the web** — PDFs the research met but could not read (e.g. *Life of the Promised Messiah*). Click
   one: **⬇ Download and add** fetches it and adds it like an upload (if the site refuses, download it in your
   browser and use *Add a book*), or **🙈 Not a book for the library** hides it.
-- **Search the books** — type words; the results table shows where each page matches. Click a result: the whole
-  page opens with your **search words marked**, with ◀ Previous / Next ▶ through the results.
+- **Search** — type words; the results table shows where each page matches. Click a result: the whole page opens
+  with your **search words marked**, with ◀ Previous / Next ▶ through the results.
 
-Terminal: `qv library index` (after putting a PDF in `data/library/` and listing it in `config/library.yaml` by
-hand), `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
+**🔄 Refresh** (Books tab) only reads PDFs you put into `data/library/` yourself and listed in
+`config/library.yaml`. Terminal: `qv library index` (the same), `qv library status`, `qv library search "first Jalsa Salana"`, `qv library suggestions`.
 
 **Books in another language** (the German *Dieni Ma'loomat*): add `translate_for_search: en` to the book in
 `library.yaml` and run `qv library translate`. Every page gets a machine translation into English, so English
