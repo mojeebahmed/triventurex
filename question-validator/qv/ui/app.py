@@ -283,6 +283,7 @@ def page_overview() -> None:
 def page_import() -> None:
     """Upload, format check with what to do, import."""
     from qv.services import datasets as ds_service
+    from qv.services.import_fixes import suggest_fixes
     from qv.services.import_help import hint
     st.title("1 · Import a question file")
     st.markdown("Use the game's CSV format — one question per line. Columns (any order): **id, question, type, "
@@ -307,7 +308,24 @@ def page_import() -> None:
                                     "Ahmadiyya understanding")
     if up is None or not name:
         return
-    data = up.getvalue()
+    fixed_key = f"fixed_{up.file_id}_{profile}"
+    data = st.session_state.get(fixed_key) or up.getvalue()
+    if fixed_key in st.session_state:
+        st.success("✨ Fixes applied. The file below is the fixed one — download it to update your own copy "
+                   "(importing does not change the file on your computer).")
+        st.download_button("⬇ Download the fixed file", data, file_name=up.name, mime="text/csv")
+    else:
+        fx = suggest_fixes(data, load_profile(profile))
+        if fx.fixes:
+            with st.container(border=True):
+                st.markdown(f"**✨ {len(fx.fixes)} problem(s) can be fixed for you** — only changes whose result "
+                            "is certain; ids never change. Look at the list, then press the button.")
+                with st.expander("What will change"):
+                    data_table([{"line": f.line_no, "id": f.ext_id, "change": f.what} for f in fx.fixes],
+                               columns={"change": TEXT("Change", width="large")})
+                if st.button("Fix them for me", type="primary"):
+                    st.session_state[fixed_key] = fx.data
+                    st.rerun()
     result = ds_service.check_bytes(data, load_profile(profile))
     rep = result.report
     errors = [i for i in rep.issues if i.severity == "error"]
