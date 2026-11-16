@@ -53,6 +53,8 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv runs | metrics 3 | evidence 3 12 | usage  # inspect runs, one question's evidence, API use
 .venv/bin/qv ui                                        # read-only web view → http://localhost:8501
 .venv/bin/qv eval check | seed | sample out.csv        # evaluation set tools
+.venv/bin/qv eval import                              # eval set as datasets + the validate commands to run
+.venv/bin/qv eval score 5 6 7                          # verdicts of runs vs the labels (Phase 3 exit metrics)
 .venv/bin/python -m pytest                             # tests (~3 s; parity tests need node)
 ```
 

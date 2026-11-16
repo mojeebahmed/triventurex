@@ -29,9 +29,12 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   `qv validate | judge | verdicts | verdict | eval score`, web view with a plain summary + legend. Pilot (run 3,
   judged): 4 VERIFIED (#5, #34, #52, #418), #2 needs_review (verifier: PARTIALLY_CORRECT), #127/#247
   needs_specialist (scripture/doctrine without the verse or a frame authority), #70/#391/#285 needs_evidence.
-  S5b and S7 stay in phase 6. **Not done yet: the exit measurement on the eval set** (import eval/known_errors.csv
-  and eval/seeded.csv as datasets, `qv validate` them, `qv eval score <run>`) — needs ~2 Flash requests per
-  question and the judge pool has ≈ 57/day. Seen: #127 and #285 (same question) got different claim types from
+  S5b and S7 stay in phase 6. Merged to `main` and pushed.
+- **Eval measurement (in progress, 2026-11-16):** `qv eval import` stores eval-known-errors, the seeded set split
+  per edition (`eval-seeded-<edition>`, judged with that edition's profile) and the seeded questions' originals
+  in each edition as **controls** (label `control`: anything but an error verdict is right) — controls give the
+  false-INCORRECT rate. 104 questions; ≈ 2 Flash requests each (S4 is shared when only the key/note was mutated),
+  judge pool ≈ 57/day → several days. Run results so far: see `qv runs`; score with `qv eval score <runs…>`. Seen: #127 and #285 (same question) got different claim types from
   S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
 
