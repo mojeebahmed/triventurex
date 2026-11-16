@@ -15,7 +15,8 @@ The sidebar shows:
 - The menu: **Overview · 1 Import · 2 Validate · 3 Review · 4 Export**, and **Advanced** for the detailed views.
 
 The **Overview** lists every file with its progress (click a row to work on that file) and tells you, with one
-button, what to do next. In every table, **click a row** to open it; the open row is highlighted.
+button, what to do next. In every table, **click anywhere on a row** to open it; the open row is highlighted.
+Tables are read-only — nothing in them can be changed by accident.
 
 ## 1 · Import a file
 
@@ -43,6 +44,13 @@ The format is checked first — no AI, nothing leaves your Mac. Every problem sh
 'opt_a': rename it"*). **Errors** keep those questions out of the check until you fix them and import again;
 **warnings** are fine. Your original file is never changed.
 
+**✨ Fix them for me**: when some problems have a certain fix, the page lists them first (*what will change*) and
+one button fixes them all: Excel/Windows encoding, extra spaces, column names like *Correct Answer* or *Option 1*,
+*Multi* → *multi*, an answer written as the option's text or letter (*Paris*, *B*) → its number, empty options
+between filled ones (the answer number moves with its text). Ids never change. Then **download the fixed file**
+to update your own copy, and import it. Problems that need a person (an empty answer, a comma inside a text) stay
+in the list with what to do.
+
 A new version of a file keeps every result and decision of questions that did not change — only new and changed
 questions need checking.
 
@@ -62,6 +70,12 @@ Press **Validate next batch**. Terminal: `qv next world-tour`.
   dates, "most / first / only" claims, facts that can go out of date, references and quotes, notes with their own
   claims. It reads only the wording (no AI); it is **not** a prediction that an answer is wrong, it only changes the
   order. The tab lists every signal and its points.
+
+**🔁 Every day by itself** (box on the Validate page): choose the files and a time, press *Save and turn on*. Your
+Mac then validates the next batch every day — the same as pressing the button — file after file, until the day's
+free requests are used up; if the Mac is asleep, it runs when it wakes up. Turn it off in the same box. Terminal:
+`qv auto on --file swab-quest --file prophets-stories`, `qv auto status`, `qv auto off`, `qv auto run` (do today's
+work now).
 
 How long it takes: about 25 questions a day for free, so Swab Quest (432 questions) takes about two and a half
 weeks of daily batches. It costs nothing.
@@ -120,7 +134,5 @@ stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a ve
 
 ## Not built yet
 
-- **One-click fixes** on import (e.g. remove extra spaces, turn an answer written as text into its option
-  number) — today the page tells you what to change in the file.
-- **Continue automatically every day** — today you press *Validate next batch* (or run `qv next`) once a day.
 - How far *Verified* can be trusted is still being measured on the evaluation set (a few days of free quota).
+- The **book library** (Ahmadiyya books as PDFs, searched page by page) — next.

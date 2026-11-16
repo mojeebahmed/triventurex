@@ -47,8 +47,8 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 ## Simple workflow (built 2026-11-16)
 Mojeeb wants the tool usable with very few steps, in the web page: `Start Question Validator.command` → Overview
 · 1 Import · 2 Validate · 3 Review · 4 Export (+ Advanced = the detailed views). Commands: `qv status`, `qv next`,
-`qv export corrected|verified|results`. User-facing description: `USER_GUIDE.md` (keep it current; its "Not built
-yet" lists one-click import fixes and an automatic daily batch). This is ARCHITECTURE.md phases 4–5, made simple;
+`qv export corrected|verified|results`, `qv auto on|off|status|run`. User-facing description: `USER_GUIDE.md` (keep
+it current). One-click import fixes and the automatic daily batch were added on 2026-11-16. This is ARCHITECTURE.md phases 4–5, made simple;
 all other commands stay for power users and debugging.
 
 ## Next work (agreed order, 2026-11-15)
@@ -70,13 +70,9 @@ all other commands stay for power users and debugging.
    carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
    new rows with new ids, never written into `game_editions/`.
 
-**Web tables — fix later (Mojeeb, 2026-11-16):** Streamlit's table (glide) is a stop-gap. Wanted: click anywhere on a
-row selects and highlights the whole row; no tick-box column unless several rows can be picked for an action; no
-cell highlight on click; double-click must not open a cell editor. Probably our own table component or another
-table library (e.g. AG Grid via streamlit-aggrid, or a small custom component) behind `data_table()`.
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
-(`not_text`); 11 sites answered 403; Wikipedia needs `QV_CONTACT` in `.env` (Mojeeb has not set one); no hadith
+(`not_text`); 11 sites answered 403; Wikipedia needs `QV_CONTACT` in `.env`; no hadith
 direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be checked in AI Studio.
 
 ## Decisions (Mojeeb, 2026-11-15) — replace ARCHITECTURE.md §7
@@ -91,6 +87,12 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   MCP (anonymous, own soft cap of 300/day), Tavily (1,000 credits/month), Exa ($10 credit/month). Brave needs a
   card → not used. Direct sources first (free). Wikipedia only when `QV_CONTACT` is set (Wikimedia requires a
   contact in the user agent; never Mojeeb's email unless he sets it).
+- **Open points answered (2026-11-16)** — METHODOLOGY.md §13: frame confirmed (alislam.org incl. its library,
+  alhakam.org, reviewofreligions.org; Qur'an = alislam.org/quran/app, Sher Ali, Bismillah = verse 1); hadith: a
+  frame-authority book is enough when it gives no collection reference; reword AI-generated or ambiguous wording
+  freely; 5 % spot check. Mojeeb has downloaded books from new.alislam.org/library for the PDF library (next).
+- **alhakam.org** is searched through its sitemap (`SitemapSearch`, `providers.yaml search.sitemaps`, cache in
+  `data/cache/sitemaps/`, refreshed weekly) because its own search page is built in the browser.
 - **Ahmadiyya source: alislam.org.** Qur'an verses from `alislam.org/quran/app/<s>:<v>` (Arabic + Sher Ali
   English, Bismillah = verse 1, allowed by robots.txt and listed in its sitemap); site search via
   `alislam.org/?s=<query>`. Respect robots.txt (`/quran/view/`, `/quran/tafseer/`, `/library/browse/…` are
@@ -158,11 +160,21 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   only orders work and must always be explained as *not* a prediction (Mojeeb found "priority" misleading).
   `SIGNALS` (shown on the page) must match the scoring (test).
 - **Web page**: `st.navigation` pages (sidebar = file picker + page links). Every table goes through
-  `data_table()` (same look; always-visible scrollbar below the header via CSS on glide's `.dvn-scroller`;
-  click any cell = pick the row, highlighted with a Styler). The Review page lists every checked question
+  `data_table()` → our own read-only component `qv/ui/table.py` (Streamlit components v2, inline HTML/JS, values
+  set with `textContent` only): click anywhere on a row picks it, no tick boxes, nothing editable. The pick is tied
+  to the rows' id column (`ID_COLUMNS`), so it survives live updates but not a filter change. The Review page lists every checked question
   (incl. Verified) with the detail below the table.
 - The web page now writes (imports, decisions, new versions, starting batches) — through services only; it never
   calls a model itself. Streamlit keeps imported modules loaded: restart `qv ui` after changing `qv/services`.
+
+## Implementation invariants (import fixes, daily run)
+- **Import fixes** (`qv/services/import_fixes.py`) only make changes whose result is certain, never touch `id`,
+  skip rows with comma/quote problems, and row changes go through `apply_patches` (verified read-back). The page
+  lists every change before applying and offers the fixed file for download.
+- **Daily run** (`qv/services/daily.py`): a macOS LaunchAgent `com.triventurex.question-validator.daily` runs
+  `qv auto run` at the chosen time; settings in `data/auto.json`, log `data/logs/daily.log`. `qv auto run` calls
+  `qv next <file> --yes` per chosen file while `suggested_batch_size` > 0 and no batch is running. Only the person
+  turns it on (page or `qv auto on`).
 
 ## Implementation invariants (local models)
 - **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model

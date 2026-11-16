@@ -18,6 +18,8 @@ app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Question Validator — check, import and export Triventurex question CSVs.")
 eval_app = typer.Typer(no_args_is_help=True, help="Evaluation set tools.")
 app.add_typer(eval_app, name="eval")
+auto_app = typer.Typer(no_args_is_help=True, help="Continue automatically every day (macOS).")
+app.add_typer(auto_app, name="auto")
 
 _state: dict[str, Settings] = {}
 
@@ -360,6 +362,77 @@ def _print_status(db: Database, dataset: str) -> None:
         typer.echo(f"Next: `qv next {dataset}` ({left} still to check)")
     if review:
         typer.echo(f"To look at: {review} question(s) on the Review page (`qv ui`)")
+
+
+@auto_app.command("on")
+def auto_on(file: Annotated[list[str], typer.Option("--file", help="File to continue every day, in this order "
+                                                                  "(repeatable)")],
+            at: Annotated[str | None, typer.Option(help="Time of day, HH:MM (default: shortly after the free "
+                                                        "limits reset)")] = None) -> None:
+    """Validate the next batch of these files every day, by itself (installs a macOS LaunchAgent)."""
+    from qv.services import daily, workflow
+    names = workflow.dataset_names(_db(), include_eval=True)
+    unknown = [f for f in file if f not in names]
+    if unknown:
+        raise typer.BadParameter(f"Unknown file(s): {', '.join(unknown)} (known: {', '.join(names)})")
+    hour, minute = _daily_time(at)
+    path = daily.turn_on(_settings().data_dir, daily.DailySettings(list(file), hour, minute))
+    typer.echo(f"On: every day at {hour:02d}:{minute:02d} — {', '.join(file)}. Log: "
+               f"{daily.log_path(_settings().data_dir)} (LaunchAgent {path}).")
+
+
+@auto_app.command("off")
+def auto_off() -> None:
+    """Stop the daily run."""
+    from qv.services import daily
+    typer.echo("Off." if daily.turn_off() else "It was not on.")
+
+
+@auto_app.command("status")
+def auto_status() -> None:
+    """Whether the daily run is on, and for which files."""
+    from qv.services import daily
+    st = daily.status(_settings().data_dir)
+    if st.on:
+        typer.echo(f"On: every day at {st.settings.time_text} — {', '.join(st.settings.datasets)}. Log: {st.log}")
+    else:
+        typer.echo("Off. Turn it on with `qv auto on --file <name>` or on the Validate page.")
+
+
+@auto_app.command("run")
+def auto_run() -> None:
+    """One day's work now: the next batch of each chosen file while free requests are left (used by the
+    LaunchAgent; safe to run by hand)."""
+    import os
+    import subprocess
+    import sys
+
+    from qv.config import load_research_config
+    from qv.services import daily, worker, workflow
+    settings = _settings()
+    db = _db()
+    default = load_research_config().batch_size
+
+    def run_next(name: str) -> int:
+        env = {**os.environ, "QV_DATA_DIR": str(settings.data_dir)}
+        return subprocess.call([sys.executable, "-m", "qv.cli", "next", name, "--yes"], env=env)
+
+    daily.run_daily(settings.data_dir, batch_size_today=lambda: workflow.suggested_batch_size(db, default),
+                    run_next=run_next, is_busy=lambda: worker.status(settings.data_dir).running, echo=typer.echo)
+
+
+def _daily_time(at: str | None) -> tuple[int, int]:
+    """HH:MM → (hour, minute); default 15 minutes after the free limits reset (local time)."""
+    from qv.services import workflow
+    if at is None:
+        reset = workflow.next_reset_local()
+        total = reset.hour * 60 + reset.minute + 15
+        return (total // 60) % 24, total % 60
+    try:
+        hour, minute = (int(x) for x in at.split(":"))
+    except ValueError as exc:
+        raise typer.BadParameter("Use HH:MM, e.g. 09:30") from exc
+    return hour, minute
 
 
 @app.command()

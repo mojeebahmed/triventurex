@@ -455,6 +455,7 @@ def page_validate() -> None:
             worker.start_background(settings.data_dir, name, args)
             st.rerun()
         st.caption(f"Terminal: `qv next {name}` does the same. Run it again whenever it stops.")
+        daily_box(name)
         if c["format_error"]:
             st.warning(f"{c['format_error']} question(s) have format errors and are skipped — fix them in the file "
                        "and import it again.")
@@ -473,6 +474,45 @@ def page_validate() -> None:
                 for s in sorted(states, key=lambda s: (-s.priority_score, s.row_no)) if s.status in workflow.CHECKABLE]
         st.markdown(f"**Questions not checked yet, by points** ({len(rows)})")
         data_table(rows, key=f"risk_{name}", columns={**COLS_QUESTION, "why": TEXT("Why", width="medium")})
+
+
+def daily_box(name: str) -> None:
+    """Turn the automatic daily batch on or off."""
+    from qv.services import daily
+    from qv.services.workflow import next_reset_local
+    stat = daily.status(settings.data_dir)
+    title = (f"🔁 Every day by itself: **on** at {stat.settings.time_text} — {', '.join(stat.settings.datasets)}"
+             if stat.on else "🔁 Every day by itself: off")
+    with st.expander(title):
+        st.markdown("Your Mac validates the next batch every day — the same as pressing *Validate next batch* — "
+                    "for the files you choose, in that order, until the day's free requests are used up. If the "
+                    "Mac is asleep at that time, it runs when the Mac wakes up. Results show up here as usual.")
+        names = workflow.dataset_names(db)
+        chosen = [d for d in stat.settings.datasets if d in names] or [name]
+        files = st.multiselect("Files, in this order", names, default=chosen, key="daily_files")
+        reset = next_reset_local()
+        default = stat.settings if stat.on else daily.DailySettings(
+            hour=((reset.hour * 60 + reset.minute + 15) // 60) % 24, minute=(reset.minute + 15) % 60)
+        from datetime import time as _time
+        at = st.time_input("Time", value=_time(default.hour, default.minute), step=900,
+                           help=f"The free limits reset at {reset:%H:%M} your time; a little after that is best.")
+        b1, b2 = st.columns(2)
+        if b1.button("Save and turn on" if not stat.on else "Save changes", type="primary", disabled=not files):
+            try:
+                daily.turn_on(settings.data_dir, daily.DailySettings(list(files), at.hour, at.minute))
+            except (ValueError, RuntimeError) as exc:
+                st.error(str(exc))
+            else:
+                st.rerun()
+        if stat.on and b2.button("Turn off"):
+            daily.turn_off()
+            st.rerun()
+        text = worker.tail(stat.log, 8)
+        if text:
+            st.markdown("**Last daily run**")
+            st.code(text, language=None)
+        st.caption("Terminal: `qv auto status` · `qv auto on --file <name>` · `qv auto off` · `qv auto run` (run "
+                   "today's work now).")
 
 
 # ===========================================================================================
