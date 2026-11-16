@@ -33,3 +33,10 @@ def test_pick_follows_the_id_column_not_other_values() -> None:
     assert picked_row(state, signature(c), 1) is None
     assert picked_row({"row": 5, "sig": signature(a)}, signature(a), 2) is None
     assert picked_row(None, signature(a), 2) is None
+
+
+def test_component_key_never_contains_double_underscore() -> None:
+    from qv.ui.table import component_key
+    k = component_key("review_swab-quest_all__")          # empty search + no categories
+    assert k and "__" not in k and k == component_key("review_swab-quest_all__")
+    assert component_key(None) is None

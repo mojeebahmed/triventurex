@@ -147,6 +147,12 @@ def signature(df: pd.DataFrame) -> str:
     return hashlib.sha1(json.dumps([str(col), ids], ensure_ascii=False).encode()).hexdigest()[:16]
 
 
+def component_key(key: str | None) -> str | None:
+    """A component id Streamlit accepts: page keys may hold any text (e.g. "review_x__" with empty filters),
+    but a component id must not contain "__", so the key is hashed."""
+    return f"qv_table_{hashlib.sha1(key.encode()).hexdigest()[:16]}" if key else None
+
+
 def picked_row(state: Any, sig: str, n_rows: int) -> int | None:
     """The row the viewer clicked, if it was clicked on exactly these rows."""
     if not isinstance(state, dict) or state.get("sig") != sig:
@@ -161,7 +167,7 @@ def render_table(df: pd.DataFrame, *, key: str | None, select: bool, columns: di
     names, specs = table_spec(df, columns)
     rows = [[cell_text(v) for v in rec] for rec in df[names].itertuples(index=False, name=None)]
     sig = signature(df)
-    comp_key = f"qv_table_{key}" if key else None
+    comp_key = component_key(key)
     state = st.session_state.get(comp_key) if comp_key else None
     clicked = picked_row(getattr(state, "picked", None) if state is not None and not isinstance(state, dict)
                          else (state or {}).get("picked"), sig, len(rows))
