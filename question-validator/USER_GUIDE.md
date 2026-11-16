@@ -3,19 +3,23 @@
 Check a quiz file's answers against real sources, fix what is wrong, and export a clean file for the game.
 Four steps, all in the web page. Each step also has **one** command if you prefer the terminal.
 
-> **Status (2026-11-16):** this guide describes the simple workflow being built. Steps marked
-> 🟢 work today, 🟡 work today with a longer command, ⚪ are not built yet. The plan is at the end.
-
 ## Start
 
-Double-click **`Start Question Validator.command`** in the `question-validator` folder ⚪
-— or run `.venv/bin/qv ui` 🟢. Your browser opens the validator at http://localhost:8501.
+Double-click **`Start Question Validator.command`** in the `question-validator` folder (or run `.venv/bin/qv ui`).
+Your browser opens the validator at http://localhost:8501. Close the terminal window to stop it.
 
-The page shows four steps: **1 Import · 2 Validate · 3 Review · 4 Export**, and a card telling you what to do next.
+The sidebar shows:
+
+- **Working on** — the question file you are working on, with its source file name, version and date. You can
+  import one file per game edition (Swab Quest, World Tour, …) and switch between them here.
+- The steps: **Overview · 1 Import · 2 Validate · 3 Review · 4 Export**, and **Advanced** for the detailed views.
+
+The **Overview** lists every file with its progress and tells you, with one button, what to do next.
 
 ## 1 · Import a file
 
-Drop a CSV file on the page ⚪ (terminal: `qv import file.csv --dataset swab-quest` 🟢).
+Drop a CSV file on the page and choose **a new file** (give it a short name, e.g. `world-tour`, and its edition
+profile) or **a new version of an existing file**. Terminal: `qv import file.csv --dataset world-tour`.
 
 The file needs these columns (the game's format), in any order:
 
@@ -30,96 +34,88 @@ The file needs these columns (the game's format), in any order:
 | `category`, `subcategory`, `topic` | where it belongs |
 | `note` | optional: the explanation shown after answering |
 
-Required: `id`, `question`, `type`, `answer`. Choose the edition (it decides the audience and, for Swab Quest and
-Prophets' Stories, the Ahmadiyya understanding).
+Required: `id`, `question`, `type`, `answer`. The profile decides the audience and, for Swab Quest and Prophets'
+Stories, the Ahmadiyya understanding.
 
-The validator checks the format first — no AI, nothing leaves your Mac:
+The format is checked first — no AI, nothing leaves your Mac. Every problem shows its line and **what to do**
+(e.g. *"For multi, the answer is the number of the right option"*, or *"Your column 'Option 1' is probably
+'opt_a': rename it"*). **Errors** keep those questions out of the check until you fix them and import again;
+**warnings** are fine. Your original file is never changed.
 
-- **Errors** (must be fixed before it can be used): missing column, unknown type, answer not 1–4, duplicate id …
-- **Warnings** (can be imported): near-duplicate questions, fewer than four options, extra spaces …
-
-Each problem shows its line and **a suggested fix** ⚪ (today: the problem only 🟢). Simple ones (extra spaces,
-line endings, answer written as the option text instead of its number) can be fixed with one click, which gives
-you a corrected copy to download — your original file is never changed ⚪.
-
-When the file is imported, the next-step card says **"Validate the first batch"**.
+A new version of a file keeps every result and decision of questions that did not change — only new and changed
+questions need checking.
 
 ## 2 · Validate
 
-Click **Validate next batch** ⚪ (terminal: `qv next swab-quest` ⚪; today `qv validate swab-quest --ids 1-25` 🟡).
+Press **Validate next batch**. Terminal: `qv next world-tour`.
 
-- It works through the questions in order, as many as today's free limits allow, and you can close the page.
-- **When it stops** (the free daily limit is used up, or the internet dropped), the card says so and when to come
-  back. Click the same button again — finished work is kept, nothing is paid for twice. That is all you ever do
-  in this step.
-- Optional: **Continue automatically every day** ⚪ runs the next batch each morning on its own.
+- It checks the next questions, **highest priority first**, as many as today's free limits allow (about 25 a
+  day). You can close the page while it works; the Validate page shows its progress.
+- **When it stops** (free limit used up, or the internet dropped), the page says when the limits come back.
+  Press the same button again then — finished work is kept, nothing is done twice. That is all you do in this
+  step.
+- **Choose which questions** (optional): by category, subcategory or priority, highest priority first or in file
+  order.
+- The **Priority list** tab shows every unchecked question with *why* it comes first: numbers and dates,
+  "most / first / only" claims, facts that can go out of date, references and quotes, notes with their own claims,
+  format warnings and hard questions. It is a quick guess from the wording (no AI, free). Edited questions always
+  come first.
 
-How long it takes: the free AI limits allow roughly **25 questions a day**, so Swab Quest (432 questions) takes
-about two and a half weeks of daily batches. It costs nothing.
+How long it takes: about 25 questions a day for free, so Swab Quest (432 questions) takes about two and a half
+weeks of daily batches. It costs nothing.
 
 ## 3 · Review the results
 
-Each question ends in one of four groups:
+Each checked question lands in a group:
 
 | Group | Meaning | What you do |
 |---|---|---|
-| ✅ **Verified** | sources agree with the answer, found without seeing it | nothing (a few are shown for spot checks) |
+| ✅ **Verified** | sources agree with the answer, found without seeing it | nothing |
 | 🔍 **To review** | the sources disagree with the answer, or the question is unclear | decide |
-| 🎓 **For a specialist** | religious or doctrinal: needs the verse or an official Ahmadiyya source | send to your reviewer |
+| 🎓 **For a specialist** | religious or doctrinal: needs the verse or an official Ahmadiyya source | ask your reviewer |
 | ❔ **Not enough evidence** | nothing reliable was found | decide, or leave for later |
+| 🎲 **Spot check** | verified, but picked at random so you can check the checker | look, then keep |
 
-The review page shows one question at a time ⚪ (today: read-only in the web page 🟢, `qv verdict <run> <id>` 🟢):
-the verdict in plain words, the answer the sources give, the quotes with links to their pages, and a suggestion.
-Pick one:
+The Review page shows one question at a time: the result in plain words, what the sources say, the answer they
+give **without** seeing yours, a suggestion, and the quotes with links. Then press one button:
 
-- **Keep as is** — you checked it, it is right
-- **Use the suggestion** — take the suggested answer or wording
-- **Edit** — change the question, options, answer or note yourself
-- **Ask the specialist** — goes on a printable list for your reviewer; their answer is entered later
-- **Remove** — leave the question out of the export
-- **Later** — skip for now
+- **✔ Keep as is** — you checked it, it is right
+- **✎ Edit** — change the question, options, answer or note (*Start from the suggestion* fills in the suggestion)
+- **🎓 Ask the specialist** — moves it to the specialist group; **Download the list for your specialist** gives
+  them a sheet with the questions, reasons and sources. When they answer, open the question and keep or edit it.
+- **✖ Remove** — leave it out of the export
+- **⏭ Later** — skip for now (it moves to the end)
 
-Edited questions are checked again in the next batch ⚪. Every decision is saved with the date; the imported
-file itself is never changed.
+After editing, **Check my edits again** stores the edited file as a new version; the edited questions then go to
+the front of the next batch. You can also export without re-checking. Every decision is saved with its date
+(*Decided* group); you can change it at any time, and the imported file itself is never changed.
 
 ## 4 · Export
 
-Click **Download corrected file** ⚪ (terminal: `qv export corrected swab-quest --changes approved.json` 🟡).
+Download one of three files (terminal: `qv export corrected world-tour`, `… verified …`, `… results …`):
 
-- **Corrected file** — the whole file with only your approved changes applied, same order and ids, and checked again
-  for format errors before you get it.
-- **Verified only** — just the questions that were verified or that you approved ⚪.
-- **Report** — one line per question: result, sources, your decision 🟡 (`qv export report` covers format only).
+- **Corrected file** — the whole file with your edits applied and removed questions left out, same ids and order,
+  format checked again. This is the one for the game.
+- **Verified only** — just the questions that were verified or that you kept or edited.
+- **Results report** — one line per question: result, your decision, suggestions, reasons and sources (opens in
+  Excel / Numbers).
 
-Then copy the file to `game_editions/<edition>/questions.csv` and run `npm run build:content` as usual. The validator
-never writes into the game's folders itself.
-
-**Later:** after you edit questions in the game, import the file again — only new and changed questions are
-validated ⚪.
+Then copy the corrected file to `game_editions/<edition>/questions.csv`, run `npm run build:content` and play a
+round. The validator never writes into the game's folders itself. When you change questions in the game later,
+import the file again: only new and changed questions are checked.
 
 ## For power users
 
-Everything above also works with the full command set (`qv --help`): `research`, `validate`, `judge`, `resume`,
-`runs`, `verdicts`, `verdict`, `evidence`, `metrics`, `usage`, `quota`, `issues`, `diff`, `export`, `eval …`.
-What is stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a verdict is reached:
+Everything above also works with commands: `qv status` (where every file stands) and the full set in
+`qv --help` — `research`, `validate`, `judge`, `resume`, `runs`, `verdicts`, `verdict`, `evidence`, `metrics`,
+`usage`, `quota`, `issues`, `diff`, `export`, `eval …`. The **Advanced** page in the browser has the detailed
+views (every source and quote of a question, files and format problems, batches, quota and usage). What is
+stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a verdict is reached:
 [METHODOLOGY.md](METHODOLOGY.md).
 
----
+## Not built yet
 
-## What still has to be built (plan)
-
-In this order; each is a separate branch, tested, and tried in the browser before merging.
-
-1. **`qv next` + Validate button + progress card** — next batch sized to today's free quota, continues a stopped
-   batch automatically, skips questions already validated with the same text; runs in the background so the page
-   can close; the card shows done / to review / remaining and when the free limits reset.
-2. **Review page + decisions** — the one-question-at-a-time queue with the six actions, an append-only
-   decisions table (latest decision wins), the specialist list (printable / CSV), re-checking edited questions.
-3. **Export page** — corrected file built from the decisions, verified-only file, full results report.
-4. **Import page** — upload, format check with a suggested fix per problem, one-click fixes as a corrected copy,
-   column-name matching for files from elsewhere.
-5. **Small comforts** — the double-click start file, optional daily automatic batch, re-import validates only
-   changed questions.
-
-Running alongside: the eval measurement (a few days of free quota) — it tells us how far *Verified* can be
-trusted before you rely on step 3's "nothing to do".
+- **One-click fixes** on import (e.g. remove extra spaces, turn an answer written as text into its option
+  number) — today the page tells you what to change in the file.
+- **Continue automatically every day** — today you press *Validate next batch* (or run `qv next`) once a day.
+- How far *Verified* can be trusted is still being measured on the evaluation set (a few days of free quota).

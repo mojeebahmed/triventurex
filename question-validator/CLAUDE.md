@@ -10,7 +10,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `ARCHITECTURE.md` — stack, database design, workflow, API strategy, phased plan (§6). Where §3 differs from
   METHODOLOGY.md, METHODOLOGY.md wins.
 - `prompts/` — prompt + JSON schema per stage. Prompts are versioned: change a prompt → new version file.
-- `USER_GUIDE.md` — the simple four-step workflow for Mojeeb (and what of it is built).
+- `USER_GUIDE.md` — the simple four-step workflow for Mojeeb (web page + `qv status` / `qv next` / `qv export`).
 - `DATABASE.md` — tables in plain words, how to inspect the database, example queries. Update it when a table
   or an inspecting command changes.
 - `SPECIFICATION.md` — the original PRD (unchanged copy; don't edit).
@@ -44,11 +44,12 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   S1a → different routes (cross-question consistency, next-work item 4).
 - Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
 
-## Simple workflow (proposed 2026-11-16, waiting for Mojeeb's go-ahead)
-Mojeeb wants the tool usable with very few steps, preferably in the web page: import → validate next batch
-(one button / `qv next`, press again when it stops) → review with one-click decisions → export. Target and
-build plan: `USER_GUIDE.md` (keep its 🟢/🟡/⚪ markers current). This is ARCHITECTURE.md phases 4–5, made
-simple; all existing commands stay for power users and debugging.
+## Simple workflow (built 2026-11-16)
+Mojeeb wants the tool usable with very few steps, in the web page: `Start Question Validator.command` → Overview
+· 1 Import · 2 Validate · 3 Review · 4 Export (+ Advanced = the detailed views). Commands: `qv status`, `qv next`,
+`qv export corrected|verified|results`. User-facing description: `USER_GUIDE.md` (keep it current; its "Not built
+yet" lists one-click import fixes and an automatic daily batch). This is ARCHITECTURE.md phases 4–5, made simple;
+all other commands stay for power users and debugging.
 
 ## Next work (agreed order, 2026-11-15)
 1. **Local model provider (Ollama)** — Mojeeb's Mac: M2 Pro, 32 GB, Ollama installed with `qwen3:14b`, `gemma3:12b`,
@@ -132,6 +133,24 @@ direct source yet; the Flash models' real free limits (3.6/3.7/3.8) still to be 
   (`passage_map_json`), so reasons and the web view use the same ids.
 - A pool moves to its next model after a model's transient-error retries run out (free Flash models are often
   overloaded); failed attempts still count in the ledger.
+
+## Implementation invariants (simple workflow)
+- **Status by content**: `qv/services/workflow.py` works on a dataset's latest version and matches validations and
+  decisions to a question by `(ext_id, content_hash)` across all versions of the dataset — an unchanged question
+  keeps its result in a new version; a changed one is "not checked" again (priority reason "changed since it was
+  last checked"). One dataset = one question file (one game edition); eval-… datasets are hidden by default.
+- **Decisions are append-only** (`decisions` table + triggers); the newest per question wins. Actions: keep, edit
+  (`changes_json`, only question/answer/options/note), specialist, remove, later. Edits never touch the import;
+  they are applied at export (`corrected_csv` patches + `drop_rows` for removed questions) or stored as a new
+  version by "Check my edits again".
+- **One batch at a time**: `qv next` holds `data/batch.lock.json` (pid); the web page starts `python -m qv.cli next
+  … --yes` detached (`qv/services/worker.py`, log in `data/logs/`). A dead pid = stale lock. `qv next` first
+  continues the newest unfinished validate run of the version, then plans a new one from the selection
+  (category / subcategory / priority level / ids; priority or file order); batch size = today's free judge
+  requests / 2.2, at most `research.yaml batch_size`.
+- **Priority** (`qv/pipeline/priority.py`) is pure code from the wording; it only orders work.
+- The web page now writes (imports, decisions, new versions, starting batches) — through services only; it never
+  calls a model itself. Streamlit keeps imported modules loaded: restart `qv ui` after changing `qv/services`.
 
 ## Implementation invariants (local models)
 - **Pools are cross-provider**: `llm.pools` entries are `provider/model` (split on the first `/`; Ollama model

@@ -13,7 +13,7 @@ or copy all three files together). Deleting it starts from zero; the next `qv` c
 
 | Way | Best for | How |
 |---|---|---|
-| **Web view** | reading verdicts and evidence question by question | `.venv/bin/qv ui` → http://localhost:8501 (read-only) |
+| **Web page** | progress, review, the detailed views under *Advanced* | `Start Question Validator.command` or `.venv/bin/qv ui` → http://localhost:8501 |
 | **`qv` commands** | quick answers in the terminal | see the table below |
 | **DB Browser for SQLite** (free app, sqlitebrowser.org) | clicking through tables, filtering, searching | open `data/validation.db`; use *Browse Data* and *Execute SQL*. Open it **read-only** (File → Open Database Read Only) so nothing is changed by accident |
 | **`sqlite3`** (built into macOS) | your own queries | `sqlite3 -header -column data/validation.db "select …"` |
@@ -27,6 +27,7 @@ it). Still, change nothing by hand — use `qv` for everything that writes.
 |---|---|
 | `qv datasets` | imported files and their versions, with structural error / warning counts |
 | `qv issues swab-quest` | structural problems found on import |
+| `qv status` | every file: verified, to look at, still to check — and what to do next |
 | `qv runs` | every research / validate run: dataset, status, how many questions |
 | `qv verdicts 3` | one line per question of run 3: verdict, evidence strength, next step |
 | `qv verdict 3 127` | why question #127 got its verdict: claims, blind answer, quality, every rule that fired |
@@ -49,7 +50,9 @@ search_queries ─▶ fetches ─▶ documents ──┤          (what we searc
                                          │
 question_documents ─ passages ───────────┤          (which pages belong to which question, and the quotes)
                                          │
-stage_outputs ─▶ validations ────────────┘          (each model's answer, and the final verdict)
+stage_outputs ─▶ validations ────────────┤          (each model's answer, and the final verdict)
+                                         │
+decisions ───────────────────────────────┘          (what you decided in the Review step)
 api_calls, quota_usage                              (every call made, and the free quota used)
 ```
 
@@ -68,6 +71,7 @@ api_calls, quota_usage                              (every call made, and the fr
 | `passages` | one exact quote from a page | `quote`, `mode` (A = about the question, B = about the note), `target`, `asserted_answer`, `matches_option`, `stance`, `char_start`/`char_end` (where in the page) |
 | `stage_outputs` | one model answer (S1a, S1b, S3, S4, S5, S6) | `stage`, `model`, `output_json`, `valid`, `checks_json`, `input_hash` (same input → reused, no new call) |
 | `validations` | the verdict for one question in one run | `verdict`, `evidence_strength`, `review_status`, `blind_answer`, `blind_matches_key`, `reasons_json`, `suggested_answer`, `passage_map_json` (P1, P2 … → passage) |
+| `decisions` | your decision about one question (keep / edit / specialist / remove / later) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
 | `api_calls` | every call to a model, search engine or website | `provider`, `model`, `stage`, `status` (ok / error / quota), `input_tokens`, `output_tokens`, `latency_ms`, `error` |
 | `quota_usage` | free quota used per provider and day / month | `used`, `exhausted` |
 | `alembic_version` | the database schema version (internal) | — |
@@ -123,6 +127,11 @@ sqlite3 -header -column data/validation.db "select stage, model, valid from stag
 ```bash
 # Calls per provider and model, and how many failed
 sqlite3 -header -column data/validation.db "select provider, model, status, count(*) calls from api_calls group by 1, 2, 3"
+```
+
+```bash
+# Your review decisions, newest first
+sqlite3 -header -column data/validation.db "select d.created_at, ds.name file, d.ext_id id, d.action, d.comment from decisions d join datasets ds on ds.id = d.dataset_id order by d.id desc limit 20"
 ```
 
 Stage outputs are reused by input hash, so a question researched in an earlier run keeps its S1a/S1b/S3 outputs

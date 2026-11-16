@@ -396,3 +396,41 @@ EVIDENCE_TRIGGERS: dict[str, str] = {
         BEGIN SELECT RAISE(ABORT, 'passages are immutable'); END
     """,
 }
+
+
+# ---------------------------------------------------------------------------
+# Simple workflow — the user's review decisions
+# ---------------------------------------------------------------------------
+
+class Decision(Base):
+    """A person's decision about one question (append-only; the newest one for a question wins).
+
+    It belongs to the question's exact content (`content_hash`): when the question changes in a later
+    import, older decisions no longer apply and the question is checked again.
+    """
+
+    __tablename__ = "decisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), index=True)
+    ext_id: Mapped[str] = mapped_column(String(50), index=True)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
+    validation_id: Mapped[int | None] = mapped_column(ForeignKey("validations.id"), nullable=True)
+    action: Mapped[str] = mapped_column(String(20))  # keep | edit | specialist | remove | later
+    changes_json: Mapped[dict] = mapped_column(JSON, default=dict)  # edit: {column: new value}
+    comment: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+#: Decisions are a history: never changed or deleted.
+DECISION_TRIGGERS: dict[str, str] = {
+    "decisions_no_update": """
+        CREATE TRIGGER decisions_no_update BEFORE UPDATE ON decisions
+        BEGIN SELECT RAISE(ABORT, 'decisions are append-only'); END
+    """,
+    "decisions_no_delete": """
+        CREATE TRIGGER decisions_no_delete BEFORE DELETE ON decisions
+        BEGIN SELECT RAISE(ABORT, 'decisions are append-only'); END
+    """,
+}

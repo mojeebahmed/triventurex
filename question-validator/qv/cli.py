@@ -131,12 +131,15 @@ def diff(dataset: str, old: int, new: int) -> None:
 
 
 @app.command()
-def export(kind: Annotated[str, typer.Argument(help="original | report | corrected")], dataset: str,
+def export(kind: Annotated[str, typer.Argument(help="corrected | verified | results | original | report")],
+           dataset: str,
            version: Annotated[int | None, typer.Option(help="Version (default latest)")] = None,
            out: Annotated[Path | None, typer.Option(help="Output file (default: data/exports/…)")] = None,
            changes: Annotated[Path | None, typer.Option(
-               help='corrected: JSON {"<id>": {"<column>": "<new value>"}} of APPROVED changes')] = None) -> None:
-    """Export the original file, the structural report, or a corrected CSV."""
+               help='corrected: JSON {"<id>": {"<column>": "<new value>"}} instead of your decisions')] = None
+           ) -> None:
+    """Export: corrected (your decisions applied), verified (only checked questions), results (one line per
+    question), original (the imported file) or report (format problems)."""
     db = _db()
     with db.session() as s:
         v = ds_service.get_version(s, dataset, version)
@@ -144,14 +147,21 @@ def export(kind: Annotated[str, typer.Argument(help="original | report | correct
             data, suffix = export_service.export_original(v), "original.csv"
         elif kind == "report":
             data, suffix = export_service.structural_report_csv(s, v), "structural-report.csv"
+        elif kind in ("verified", "results") or (kind == "corrected" and changes is None):
+            if version is not None:
+                raise typer.BadParameter(f"{kind} always uses the latest version")
+            data, name, summary = export_service.workflow_export(db, dataset, kind)
+            target = out or _settings().exports_dir / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            typer.echo(f"Wrote {target}: " + ", ".join(f"{k} {v}" for k, v in summary.items()))
+            return
         elif kind == "corrected":
-            if changes is None:
-                raise typer.BadParameter("--changes is required for a corrected export")
             result = export_service.corrected_csv(v, json.loads(changes.read_text(encoding="utf-8")))
             data, suffix = result.data, "corrected.csv"
             typer.echo(f"Changed ids: {', '.join(result.changed_ids) or '-'}")
         else:
-            raise typer.BadParameter("kind must be original, report or corrected")
+            raise typer.BadParameter("kind must be corrected, verified, results, original or report")
         target = out or _settings().exports_dir / f"{dataset}-v{v.version_no}-{suffix}"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(data)
@@ -265,6 +275,85 @@ def validate(dataset: str,
              yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
     """Research and judge questions: evidence, blind answer, verification, quality and a verdict."""
     _start_run("validate", dataset, ids, version, max_questions, yes)
+
+
+@app.command("next")
+def next_batch(dataset: str,
+               size: Annotated[int | None, typer.Option(help="Questions in a new batch (default: what today's "
+                                                              "free quota allows, at most research.yaml batch_size)")] = None,
+               category: Annotated[list[str] | None, typer.Option(help="Only this category (repeatable)")] = None,
+               subcategory: Annotated[list[str] | None, typer.Option(help="Only this subcategory (repeatable)")] = None,
+               priority: Annotated[list[str] | None, typer.Option(help="Only these priority levels: high, medium, "
+                                                                       "low (repeatable)")] = None,
+               ids: Annotated[str | None, typer.Option(help="Only these CSV ids, e.g. 1,5,10-12")] = None,
+               order: Annotated[str, typer.Option(help="priority (default) or file")] = "priority",
+               yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+    """Validate the next batch: continues a stopped batch, else the next questions by priority. Run it again
+    whenever it stops."""
+    import os
+
+    from qv.config import load_research_config
+    from qv.services import worker, workflow
+    from qv.services.research import build_deps, execute_run
+    settings = _settings()
+    db = _db()
+    if order not in ("priority", "file"):
+        raise typer.BadParameter("order must be priority or file")
+    sel = workflow.Selection(categories=tuple(category or ()), subcategories=tuple(subcategory or ()),
+                             levels=tuple(priority or ()), ids=tuple(_parse_ids(ids) or ()), order=order)
+    default = load_research_config().batch_size
+    n = size if size is not None else workflow.suggested_batch_size(db, default)
+    plan = workflow.plan_next_batch(db, dataset, sel, n)
+    typer.echo(f"{dataset}: {plan.message}")
+    if plan.action == "start" and n == 0:
+        typer.echo(f"Today's free judging requests are used up. Try again after "
+                   f"{workflow.next_reset_local():%Y-%m-%d %H:%M}.")
+        return
+    if plan.action == "nothing":
+        return
+    for st in plan.questions[:10]:
+        typer.echo(f"  #{st.ext_id:>5} [{st.priority_level}] {st.question[:80]}")
+    if len(plan.questions) > 10:
+        typer.echo(f"  … and {len(plan.questions) - 10} more")
+    if not yes and not typer.confirm("Start?"):
+        raise typer.Exit(1)
+    log = os.environ.get("QV_BATCH_LOG")
+    if not worker.acquire(settings.data_dir, dataset, Path(log) if log else None):
+        st = worker.status(settings.data_dir)
+        typer.echo(f"Another batch is running ({st.dataset}, started {st.started}); try again when it is done.")
+        raise typer.Exit(1)
+    try:
+        run_id = workflow.start_batch(db, plan, sel)
+        typer.echo(f"Batch = run {run_id}. It stops cleanly when a free limit is reached; run `qv next "
+                   f"{dataset}` again later.", )
+        report = execute_run(build_deps(settings, db), run_id)
+        _print_run_report(report)
+    finally:
+        worker.release(settings.data_dir)
+    _print_status(db, dataset)
+
+
+def _print_status(db: Database, dataset: str) -> None:
+    from qv.services import workflow
+    states = workflow.question_states(db, dataset)
+    c = workflow.counts(states)
+    typer.echo(f"{dataset}: {len(states)} questions — " + ", ".join(
+        f"{workflow.STATUS_LABEL[k].lower()} {v}" for k, v in c.items() if v))
+    left = c["not_checked"] + c["failed"] + c["in_progress"]
+    review = sum(c[k] for k in workflow.REVIEW_STATUSES)
+    if left:
+        typer.echo(f"Next: `qv next {dataset}` ({left} still to check)")
+    if review:
+        typer.echo(f"To look at: {review} question(s) on the Review page (`qv ui`)")
+
+
+@app.command()
+def status(dataset: Annotated[str | None, typer.Argument(help="Dataset (default: all)")] = None) -> None:
+    """Where each file stands: checked, to review, still to check — and what to do next."""
+    from qv.services import workflow
+    db = _db()
+    for name in [dataset] if dataset else workflow.dataset_names(db):
+        _print_status(db, name)
 
 
 @app.command()

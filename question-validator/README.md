@@ -7,8 +7,8 @@ factual accuracy and quality, with traceable evidence for every conclusion.
 analysis, free web search, page fetching, Qur'an verses from alislam.org, verbatim passages checked against the
 stored pages) and judgement (blind answer, verification, quality, rule-based verdict). Free services only.
 
-**New here? Start with [`USER_GUIDE.md`](USER_GUIDE.md)** — the four-step workflow (import, validate, review,
-export).
+**New here? Start with [`USER_GUIDE.md`](USER_GUIDE.md)** — double-click `Start Question Validator.command` and
+follow four steps in the browser: import, validate, review, export.
 
 - [`SPECIFICATION.md`](SPECIFICATION.md) — the original PRD and technical specification (unchanged copy).
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — review of the specification, the revised architecture, database
@@ -46,7 +46,11 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv diff football-quest 1 2                   # what changed between versions (by id)
 .venv/bin/qv export original world-tour                 # byte-identical copy of the import
 .venv/bin/qv export report world-tour                   # structural report CSV
-.venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}}
+.venv/bin/qv status                                    # where every file stands, and what to do next
+.venv/bin/qv next world-tour                           # validate the next batch (by priority); run again when it stops
+.venv/bin/qv next world-tour --category Asia --priority high --size 10   # … only some questions
+.venv/bin/qv export corrected world-tour               # your decisions applied (also: verified, results)
+.venv/bin/qv export corrected world-tour --changes approved.json   # {"<id>": {"<column>": "<value>"}} instead
 .venv/bin/qv quota                                     # free quota left (Gemini, Parallel, Tavily, Exa; local models)
 .venv/bin/qv research swab-quest --ids 1,5,10-12       # evidence for some questions (asks first)
 .venv/bin/qv validate swab-quest --ids 1,5             # research + verdict (blind answer, verification, quality)
@@ -54,7 +58,7 @@ cp .env.example .env            # optional; data goes to ./data by default
 .venv/bin/qv verdicts 3 | verdict 3 12                 # all verdicts of a run · why one question got its verdict
 .venv/bin/qv resume 3                                  # continue a run stopped by a free limit
 .venv/bin/qv runs | metrics 3 | evidence 3 12 | usage  # inspect runs, one question's evidence, API use
-.venv/bin/qv ui                                        # read-only web view → http://localhost:8501
+.venv/bin/qv ui                                        # the web page → http://localhost:8501 (import, validate, review, export)
 .venv/bin/qv eval check | seed | sample out.csv        # evaluation set tools
 .venv/bin/qv eval import                              # eval set as datasets + the validate commands to run
 .venv/bin/qv eval score 5 6 7                          # verdicts of runs vs the labels (Phase 3 exit metrics)
@@ -75,13 +79,15 @@ qv/domain/      typed models (Pydantic): Question, CsvRow, StructuralIssue, Data
 qv/io/          game-compatible CSV parser + byte-faithful patch writer
 qv/pipeline/    structural.py (S0), stages.py (S1a/S1b/S3 prompts + checks), grounding.py,
                 judgement.py (S4/S5/S6 prompts + checks), evidence.py (passage ids, origin clusters),
-                rules.py (S8: evidence requirements → claim statuses → verdict → review route; pure)
+                rules.py (S8: evidence requirements → claim statuses → verdict → review route; pure),
+                priority.py (which questions to check first, from the wording; pure)
 qv/providers/   llm/ (Gemini, Ollama + model pools), search/ (Parallel MCP, Tavily, Exa, Wikipedia, alislam),
                 fetch.py, quran.py, usage.py (free-quota ledger, rate limits, call log)
 qv/prompts/     versioned system prompts (copied from prompts/*.md)
-qv/ui/          Streamlit read-only view (thin; queries in qv/services/views.py)
+qv/ui/          Streamlit web page: Overview, Import, Validate, Review, Export, Advanced (thin; logic in qv/services)
 qv/db/          SQLAlchemy models, sessions (SQLite WAL), Alembic migrations (applied automatically)
-qv/services/    application logic used by CLI/UI: datasets, exports, research (pipeline), judgement, views
+qv/services/    application logic used by CLI/UI: datasets, exports, research (pipeline), judgement, views,
+                workflow (status per question, batches, decisions), worker (one background batch), import_help
 qv/evaluation.py  eval cases, seeded errors, stratified sampling
 qv/cli.py       `qv` command (thin)
 config/profiles/  per-edition profile: audience, frame, conventions, structural rules

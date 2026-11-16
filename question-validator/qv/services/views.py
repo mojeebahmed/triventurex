@@ -249,3 +249,45 @@ def question_verdict(db: Database, run_id: int, ext_id: str) -> dict | None:
         lines.append(f"   Suggested question: {data['suggested_question']}")
     lines += ["", "Why:"] + [f"   - {r}" for r in data["reasons_json"]]
     return {**data, "question": q, "passages": passages, "evidence_summary": summary, "summary_lines": lines}
+
+
+def quota_rows(db: Database) -> list[dict]:
+    """Free quota left now, per provider/model (same numbers as `qv quota`)."""
+    from qv.config import load_providers_config
+    from qv.providers.usage import Limit, QuotaLedger
+    pcfg = load_providers_config()
+    ledger = QuotaLedger(db, reserve_fraction=pcfg.reserve_fraction)
+    g = pcfg.llm.gemini
+    rows = [{"service": f"Gemini {m}", "left": round(ledger.remaining("gemini", m, lim := Limit(
+        "day", c.rpd, g.daily_reset_timezone))), "of": round(ledger.usable(lim)), "per": "day"}
+        for m, c in g.models.items()]
+    sc = pcfg.search
+    for name, limit in (("Parallel search", Limit("day", sc.parallel.daily_soft_cap)),
+                        ("Tavily search", Limit("month", sc.tavily.credits_per_month)),
+                        ("Exa search (USD credit)", Limit("month", sc.exa.usd_credit_per_month))):
+        key = name.split()[0].lower()
+        rows.append({"service": name, "left": round(ledger.remaining(key, "", limit), 2),
+                     "of": round(ledger.usable(limit), 2), "per": limit.period})
+    rows += [{"service": f"Local model {m}", "left": "no limit", "of": "", "per": ""} for m in pcfg.llm.ollama.models]
+    return rows
+
+
+def dataset_cards(db: Database, *, include_eval: bool = False) -> list[dict]:
+    """One row per dataset (latest version) with its progress, for the overview."""
+    from qv.services import workflow
+    overview = datasets_overview(db)
+    latest = {}
+    for o in overview:
+        latest[o["dataset"]] = o
+    out = []
+    for o in latest.values():
+        if o["dataset"].startswith("eval-") and not include_eval:
+            continue
+        c = workflow.counts(workflow.question_states(db, o["dataset"]))
+        out.append({"file": o["dataset"], "source file": o["file"], "version": o["version"],
+                    "imported": o["imported"], "profile": o["profile"], "questions": o["rows"],
+                    "verified": c["verified"] + c["approved"] + c["edited"],
+                    "to look at": sum(c[k] for k in workflow.REVIEW_STATUSES),
+                    "still to check": c["not_checked"] + c["failed"] + c["in_progress"],
+                    "format errors": c["format_error"]})
+    return out
