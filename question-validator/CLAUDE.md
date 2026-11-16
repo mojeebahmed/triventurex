@@ -42,7 +42,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
   false premise flagged by S6 only). Seeder fixed: decades ("1880s") are no longer mutated (set regenerated;
   40 of 50 mutations unchanged). Next: `qv resume 6`, then the remaining seeded + control datasets. Seen: #127 and #285 (same question) got different claim types from
   S1a → different routes (cross-question consistency, next-work item 4).
-- Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points: METHODOLOGY.md §13.
+- Run `.venv/bin/python -m pytest` before merging (see README for setup). Open points of METHODOLOGY.md §13 were answered on 2026-11-16.
 
 ## Simple workflow (built 2026-11-16)
 Mojeeb wants the tool usable with very few steps, in the web page: `Start Question Validator.command` → Overview
