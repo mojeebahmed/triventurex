@@ -6,7 +6,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys } = require('../js/shared/questions.js');
+const { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, checkLabel, checkedCount } = require('../js/shared/questions.js');
 
 const Q = [
   { id: 1, q: 'Capital of <em>Sweden</em>?', opts: ['Oslo', 'Stockholm'], answer: 'B', diff: 'easy', cat: 'Geo', subcat: 'Europe', topic: 'Capitals', note: '' },
@@ -41,6 +41,16 @@ describe('filterQuestions', () => {
   it('by difficulty and by a set of ids (marked only)', () => {
     assert.deepEqual(ids({ diff: 'hard' }), [2, 4]);
     assert.deepEqual(ids({ onlyIds: new Set([3, 4]) }), [3, 4]);
+  });
+  it('by check (Question Validator): checked / not checked', () => {
+    const withCheck = Q.map(q => (q.id === 2 ? { ...q, check: { status: 'confirmed', sources: [] } } : q));
+    const got = c => filterQuestions(withCheck, { checked: c }).map(q => q.id);
+    assert.deepEqual(got('yes'), [2]);
+    assert.deepEqual(got('no'), [1, 3, 4]);
+    assert.deepEqual(got('all'), [1, 2, 3, 4]);
+    assert.equal(checkedCount(withCheck), 1);
+    assert.equal(checkLabel(withCheck[1]), 'Confirmed by a reviewer');
+    assert.equal(checkLabel(Q[0]), '');
   });
 });
 

@@ -221,3 +221,28 @@ describe('general action cards (game_editions/shared, C4)', () => {
     assert.match(html, /<script src="game_editions\/shared\/actions\.js"><\/script>/);
   });
 });
+
+describe('check columns (Question Validator export)', () => {
+  const { checkHash } = require('../scripts/content.js');
+  const CH = QH.trimEnd() + ',checked,checked_on,check_how,sources,source_links,source_quote,as_of,check_hash\n';
+  const row = (checked, hash) =>
+    `1,Q?,multi,2,A,B,,,easy,c,s,t,,${checked},2026-11-16,Checked against 2 independent sources,` +
+    `"Book, p. 3 | example.org",| https://example.org/a,A quote.,2025,${hash}\n`;
+  const good = checkHash({ question: 'Q?', type: 'multi', answer: '2', opt_a: 'A', opt_b: 'B', opt_c: '', opt_d: '', note: '' });
+
+  it('parses into q.check, sources matched to links by position', () => {
+    const [q] = _parseQuestionsCSV(CH + row('verified', good));
+    assert.deepEqual(q.check, { status: 'verified', on: '2026-11-16', how: 'Checked against 2 independent sources',
+      sources: [{ name: 'Book, p. 3', url: '' }, { name: 'example.org', url: 'https://example.org/a' }],
+      quote: 'A quote.', asOf: '2025' });
+  });
+  it('leaves check out when not checked (generated JS stays small)', () => {
+    const [q] = _parseQuestionsCSV(CH + '1,Q?,open,x,,,,,easy,c,s,t,,,,,,,,,\n');
+    assert.equal('check' in q, false);
+  });
+  it('accepts a matching hash, warns when the question changed after the check, refuses unknown values', () => {
+    assert.deepEqual(check({ questionsCsv: CH + row('verified', good) }).warnings, []);
+    assert.match(messages(check({ questionsCsv: CH + row('verified', 'abcdef0123') }).warnings), /changed after it was checked/);
+    assert.match(messages(check({ questionsCsv: CH + row('maybe', good) }).errors), /checked "maybe" must be/);
+  });
+});

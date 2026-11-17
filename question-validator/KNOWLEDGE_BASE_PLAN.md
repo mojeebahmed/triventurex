@@ -375,3 +375,29 @@ reviewed by a person. Tests: grounding of facts, events history, masking, limits
         └──► 3 stored pages first (+ web PDFs) ──► 4 experiments ──► 5 duplicates ──► 6 facts + generation
 ```
 Phase 2 and phase 3 can be built in either order after phase 1; phase 2 first gives the judging tool phase 4 may need.
+
+### Agreed order from 2026-11-17 (Mojeeb) — code first, quota runs grouped
+
+**First priority: validate the real editions and use the results in the game** — before any question generation.
+
+Model-quota runs (Gemini free tier) — run in the background with the daily run while code is built:
+1. **Finish the evaluation set with `stored_pages_per_question: 0`** → a clean "before" (phase 3 code is merged, so
+   without this the remaining runs would mix before and after).
+2. **Same eval set with `stored_pages_per_question: 2`** → the phase-3 acceptance "after" (both compared with
+   `qv eval score`; searches per question compared too).
+3. **Full validation of the editions**: Swab Quest first, then the others; review → export.
+
+Code, in parallel:
+- **Validated export for the game** (new item, not a KB phase): extra columns in the exported questions CSV that say
+  how a question was checked, and the game's 📚 Questions tab + the Academy's Review / Explore lists show them. The
+  game's parser keys rows by header and its checker only checks the column count, so extra columns are safe; the
+  generated JS / content scripts and both pages need changes (root project rules apply there). Columns to agree first.
+- **Phase 5** (duplicates) — little or no model use.
+- **Phase 4 code** + embedding tests (local, $0); its local-model eval runs overnight on the Mac, one stage per run.
+- **Phase 6 code** with a small sample only (a handful of facts and ~10–20 generated questions to prove grounding,
+  leave-one-out masking and limits). **Full generation waits** until Mojeeb asks for it.
+
+The knowledge index is **general** (one index over everything stored, all editions): each stored page carries the
+editions / categories of the questions that read it, books carry the editions they are listed for, and search can
+filter on these. Phase 6 chooses its source material (edition, topic, book, documents) per generation run, so it can
+generate for an existing edition or a new one.

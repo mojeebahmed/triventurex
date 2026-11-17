@@ -96,6 +96,7 @@ Browse every question in this edition — to check them, or just to learn.
 - Pick a topic on the left, or search for words or a question's #number. Filter by difficulty and show or hide the answers.
 - {icon:markQuestion} **Mark** a question that looks wrong or unclear, and add a note. You can also mark a question during a game, on its card.
 - **Marked only** shows just your marks. {icon:copy} **Copy marked list** copies them with your notes — send it to whoever looks after the questions.
+- {icon:checkVerified} **Checked** questions went through the Question Validator: the badge says how ({icon:checkVerified} against sources, {icon:checkReviewer} by a reviewer). Open the answer to see the sources, the date and a short quote from the best source. The **Checked / Not checked** filter appears when the edition has checked questions.
 - {icon:academy} **Academy** opens Triventurex Academy in a new tab: flashcards, quizzes and games with these questions.`,
   },
 
@@ -278,6 +279,7 @@ Browse the questions with their answers and the fact behind each one.
 
 - {icon:markQuestion} **Mark as wrong / unclear** with a note when something looks off; {icon:editNote} edits the note.
 - **Marked only** shows just the marked questions.
+- {icon:checkVerified} A **Checked** badge means the question was checked with the Question Validator. Under the answer you see how, when, the {icon:checkSource} sources (tap one to read it) and a short quote.
 - On a phone, marking is in {icon:modeReview} **Review** (under {icon:moreModes} More).`,
   },
   'academy-flashcards': {
@@ -336,6 +338,7 @@ For checking an edition's questions, one by one.
 
 - Tick a question as **reviewed** when it is right, or {icon:markQuestion} mark it with a note when it is not.
 - Show all questions, those not reviewed yet, or the marked ones; the bar shows your progress.
+- When the edition has questions checked with the Question Validator, you can also show only the {icon:checkVerified} **checked** or the **not checked** ones — the not-checked ones need a person most. Each checked question shows its sources and a short quote under the answer.
 - {icon:copy} **Copy report** copies your marks and notes — send them to whoever looks after the questions.`,
   },
 };

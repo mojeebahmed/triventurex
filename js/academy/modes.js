@@ -44,11 +44,11 @@ function _itemHtml(q, { marked, reviewed, review }) {
   const showAll = review || _ex.answers;
   const opts = isMulti(q)
     ? `<ol class="qx-opts">${q.opts.map((o, i) => `<li class="${LETTERS[i] === q.answer ? 'qx-correct' : ''}"><b>${LETTERS[i]}</b> ${o}</li>`).join('')}</ol>` : '';
-  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
+  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>${checkDetailsHtml(q)}`;
   const editing = _ex.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${showAll ? 'show-answers' : ''} ${review && reviewed[q.id] ? 'reviewed' : ''}" data-id="${q.id}">
-      <div class="qx-meta">#${q.id} · ${_diffTag(q)} · ${_where(q)}</div>
+      <div class="qx-meta">#${q.id} · ${_diffTag(q)} · ${_where(q)}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}</div>
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${showAll ? 'open' : ''}><summary>Answer</summary>${answer}</details>
@@ -612,7 +612,7 @@ registerMode({
 
 // ── 🔍 Review (for reviewers) ───────────────────────────────────────────────────
 
-const _rv = { show: 'all' };   // 'all' | 'todo' | 'marked'
+const _rv = { show: 'all' };   // 'all' | 'todo' | 'marked' | 'checked' | 'unchecked'
 
 registerMode({
   id: 'review', icon: 'modeReview', label: 'Review', filter: true, phone: false,
@@ -623,6 +623,7 @@ registerMode({
       <div class="ac-bar">
         <select id="ac-rv-show" class="settings-select">
           <option value="all">All questions</option><option value="todo">Not reviewed yet</option><option value="marked">${iconText('marked')} Marked</option>
+          ${checkedCount(questions) ? '<option value="checked">Checked by the Question Validator</option><option value="unchecked">Not checked by the Question Validator</option>' : ''}
         </select>
         <span class="ac-spacer"></span>
         <button type="button" class="btn btn-secondary btn-small" data-rv="copy">${icon('copy')} Copy report</button>
@@ -631,6 +632,7 @@ registerMode({
       <div id="ac-rv-progress" class="ac-progress"></div>
       <div id="ac-list"></div>`;
     const list = main.querySelector('#ac-list');
+    if (!checkedCount(questions) && /checked/.test(_rv.show)) _rv.show = 'all';
     main.querySelector('#ac-rv-show').value = _rv.show;
     const draw = () => {
       const marked = loadMarkedQuestions(), reviewed = loadReviewed();
@@ -638,7 +640,9 @@ registerMode({
       main.querySelector('#ac-rv-progress').innerHTML = `
         <div class="ac-progress-bar"><div style="width:${s.total ? (s.reviewed / s.total) * 100 : 0}%"></div></div>
         <span>✓ ${s.reviewed} of ${s.total} reviewed · ${icon('marked')} ${s.marked} marked · ${s.left} to go</span>`;
-      const shownQs = questions.filter(q => _rv.show === 'all' || (_rv.show === 'todo' ? !reviewed[q.id] : marked[q.id]));
+      const show = { all: () => true, todo: q => !reviewed[q.id], marked: q => marked[q.id],
+                     checked: q => q.check, unchecked: q => !q.check }[_rv.show] ?? (() => true);
+      const shownQs = questions.filter(show);
       const page = shownQs.slice(0, _ex.limit);
       list.innerHTML = page.length
         ? page.map(q => _itemHtml(q, { marked, reviewed, review: true })).join('') +

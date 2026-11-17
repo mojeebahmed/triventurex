@@ -112,6 +112,8 @@ def workflow_export(db, dataset: str, kind: str) -> tuple[bytes, str, dict]:  # 
     """The simple workflow's downloads for the dataset's latest version.
 
     - "corrected": the whole file, decided edits applied, removed questions left out
+    Both "corrected" and "ready" carry the check columns (qv.services.check_export): how each ready
+    question was checked, for the game's Questions tab and the Academy.
     - "ready" (old name "verified"): only questions ready for the game — verified automatically, confirmed by a
       person or edited by a person (edits applied)
     - "results":   one row per question: status, verdict, decision, suggestion, reasons, sources
@@ -119,6 +121,7 @@ def workflow_export(db, dataset: str, kind: str) -> tuple[bytes, str, dict]:  # 
     Returns (bytes, file name, summary).
     """
     from qv.services.datasets import get_version
+    from qv.services.check_export import add_check_columns
     from qv.services.workflow import READY_STATUSES, question_states
     kind = "ready" if kind == "verified" else kind
     states = question_states(db, dataset)
@@ -139,6 +142,10 @@ def workflow_export(db, dataset: str, kind: str) -> tuple[bytes, str, dict]:  # 
         else:
             raise ExportError(f"Unknown export {kind!r}")
         data = drop_rows(result.data, {line_of[i] for i in drop if i in line_of})
+        try:
+            data = add_check_columns(db, data, states)
+        except PatchError as exc:
+            raise ExportError(f"Could not add the check columns: {exc}") from exc
         summary = {"rows": len(states) - len(drop), "edited": len(edits), "left_out": len(drop)}
         return data, f"{stem}-{kind}.csv", summary
 

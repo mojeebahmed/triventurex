@@ -38,6 +38,8 @@ function _parseCSV(text) {
  *
  * CSV columns (header row required):
  *   id, question, type, answer, opt_a, opt_b, opt_c, opt_d, difficulty, category, subcategory, topic, note
+ * Optional check columns (from the Question Validator's export — see _questionCheck):
+ *   checked, checked_on, check_how, sources, source_links, source_quote, as_of, check_hash
  *
  * id     = unique number per edition; never reuse or renumber — asked-question
  *          tracking is stored by id. New question → next unused number.
@@ -69,8 +71,28 @@ function _parseQuestionsCSV(text) {
         subcat: r.subcategory  || '',
         topic:  r.topic        || '',
         note:   r.note         || '',
+        ...(r.checked ? { check: _questionCheck(r) } : {}),
       };
     });
+}
+
+/**
+ * How a question was checked — the optional check columns the Question Validator's
+ * game export adds (checked, checked_on, check_how, sources, source_links,
+ * source_quote, as_of). `sources` and `source_links` are lists split on " | ",
+ * matched by position (a book page has no link).
+ */
+function _questionCheck(r) {
+  const list = v => (v ? v.split('|').map(x => x.trim()) : []);
+  const links = list(r.source_links);
+  return {
+    status:  r.checked,
+    on:      r.checked_on   || '',
+    how:     r.check_how    || '',
+    sources: list(r.sources).filter(Boolean).map((name, i) => ({ name, url: links[i] || '' })),
+    quote:   r.source_quote || '',
+    asOf:    r.as_of        || '',
+  };
 }
 
 /**

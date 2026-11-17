@@ -117,6 +117,7 @@ Host page scripts are plain `<script>` files (not ES modules — `index.html` mu
 
 ## Next work / ideas
 - **Content**: more questions for every edition over time (Swab Quest 432; World Tour, Animal Safari, Prophets' Stories ~220 each). **Football Quest needs a revisit**: it was the first content and has only 92 questions with a flat, inconsistent category / subcategory / topic structure — rework its questions and categories like the newer editions (see game_editions/IDEAS.md → Improving existing editions)
+- **Question tags** (Mojeeb, 2026-11-17): a `tags` column so the Questions tab and the Academy can explore by tag, not only category › subcategory › topic. Tags added by hand or suggested automatically (e.g. by the Question Validator from what a question is about); one tag list per edition, shared vocabulary across editions where it makes sense. Not started — design first (column format, filter UI, where suggestions come from and who accepts them)
 - **First-game walkthrough**: a short guided tour in the first game (Roll Dice, the card, scoreboard, GM controls), one step at a time
 - **Celebrate moments**: a short confetti / fanfare for a landmark, a finish, a hard question answered right
 - **Kids mode on the phone**: bigger buttons, pictures before words, a *Read it to me* button

@@ -13,6 +13,11 @@ STANDARD_COLUMNS: tuple[str, ...] = (
     "id", "question", "type", "answer", "opt_a", "opt_b", "opt_c", "opt_d",
     "difficulty", "category", "subcategory", "topic", "note",
 )
+#: Columns the validator's game exports add: how a question was checked (the game's Questions tab and the
+#: Academy show them). Not part of `content_hash` — re-importing an exported file keeps every result.
+CHECK_COLUMNS: tuple[str, ...] = (
+    "checked", "checked_on", "check_how", "sources", "source_links", "source_quote", "as_of", "check_hash",
+)
 #: Columns without which a row cannot be understood at all.
 REQUIRED_COLUMNS: tuple[str, ...] = ("id", "question", "type", "answer")
 OPTION_COLUMNS: tuple[str, ...] = ("opt_a", "opt_b", "opt_c", "opt_d")
@@ -84,7 +89,7 @@ class ParsedCsv(BaseModel):
     @property
     def extra_columns(self) -> tuple[str, ...]:
         """Header columns the game does not know (kept, never dropped)."""
-        return tuple(h for h in self.header if h not in STANDARD_COLUMNS)
+        return tuple(h for h in self.header if h not in STANDARD_COLUMNS and h not in CHECK_COLUMNS)
 
     @property
     def missing_columns(self) -> tuple[str, ...]:
@@ -162,3 +167,18 @@ class Question(BaseModel):
             difficulty=g("difficulty"), category=g("category"), subcategory=g("subcategory"),
             topic=g("topic"), note=g("note"), raw=raw,
         )
+
+
+#: Fields `check_hash` covers: what a check of a question's facts depends on (not its difficulty or place).
+CHECK_HASH_FIELDS: tuple[str, ...] = ("question", "type", "answer", "opt_a", "opt_b", "opt_c", "opt_d", "note")
+
+
+def check_hash(values: dict[str, str]) -> str:
+    """Short fingerprint of a row's checked wording (10 hex characters).
+
+    Written to the `check_hash` column of a game export; the game's content checker
+    (scripts/content.js → `checkHash`) computes the same value and warns when a checked
+    question was changed afterwards. Values are the game's trimmed view; keep both in step.
+    """
+    payload = "\n".join(values.get(f, "") for f in CHECK_HASH_FIELDS)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:10]

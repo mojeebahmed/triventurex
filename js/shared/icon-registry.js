@@ -80,6 +80,9 @@ const ICONS = {
 
   // ── Questions tab, Academy ──────────────────────────────────────────────────
   markQuestion:    'lucide:flag',             // mark a question as wrong / unclear
+  checkVerified:   'lucide:badge-check',      // question checked against sources (Question Validator)
+  checkReviewer:   'lucide:user-check',       // question confirmed / corrected by a reviewer
+  checkSource:     'lucide:book-open',        // the sources a question was checked against
   editNote:        'lucide:pencil',
   search:          'lucide:search',
   modeExplore:     'lucide:library-big',      // Academy mode tabs

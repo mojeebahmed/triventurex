@@ -9,13 +9,19 @@
 
 const QX_PAGE = 60;   // questions drawn at a time ("Show more" adds another page)
 
-const _qx = { path: [], text: '', diff: 'all', markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
+const _qx = { path: [], text: '', diff: 'all', checked: 'all', markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
 
 const _qxQuestions = () => window.QUESTIONS_DATA || [];
 const _qxLabel = name => name || 'Other';
 
 function renderQuestionExplorer() {
   if (!document.getElementById('qx-list')) return;
+  // "Checked" filter only for editions whose questions came through the Question Validator
+  const checkedSel = document.getElementById('qx-checked');
+  const anyChecked = checkedCount(_qxQuestions()) > 0;
+  checkedSel.classList.toggle('hidden', !anyChecked);
+  if (!anyChecked) _qx.checked = 'all';
+  checkedSel.value = _qx.checked;
   _renderQxTree();
   _renderQxList();
   updateMarkedBadge();
@@ -57,7 +63,7 @@ function _renderQxTree() {
 function _renderQxList() {
   const marked = loadMarkedQuestions();
   const onlyIds = _qx.markedOnly ? new Set(Object.keys(marked).map(Number)) : null;
-  const found = filterQuestions(_qxQuestions(), { path: _qx.path, text: _qx.text, diff: _qx.diff, onlyIds });
+  const found = filterQuestions(_qxQuestions(), { path: _qx.path, text: _qx.text, diff: _qx.diff, checked: _qx.checked, onlyIds });
   const shown = found.slice(0, _qx.limit);
   const where = _qx.path.length ? _qx.path.map(_qxLabel).join(' › ') : 'All questions';
   document.getElementById('qx-count').textContent =
@@ -73,11 +79,11 @@ function _qxItemHtml(q, mark) {
   const opts = q.opts?.length
     ? `<ol class="qx-opts">${q.opts.map((o, i) =>
         `<li class="${letters[i] === q.answer ? 'qx-correct' : ''}"><b>${letters[i]}</b> ${o}</li>`).join('')}</ol>` : '';
-  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>`;
+  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>${checkDetailsHtml(q)}`;
   const editing = _qx.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${_qx.answers ? 'show-answers' : ''}" data-id="${q.id}">
-      <div class="qx-meta">#${q.id} · ${icon(q.diff === 'hard' ? 'hard' : 'easy')} ${q.diff === 'hard' ? 'Hard' : 'Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}</div>
+      <div class="qx-meta">#${q.id} · ${icon(q.diff === 'hard' ? 'hard' : 'easy')} ${q.diff === 'hard' ? 'Hard' : 'Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}</div>
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${_qx.answers ? 'open' : ''}><summary>Answer</summary>${answer}</details>
@@ -172,6 +178,7 @@ function initQuestionExplorer() {
     typing = setTimeout(() => { _qx.text = e.target.value; _qx.limit = QX_PAGE; _renderQxList(); }, 150);
   });
   document.getElementById('qx-diff').addEventListener('change', e => { _qx.diff = e.target.value; _renderQxList(); });
+  document.getElementById('qx-checked').addEventListener('change', e => { _qx.checked = e.target.value; _qx.limit = QX_PAGE; _renderQxList(); });
   document.getElementById('qx-marked-only').addEventListener('change', e => { _qx.markedOnly = e.target.checked; _renderQxList(); });
   document.getElementById('qx-answers').addEventListener('change', e => { _qx.answers = e.target.checked; _renderQxList(); });
 

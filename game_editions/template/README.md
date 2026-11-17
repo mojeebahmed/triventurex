@@ -30,6 +30,7 @@ Starter folder for a new Triventurex edition.
 | `difficulty` | `easy` or `hard` |
 | `category`, `subcategory`, `topic` | The 3-level topic filter (⚙️ Rules → Topics) and the tree in the 📚 Questions tab. If you use topics, give every question one. |
 | `note` | Optional, shown to the GM after the answer is revealed |
+| `checked` … `check_hash` | **Don't type these** — the Question Validator's export adds them: `checked` (verified / confirmed / edited), `checked_on`, `check_how`, `sources`, `source_links`, `source_quote`, `as_of`, `check_hash`. The 📚 Questions tab and the Academy show them. Change a checked question's wording and `npm run build:content` warns: check it again, or empty its check columns. |
 
 Found a wrong or unclear question while playing? Use 🚩 on the question card or the 📚 Questions tab to mark it, then **📋 Copy marked list** to fix the CSV.
 

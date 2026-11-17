@@ -10,7 +10,7 @@ import respx
 from sqlalchemy import text
 
 from qv.db.session import Database
-from qv.domain.question import Question
+from qv.domain.question import Question, check_hash
 from qv.domain.structural import IssueCode, Severity, StructuralIssue
 from qv.io.csv_format import parse_csv
 from qv.pipeline.priority import CHANGED_SINCE_CHECK, priority
@@ -116,6 +116,11 @@ def test_batch_review_decide_and_export(db: Database, mini: str) -> None:
     rows = {r.get("id"): r for r in parse_csv(data).rows}
     assert name == "mini-v1-corrected.csv" and set(rows) == {"135"} and rows["135"].get("note") == "A new note"
     assert summary == {"rows": 1, "edited": 1, "left_out": 1}
+    # check columns: an edited question says so; its hash covers the edited wording
+    edited = rows["135"]
+    assert edited.get("checked") == "edited" and edited.get("checked_on")
+    assert edited.get("check_how").startswith("Corrected by a reviewer") and edited.get("sources") == ""
+    assert edited.get("check_hash") == check_hash(edited.values)
     verified, _, _ = workflow_export(db, mini, "verified")
     assert {r.get("id") for r in parse_csv(verified).rows} == {"135"}
     results, _, _ = workflow_export(db, mini, "results")

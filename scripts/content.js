@@ -25,6 +25,16 @@ const EFFECTS = new Set(['score_add', 'score_remove', 'move_forward', 'move_back
   'extra_turn', 'all_players_gain', 'all_players_lose', 'protection']);
 const LANDMARK_EFFECTS = new Set(['move_to_prev_landmark', 'move_to_next_landmark']);
 const ACTION_KINDS = new Set(['act', 'explain', 'sound']); // keep in sync with CONFIG.ACTION_KINDS
+/** `checked` values the Question Validator writes (question-validator/qv/services/check_export.py). */
+const CHECKED = new Set(['verified', 'confirmed', 'edited']);
+/** Fields `check_hash` covers — keep in step with CHECK_HASH_FIELDS in question-validator/qv/domain/question.py. */
+const CHECK_HASH_FIELDS = ['question', 'type', 'answer', 'opt_a', 'opt_b', 'opt_c', 'opt_d', 'note'];
+
+/** Short fingerprint of a question's checked wording (a CSV row object, trimmed values): 10 hex characters. */
+function checkHash(r) {
+  const payload = CHECK_HASH_FIELDS.map(f => r[f] ?? '').join('\n');
+  return require('node:crypto').createHash('sha256').update(payload, 'utf8').digest('hex').slice(0, 10);
+}
 
 /**
  * The general action cards every edition can mix in (game_editions/shared/).
@@ -136,6 +146,10 @@ function checkEdition(ed) {
       }
       if (r.type === 'open' && !r.answer) err(f, n, 'open question has no answer');
       if (usesTopics && !r.topic) warn(f, n, 'no topic — the question is always asked, whatever the topic filter');
+      if (r.checked && !CHECKED.has(r.checked)) err(f, n, `checked "${r.checked}" must be ${[...CHECKED].join(', ')} or empty`);
+      if (r.checked && r.check_hash && r.check_hash !== checkHash(r)) {
+        warn(f, n, `question ${r.id} was changed after it was checked — check it again in the Question Validator, or empty its check columns`);
+      }
     });
   }
 
@@ -276,7 +290,8 @@ function generateEditionJs(ed) {
     const easy = ed.questions.filter(q => q.diff === 'easy').length;
     out['questions.js'] = generatedFile({
       id: ed.id, file: 'questions.js', source: 'questions.csv', globalName: 'QUESTIONS_DATA',
-      summary: `${ed.questions.length} questions  (${easy} easy / ${ed.questions.length - easy} hard)`,
+      summary: `${ed.questions.length} questions  (${easy} easy / ${ed.questions.length - easy} hard)`
+        + (ed.questions.some(q => q.check) ? `, ${ed.questions.filter(q => q.check).length} checked` : ''),
       items: ed.questions,
     });
   }
@@ -300,4 +315,4 @@ function generateEditionJs(ed) {
 }
 
 module.exports = { EDITIONS_DIR, EFFECTS, SHARED_ID, listEditions, loadEdition, loadSharedContent, makeEdition,
-                   checkEdition, generateEditionJs };
+                   checkEdition, generateEditionJs, checkHash };

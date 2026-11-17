@@ -83,6 +83,11 @@ all other commands stay for power users and debugging.
    page, topics, relevance judgements — see the plan's phase-2 result note. **Phase 3 code built 2026-11-17**
    (merged): stored pages first + web PDFs; the eval-set acceptance run is still to
    do (plan's phase-3 note).
+5. **Order agreed 2026-11-17** (plan → *Agreed order from 2026-11-17*): first priority is validating the real
+   editions (Swab Quest first) and using the export in the game — incl. a **validated export** with extra columns
+   shown in the game's Questions tab and the Academy. Quota runs grouped (eval "before" with stored pages off, "after"
+   with them on, then the editions); code meanwhile: validated export, phase 5, phase 4 code, phase 6 code with
+   samples only — full question generation waits for Mojeeb.
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); web PDFs are read page by page since
 KB phase 3; refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
@@ -303,6 +308,17 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   pages with `web` pages.
 - `qv kb benchmark` adds `stored_pages` (hit / recall in the top `stored_pages_per_question` of bm25-queries-rrf —
   an upper bound of what research picks). Tests: `tests/test_stored_pages.py`.
+
+## Implementation invariants (check columns in game exports, 2026-11-17)
+- `corrected` and `ready` exports run `check_export.add_check_columns` last: `CHECK_COLUMNS` (qv/domain/question.py)
+  are added at the end of the header if missing and filled for ready questions only (`checked` = verified /
+  confirmed / edited), emptied for every other row (`csv_format.set_columns`, verified read-back like
+  `apply_patches`). Built in code from the validation (key's `passages_for` → passages, best tier first, ≤ 3 sources,
+  quote ≤ 240 chars on one line); an **edited** question gets no sources / quote (they supported the old answer).
+- `content_hash` ignores the check columns, and the structural check does not report them as unknown — re-importing an
+  exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
+  `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
+- `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,

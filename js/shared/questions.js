@@ -2,7 +2,9 @@
  * questions.js
  * Browsing an edition's questions (G19) and the list of questions marked as
  * wrong / unclear (G14 + G19). Pure: no page access — unit-tested.
- * A question: { id, q, opts, answer, diff, cat, subcat, topic, note }.
+ * A question: { id, q, opts, answer, diff, cat, subcat, topic, note, check? }.
+ * `check` (optional, from the Question Validator's export — see _questionCheck in csv.js):
+ * { status: 'verified' | 'confirmed' | 'edited', on, how, sources: [{ name, url }], quote, asOf }.
  */
 
 /**
@@ -62,13 +64,15 @@ function questionTree(questions) {
  *   text     words that must all appear (question, options, answer, note, id)
  *   diff     'easy' | 'hard' | 'all'
  *   onlyIds  Set of ids (e.g. the marked ones), or null
+ *   checked  'all' | 'yes' (checked by the Question Validator) | 'no'
  */
-function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyIds = null } = {}) {
+function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyIds = null, checked = 'all' } = {}) {
   const words = String(text).toLowerCase().split(/\s+/).filter(Boolean);
   const levels = ['cat', 'subcat', 'topic'];
   return (questions || []).filter(q => {
     if (diff !== 'all' && q.diff !== diff) return false;
     if (onlyIds && !onlyIds.has(q.id)) return false;
+    if (checked !== 'all' && Boolean(q.check) !== (checked === 'yes')) return false;
     if (!path.every((v, i) => (q[levels[i]] || '') === v)) return false;
     if (!words.length) return true;
     const hay = [q.id, q.q, ...(q.opts || []), q.answer, q.note, q.cat, q.subcat, q.topic]
@@ -103,6 +107,62 @@ function markedReport(marked, questions, editionName = '') {
   return lines.join('\n').trimEnd() + '\n';
 }
 
+// ── How a question was checked (Question Validator export) ─────────────────────
+
+/** Short label per check status. */
+const CHECK_LABELS = {
+  verified:  'Checked against sources',
+  confirmed: 'Confirmed by a reviewer',
+  edited:    'Corrected by a reviewer',
+};
+
+/** "Checked against sources" etc., or '' for a question without a check. */
+function checkLabel(q) {
+  return q?.check ? (CHECK_LABELS[q.check.status] ?? 'Checked') : '';
+}
+
+/** How many of the questions carry a check. */
+function checkedCount(questions) {
+  return (questions || []).filter(q => q.check).length;
+}
+
+/** A link only for plain http(s) addresses (source text comes from the web). */
+function _safeUrl(url) {
+  return /^https?:\/\//i.test(url || '') ? url : '';
+}
+
+/**
+ * Small badge for a question list's meta line ('' when not checked).
+ * HTML — call it only in a page (uses icon() / esc()).
+ */
+function checkBadgeHtml(q) {
+  if (!q?.check) return '';
+  const name = q.check.status === 'verified' ? 'checkVerified' : 'checkReviewer';
+  return `<span class="qx-check-badge qx-check-${esc(q.check.status)}" title="${esc(checkLabel(q))}">${icon(name)} ${esc(checkLabel(q))}</span>`;
+}
+
+/**
+ * How the question was checked, for under the answer: the plain line, the date,
+ * the sources (links open in a new tab) and a short quote from the best one.
+ * Source names and quotes come from web pages, so everything is escaped.
+ */
+function checkDetailsHtml(q) {
+  const c = q?.check;
+  if (!c) return '';
+  const sources = c.sources.map(s => {
+    const url = _safeUrl(s.url);
+    return url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(s.name)}</a>` : esc(s.name);
+  }).join(' · ');
+  const when = [c.on && `checked ${esc(c.on)}`, c.asOf && `true as of ${esc(c.asOf)}`].filter(Boolean).join(' · ');
+  return `
+    <div class="qx-check-info">
+      <div>${icon(c.status === 'verified' ? 'checkVerified' : 'checkReviewer')} ${esc(c.how || checkLabel(q))}${when ? ` <span class="qx-check-when">(${when})</span>` : ''}</div>
+      ${sources ? `<div class="qx-check-sources">${icon('checkSource')} ${sources}</div>` : ''}
+      ${c.quote ? `<blockquote class="qx-check-quote">“${esc(c.quote)}”</blockquote>` : ''}
+    </div>`;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, TOPIC_SEP };
+  module.exports = { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, TOPIC_SEP,
+                     checkLabel, checkedCount, CHECK_LABELS };
 }

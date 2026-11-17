@@ -226,3 +226,45 @@ def _verify_patch(before: ParsedCsv, after: ParsedCsv, patches: dict[int, dict[s
                 raise PatchError(
                     f"Line {old.line_no}, column {col}: read back {new.get(col)!r}, expected {expected!r}"
                 )
+
+
+def set_columns(data: bytes, columns: tuple[str, ...], values: dict[int, dict[str, str]]) -> bytes:
+    """Write `columns` for every data row: add the missing ones at the end, then fill them.
+
+    `values` maps a physical line number to {column: value}; a row not in `values` (or a column
+    it leaves out) gets an empty value, so stale values from an older export are cleared. Every
+    other field keeps its bytes; the result is re-parsed and checked like `apply_patches`.
+    """
+    parsed = parse_csv(data)
+    if parsed.decode_error:
+        raise PatchError(f"Refusing to rewrite a file that is not valid UTF-8 ({parsed.decode_error})")
+    missing = [c for c in columns if c not in parsed.header]
+    if missing:
+        text, _, _ = decode(data)
+        pairs = _split_physical_lines(text)
+        width = len(parsed.header)
+        row_lines = {r.line_no for r in parsed.rows}
+        out = []
+        for no, (line, term) in enumerate(pairs, start=1):
+            if no == parsed.header_line_no:
+                line = line.rstrip(JS_WHITESPACE)
+                line += "," + ",".join(missing)
+            elif no in row_lines:
+                tokens, open_quote = split_line(line)
+                if open_quote:
+                    raise PatchError(f"Line {no} has an unbalanced quote; fix it by hand first")
+                if len(tokens) != width:
+                    raise PatchError(f"Line {no} has {len(tokens)} fields, the header {width}; fix it first")
+                line = line.rstrip(JS_WHITESPACE) + "," * len(missing)
+            out.append((line, term))
+        new_text = "".join(line + term for line, term in out)
+        widened = (_BOM if parsed.format.has_bom else b"") + new_text.encode("utf-8")
+        after = parse_csv(widened)
+        if after.header != parsed.header + tuple(missing) or len(after.rows) != len(parsed.rows):
+            raise PatchError("Adding columns changed the file's structure")
+        for old, new in zip(parsed.rows, after.rows):
+            if any(new.get(c) != old.get(c) for c in parsed.header):
+                raise PatchError(f"Adding columns changed line {old.line_no}")
+        parsed = after
+    patches = {r.line_no: {c: values.get(r.line_no, {}).get(c, "") for c in columns} for r in parsed.rows}
+    return apply_patches(parsed, patches)

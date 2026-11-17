@@ -145,6 +145,11 @@ Download one of three files (terminal: `qv export corrected world-tour`, `… re
 - **Corrected file** — the whole file with your edits applied and removed questions left out, same ids and order,
   format checked again. This is the one for the game.
 - **Ready questions only** — just the ready questions (the three kinds above, the page shows each number).
+  Both game files carry extra **check columns** at the end: how each ready question was checked (*verified*,
+  *confirmed*, *edited*), the date, up to three sources with links, a short quote from the best source, an *as of*
+  date when the fact can change, and a fingerprint of the wording. The game's 📚 Questions tab and the Academy show
+  them (badge + details under the answer; a *Checked / Not checked* filter). Questions not ready get empty check
+  columns. If you later change a checked question in the game's file, `npm run build:content` warns you.
 - **Results report** — one line per question: result, your decision, suggestions, reasons and sources (opens in
   Excel / Numbers).
 
