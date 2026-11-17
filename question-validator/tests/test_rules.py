@@ -281,3 +281,140 @@ def test_eval_score_metrics() -> None:
                  {"id": "9", "verdict": "VERIFIED", "review": "auto_ok"}], exp)
     assert (res["labelled"], res["errors"], res["error_recall_pct"], res["false_verifications"]) == (4, 2, 50.0, 1)
     assert (res["good"], res["false_incorrect_pct"], res["verdict_agreement_pct"]) == (2, 50.0, 25.0)
+
+
+# --- key components (rules v2) -------------------------------------------------------------
+
+from qv.pipeline.rules import ComponentInfo, numbers_in, values_differ, written_in  # noqa: E402
+
+BAITUL_FUTUH = [ComponentInfo("K1", "Baitul Futuh is an Ahmadiyya mosque.", "Ahmadiyya mosque"),
+                ComponentInfo("K2", "Baitul Futuh is located in Morden, London.", "Morden, London"),
+                ComponentInfo("K3", "Baitul Futuh is one of the largest mosques in Western Europe.",
+                              "one of the largest mosques in Western Europe"),
+                ComponentInfo("K4", "Baitul Futuh opened in 2006.", "2006")]
+
+
+def baitul_futuh_passages() -> list[EvidencePassage]:
+    """Eval run 23, swab seeded #20: the same origins and tiers as the stored passages (P1–P3 one site, …)."""
+    quotes = {"P1": "House of victories, a source of peace for all around.",
+              "P2": "Its primary focus is worship; the complex serves social functions too.",
+              "P3": "The inauguration ceremony symbolises community centres and branches.",
+              "P4": "The mosque in Morden, Surrey is a landmark building, among the largest.",
+              "P5": "Huzoor arrived at the mosque in Morden in the evening for the ceremony.",
+              "P6": "Mosques are built for worship, as the Holy Quran states.",
+              "P7": "This event incorporates the peace symposium and the reconstruction.",
+              "P8": "On October 3, 2003 he delivered the Friday Sermon inaugurating the mosque.",
+              "P9": "On October 19, 1999 he laid the foundation stone of the mosque."}
+    site = {"P1": "baitulfutuh", "P2": "baitulfutuh", "P3": "baitulfutuh", "P4": "ahmadipedia", "P5": "alhakam",
+            "P6": "alhakam", "P7": "alhakam", "P8": "basics", "P9": "basics"}
+    return [ev(pid, "T" if site[pid] in ("baitulfutuh", "ahmadipedia") else "S", site[pid], quote=quote,
+               frame=site[pid] in ("alhakam", "basics")) for pid, quote in quotes.items()]
+
+
+def components(*rows: tuple[str, str, str | None, list[str]]) -> list[dict]:
+    return [{"id": i, "status": s, "evidence_value": v, "passages": p} for i, s, v, p in rows]
+
+
+def baitul_futuh_input(comps: list[dict], **kw: Any) -> RulesInput:
+    """The stored S5 output of run 23 (#20), with the given component assessments."""
+    s5 = verification(supporting=["P4", "P5", "P8"], component_assessments=comps,
+                      disagreements=[{"about": "K4", "kind": "factual_conflict", "side_a_passages": ["P8"],
+                                      "side_b_passages": ["P9"], "explanation": "inauguration vs foundation"}])
+    return inp(baitul_futuh_passages(), is_multi=False, key_letter=None,
+               key_text="An Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, "
+                        "opened in 2006.",
+               blind=blind(answer="A mosque in Morden", option=None, supporting=["P1", "P4", "P5", "P8"]),
+               verification=s5, key_components=BAITUL_FUTUH, **kw)
+
+
+def test_seeded_20_wrong_year_labelled_supported_is_incorrect() -> None:
+    """Run 23: S5 marked K4 'supported' with evidence value 2003 while the key says 2006 → VERIFIED in rules v1.
+    The model's own value wins over its label: the year is contradicted by two origins → INCORRECT."""
+    j = judge(baitul_futuh_input(components(("K1", "supported", "Ahmadiyya mosque", ["P8"]),
+                                            ("K2", "supported", "Morden, Surrey, London", ["P5", "P8"]),
+                                            ("K3", "supported", "largest mosque in Western Europe", ["P4", "P8"]),
+                                            ("K4", "supported", "2003", ["P3", "P8"]))), REQ)
+    assert j.verdict == "INCORRECT" and j.defect_location == "answer"
+    assert j.claim_statuses["K4"] == "contradicted" and j.claim_statuses["K1"] == "supported"
+    assert "needs_review" in j.routes
+    assert any("2003" in r and "K4" in r for r in j.reasons)
+    assert j.support["K4"]["passages_against"] == ["P3", "P8"]
+
+
+def test_contradicted_part_with_strong_evidence_is_incorrect() -> None:
+    j = judge(baitul_futuh_input(components(("K1", "supported", None, ["P8"]), ("K2", "supported", None, ["P5"]),
+                                            ("K3", "supported", None, ["P4"]),
+                                            ("K4", "contradicted", "2003", ["P3", "P8"]))), REQ)
+    assert j.verdict == "INCORRECT" and j.claim_statuses["K4"] == "contradicted"
+
+
+def test_contradicted_part_below_the_bar_goes_to_review_not_incorrect() -> None:
+    j = judge(baitul_futuh_input(components(("K1", "supported", None, ["P8"]), ("K2", "supported", None, ["P5"]),
+                                            ("K3", "supported", None, ["P4"]),
+                                            ("K4", "contradicted", "2003", ["P3"]))), REQ)
+    assert j.verdict == "UNVERIFIED" and j.claim_statuses["K4"] == "unverified"
+    assert j.review_status == "needs_review"
+    assert any("K4" in r and "below the bar" in r for r in j.reasons)
+
+
+def test_every_part_must_be_supported_to_verify() -> None:
+    all_ok = components(("K1", "supported", None, ["P8"]), ("K2", "supported", None, ["P5"]),
+                        ("K3", "supported", None, ["P4"]), ("K4", "supported", "2006", ["P8"]))
+    assert judge(baitul_futuh_input(all_ok), REQ).verdict == "VERIFIED"
+    unclear = [*all_ok[:3], {"id": "K4", "status": "unclear", "evidence_value": None, "passages": []}]
+    j = judge(baitul_futuh_input(unclear), REQ)
+    assert j.verdict == "UNVERIFIED" and j.claim_statuses["K4"] == "unverified"
+    assert any("part(s) K4" in r for r in j.reasons)
+    missing = judge(baitul_futuh_input(all_ok[:3]), REQ)
+    assert missing.verdict == "UNVERIFIED" and any("K4" in r and "not assessed" in r for r in missing.reasons)
+    no_passage = [*all_ok[:3], {"id": "K4", "status": "supported", "evidence_value": None, "passages": ["P99"]}]
+    assert judge(baitul_futuh_input(no_passage), REQ).verdict == "UNVERIFIED"
+
+
+def test_definitional_disagreement_about_a_part_is_ambiguous() -> None:
+    comps = components(("K1", "supported", None, ["P8"]), ("K2", "supported", None, ["P5"]),
+                       ("K3", "supported", None, ["P4"]), ("K4", "contradicted", "2003", ["P3", "P8"]))
+    s = baitul_futuh_input(comps)
+    s.verification = s.verification.model_copy(update={"disagreements": [
+        s.verification.disagreements[0].model_copy(update={"kind": "definitional"})]})
+    j = judge(s, REQ)
+    assert j.claim_statuses["K4"] == "definition_dependent" and j.verdict == "AMBIGUOUS"
+
+
+def test_no_components_keeps_rules_v1_behaviour() -> None:
+    """Old S1b outputs without components (or S5 without assessments) are judged on the key alone."""
+    assert judge(inp(TWO_SOURCES), REQ).verdict == judge(inp(TWO_SOURCES, key_components=[]), REQ).verdict
+
+
+@pytest.mark.parametrize("asserted,found,differ", [
+    ("2006", "2003", True), ("2006", "inaugurated on 3 October 2003", True), ("34", "34 goals in 35 games", False),
+    ("2022–23, Manchester City", "2022-23", False), ("2022–23", "2022/2023 season", False),
+    ("8 m", "9 metres", True), ("1,000", "1000", False), ("Morden, London", "Morden, Surrey", False),
+    ("2006", None, False), ("2006", "the year the mosque opened", False), ("8.5", "8,5", False)])
+def test_values_differ_compares_numbers_only(asserted: str, found: str | None, differ: bool) -> None:
+    assert values_differ(asserted, found) is differ
+
+
+def test_numbers_in() -> None:
+    assert numbers_in("2022–23 and 1,500 people, 3.5 m") == {"2022", "2023", "1500", "3.5"}
+
+
+def test_a_component_not_written_in_the_answer_is_not_a_part_of_it() -> None:
+    """Prophets seeded #41: S1b listed the note's verse (3:58) as K2; a wrong note is not a wrong answer."""
+    comps = [ComponentInfo("K1", "The name of the disciples", "Hawariyyun"),
+             ComponentInfo("K2", "The reference provided for the term", "Surah Al Imran 3:58")]
+    s5 = verification(component_assessments=components(("K1", "supported", None, ["P1"]),
+                                                       ("K2", "contradicted", "3:53", ["P1", "P2"])))
+    j = judge(inp(TWO_SOURCES, key_text="The Hawariyyun", key_components=comps, verification=s5), REQ)
+    assert j.verdict == "VERIFIED" and "K2" not in j.claim_statuses
+    assert any("K2" in r and "not written in the expected answer" in r for r in j.reasons)
+
+
+@pytest.mark.parametrize("value,answer,ok", [
+    ("2006", "An Ahmadiyya mosque in Morden, London — opened in 2006.", True),
+    ("one of the largest mosques in Western Europe", "… one of the largest mosques in Western Europe", True),
+    ("Surah Al Imran 3:58", "The Hawariyyun", False), ("Eve", "Hawwa (Eve)", True),
+    ("2022–23, Manchester City", "34 goals — Erling Haaland for Manchester City in 2022–23", True),
+    ("15", "from a young age up to 15", True), ("1999", "opened in 2006", False)])
+def test_written_in(value: str, answer: str, ok: bool) -> None:
+    assert written_in(value, answer) is ok

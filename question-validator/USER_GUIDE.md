@@ -184,6 +184,11 @@ plan), **Files & versions** (imports, their questions and format problems), **Bo
 stored and how to look inside the database: [DATABASE.md](DATABASE.md). How a verdict is reached:
 [METHODOLOGY.md](METHODOLOGY.md).
 
+**Answers with several facts** (e.g. *"a mosque in Morden — one of the largest in Western Europe, opened in
+2006"*) are checked part by part: each part (place, size, year …) needs its own support, and one wrong part makes
+the answer wrong. `qv verdict <batch> <id>` lists the parts as K1, K2 … After a change to these rules,
+`qv judge <batch> --rules-only` applies the new rules to a finished batch again — free, no AI request.
+
 ## Book library
 
 Books are a source like websites, cited as **book + page** (e.g. *Basics of Religious Education, p. 118*). They

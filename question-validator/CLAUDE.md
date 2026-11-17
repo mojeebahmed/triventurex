@@ -83,7 +83,8 @@ all other commands stay for power users and debugging.
    page, topics, relevance judgements — see the plan's phase-2 result note. **Phase 3 code built 2026-11-17**
    (merged): stored pages first + web PDFs; eval-set acceptance run 2026-11-17 → stored pages stay on (plan's
    phase-3 note). Known judge weakness from it: a key with several facts (place + size + year) is judged as one
-   claim, so a wrong year can be "supported" (swab seeded #20) — split such keys into claims in S1b / S5.
+   claim, so a wrong year can be "supported" (swab seeded #20) — fixed 2026-11-17 by key components (rules v2,
+   see *Implementation invariants (key components)*).
 5. **Order agreed 2026-11-17** (plan → *Agreed order from 2026-11-17*): first priority is validating the real
    editions (Swab Quest first) and using the export in the game — incl. a **validated export** with extra columns
    shown in the game's Questions tab and the Academy. Quota runs grouped (eval "before" with stored pages off, "after"
@@ -162,6 +163,20 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   (`passage_map_json`), so reasons and the web view use the same ids.
 - A pool moves to its next model after a model's transient-error retries run out (free Flash models are often
   overloaded); failed attempts still count in the ledger.
+
+## Implementation invariants (key components — rules v2, 2026-11-17)
+- S1b v2 lists every checkable part of the key as K1, K2 … (answer + every detail written into it); S5 v2 gives each
+  a status (`check_s5(..., s1b)` asks for a missing one). S8 (`rules.py`, `RULES_VERSION = "2"`): VERIFIED needs every
+  part supported; a part contradicted with STRONG evidence → INCORRECT (row 2b), below the bar → review;
+  `supported` + an `evidence_value` whose numbers differ (`values_differ`) → contradicted; a part whose value is not
+  in the key text (`written_in`) is skipped. Older S1b outputs without components keep the v1 behaviour.
+- `qv judge <run> --rules-only` (`services/judgement.rejudge_run`) applies the current rules to the stored S4/S5/S6
+  outputs: no model call, no quota. `store_validation` updates the row in place — decisions point at
+  `validations.id`, so never delete-and-insert a validation.
+- Measured on a copy of the database (rules-only, 2026-11-17, eval runs 18 19 21 23 25 26): error recall
+  90.7 → 93.0 %, false verifications 2 → 1 (swab seeded #20 now INCORRECT), false INCORRECT 0 %. Real editions:
+  animal-safari #107 / #170 → INCORRECT (review), swab-quest #410 → UNVERIFIED (part "Lajna Imaillah" unsupported).
+  The new prompts (S1b v2 / S5 v2) are not measured yet — that needs quota.
 
 ## Implementation invariants (simple workflow)
 - **Status by content**: `qv/services/workflow.py` works on a dataset's latest version and matches validations and

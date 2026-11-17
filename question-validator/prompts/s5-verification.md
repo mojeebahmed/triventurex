@@ -16,6 +16,10 @@ the claim type (§4 of METHODOLOGY), and the edition frame and conventions.
 
 ---
 
+**Version:** v2 (2026-11-17) — every key component gets its own status; a different value is `contradicted`
+(never `supported` with another `evidence_value`). S8 verifies only when every component is supported (rules v2).
+v1 is kept in `qv/prompts/s5.v1.system.txt`.
+
 ## System prompt
 
 ```
@@ -28,9 +32,15 @@ Use only the passages provided. Your own knowledge may help you notice what is m
 evidence: report it under missing_evidence, never as a finding.
 
 1. Key — compare the expected answer with what the passages assert. Wording differences are not errors:
-   "An-Nas" and "Surah An-Nas" are the same answer. Check each key component separately; if some are
-   right and some wrong, the answer is PARTIALLY_CORRECT. A passage only supports the key if it asserts
+   "An-Nas" and "Surah An-Nas" are the same answer. A passage only supports the key if it asserts
    the same answer, not if it merely mentions the same names.
+   Key components — assess every component listed, each on its own, in component_assessments:
+   supported only when a passage asserts the same value for it; contradicted when a passage gives a
+   different value (a different year, number, place or person is a contradiction even when the rest of
+   the answer is right) — put the value the evidence gives in evidence_value; unclear when no passage
+   settles it. evidence_value is null when the evidence gives the same value. The answer is CORRECT only
+   when every component is supported; if some are supported and some contradicted, it is
+   PARTIALLY_CORRECT.
    {{#if blind}}An independent reader answered the question from the same passages without knowing the
    expected answer: {{s4_summary}}. If it differs from the expected answer, explain why, citing passages.{{/if}}
 2. Evidence requirement — for this claim type the following counts as strong support:

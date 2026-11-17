@@ -566,12 +566,15 @@ def status(dataset: Annotated[str | None, typer.Argument(help="Dataset (default:
 
 @app.command()
 def judge(run_id: int,
-          ids: Annotated[str | None, typer.Option(help="Only these CSV ids")] = None) -> None:
+          ids: Annotated[str | None, typer.Option(help="Only these CSV ids")] = None,
+          rules_only: Annotated[bool, typer.Option(
+              "--rules-only", help="Only apply the current rules (S8) again to the stored S4/S5/S6 answers — "
+                                   "no model is called, no quota is used")] = False) -> None:
     """Judge the researched questions of an existing run (S4–S6 + rules); verdicts are stored on that run."""
-    from qv.services.judgement import judge_run
+    from qv.services.judgement import judge_run, rejudge_run
     from qv.services.research import build_deps
     db = _db()
-    for line in judge_run(build_deps(_settings(), db), run_id, _parse_ids(ids)):
+    for line in (rejudge_run if rules_only else judge_run)(build_deps(_settings(), db), run_id, _parse_ids(ids)):
         typer.echo(line)
     typer.echo(f"Verdicts: qv verdicts {run_id}   ·   one question: qv verdict {run_id} <id>")
 

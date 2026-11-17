@@ -13,11 +13,25 @@ Interpretations of the methodology made here (rules version 1):
   `contradicted` (no INCORRECT), but the question goes to review.
 - Questions that end UNVERIFIED with no other flag are routed `needs_evidence`
   (candidates for the escalation round, §3 rule 5).
+
+Rules version 2 (2026-11-17) — key components (S1b K1, K2 …, judged one by one by S5):
+- VERIFIED needs every component `supported` with at least one grounded passage; the key as a
+  whole still needs STRONG support. A component without an assessment, or `unclear`, is
+  `unverified` (→ UNVERIFIED).
+- A component S5 calls `supported` while its `evidence_value` carries numbers that differ from the
+  asserted value (2003 vs 2006) is counted as `contradicted` — the model's own value wins over its
+  label (swab seeded #20). Only numbers are compared; words are left to the model.
+- Only components whose value is written in the expected answer count (`written_in`): S1b v1
+  sometimes listed the note's verse reference as a component; the note is judged as a note.
+- A `contradicted` component with STRONG evidence (for the question's claim type; outside-frame
+  passages dropped as for the key) makes the answer INCORRECT; below the bar it goes to review.
+  A definitional / convention disagreement about it makes it `definition_dependent` (→ AMBIGUOUS).
 """
 
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -27,7 +41,7 @@ from qv.config import CONFIG_DIR
 from qv.domain.stages import BlindAnswer, Quality, Verification
 from qv.pipeline.evidence import TIER_ORDER, EvidencePassage
 
-RULES_VERSION = "1"
+RULES_VERSION = "2"
 LEVELS = ["NONE", "WEAK", "MODERATE", "STRONG"]
 FRAME_CLASSES_JUDGED_IN_FRAME = {"frame_specific", "attribution_to_frame"}
 REVIEW_VERDICTS = {"INCORRECT", "AMBIGUOUS", "CONTESTED", "OUTDATED"}
@@ -113,6 +127,52 @@ class PremiseInfo:
     material: bool
 
 
+@dataclass(frozen=True)
+class ComponentInfo:
+    """A key component from S1b: one separately checkable part of the expected answer."""
+
+    id: str
+    text: str
+    value: str
+
+
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+_SEASON = re.compile(r"\b(\d{2})(\d{2})\s*[-–—/]\s*(\d{2})\b")
+
+
+def numbers_in(text: str | None) -> set[str]:
+    """Numbers written in a text, normalised: '1,000' → '1000', '8,5' → '8.5', '2022–23' → 2022 and 2023."""
+    text = _SEASON.sub(lambda m: f"{m.group(1)}{m.group(2)} {m.group(1)}{m.group(3)}", text or "")
+    out = set()
+    for raw in _NUMBER.findall(text):
+        if re.fullmatch(r"\d{1,3}(,\d{3})+", raw):
+            raw = raw.replace(",", "")
+        raw = raw.replace(",", ".")
+        try:
+            out.add(f"{float(raw):g}" if "." in raw else str(int(raw)))
+        except ValueError:
+            continue
+    return out
+
+
+def values_differ(asserted: str, evidence_value: str | None) -> bool:
+    """True when the evidence's value names numbers and the asserted value's numbers are not among them."""
+    mine, theirs = numbers_in(asserted), numbers_in(evidence_value)
+    return bool(mine and theirs and not mine <= theirs)
+
+
+def written_in(value: str, answer: str) -> bool:
+    """True when a component's value is part of the expected answer: its numbers all appear there, or (without
+    numbers) one of its words of 4+ letters does, or the whole value does. S1b sometimes lists the note's verse
+    reference as a component; such a part is the note's, not the answer's."""
+    mine = numbers_in(value)
+    if mine:
+        return mine <= numbers_in(answer)
+    words = {w for w in re.findall(r"[^\W\d_]{4,}", value.casefold())}
+    have = set(re.findall(r"[^\W\d_]{4,}", answer.casefold()))
+    return bool(words & have) or value.strip().casefold() in answer.casefold()
+
+
 @dataclass
 class RulesInput:
     """Everything S8 needs; all model outputs are already validated."""
@@ -133,6 +193,7 @@ class RulesInput:
     quality: Quality | None
     specialist_for: list[str] = field(default_factory=list)
     audit_percent: float = 3.0
+    key_components: list[ComponentInfo] = field(default_factory=list)
 
 
 @dataclass
@@ -247,6 +308,55 @@ def judge(inp: RulesInput, requirements: dict[str, list[dict]]) -> Judgement:
                            "recount; the recount is used.")
     claim_statuses = {"K": key_status}
 
+    # --- key components (rules v2)
+    comp_status: dict[str, str] = {}
+    comp_against: dict[str, Strength] = {}
+    if s5 is not None and inp.key_components:
+        assessed = {c.id: c for c in s5.component_assessments}
+        for kc in inp.key_components:
+            if not written_in(kc.value, inp.key_text):
+                reasons.append(f"{kc.id} ('{_short(kc.text, 90)}': {_short(kc.value, 60)}) is not written in the "
+                               "expected answer; not counted as a part of it.")
+                continue
+            ca = assessed.get(kc.id)
+            label = f"{kc.id} ('{_short(kc.text, 90)}')"
+            if ca is None:
+                comp_status[kc.id] = "unverified"
+                reasons.append(f"Part {label} of the expected answer was not assessed.")
+                continue
+            ids = _valid(ca.passages, pas)
+            st = ca.status
+            if st == "supported" and values_differ(kc.value, ca.evidence_value):
+                st = "contradicted"
+                reasons.append(f"Part {label}: the verifier calls it supported, but the value it found "
+                               f"({_short(ca.evidence_value, 60)}) differs from the expected answer's "
+                               f"({_short(kc.value, 60)}) — counted as contradicted.")
+            dis = [d for d in s5.disagreements if d.about == kc.id]
+            if st == "supported":
+                if inp.is_multi and inp.key_letter:
+                    ids = [p for p in ids if pas[p].matches_option in (None, "none", inp.key_letter)]
+                status = "supported" if ids else "unverified"
+            elif st == "contradicted":
+                against = strength(drop_outside(ids, in_frame), pas, inp.claim_type, requirements)
+                comp_against[kc.id] = against
+                found = f" (the evidence gives {_short(ca.evidence_value, 60)})" if ca.evidence_value else ""
+                if any(d.kind in ("definitional", "convention") for d in dis):
+                    status = "definition_dependent"
+                elif against.level == "STRONG":
+                    status = "contradicted"
+                    reasons.append(f"Part {label} of the expected answer is contradicted{found}: "
+                                   f"{against.describe()}.")
+                else:
+                    status = "unverified"
+                    review.append(f"The verifier finds part {label} of the expected answer contradicted{found}, "
+                                  "with evidence below the bar.")
+            else:
+                status = "unverified"
+            comp_status[kc.id] = status
+        claim_statuses.update(comp_status)
+    parts_contradicted = [k for k, v in comp_status.items() if v == "contradicted"]
+    parts_unsupported = [k for k, v in comp_status.items() if v != "supported"]
+
     # --- presuppositions
     premise_status: dict[str, str] = {}
     findings = {f.id: f for f in s5.presupposition_findings} if s5 else {}
@@ -345,6 +455,10 @@ def judge(inp: RulesInput, requirements: dict[str, list[dict]]) -> Judgement:
     elif key_status == "contradicted":
         verdict, defect = "INCORRECT", "answer"
         reasons.append(f"The evidence against the expected answer outweighs the support ({con.describe()}).")
+    elif parts_contradicted and key_status != "outdated":
+        verdict, defect = "INCORRECT", "answer"
+        reasons.append(f"Part(s) {', '.join(parts_contradicted)} of the expected answer are wrong, so the answer "
+                       "is not right as written.")
     elif key_status == "outdated":
         verdict, defect = "OUTDATED", "answer"
     elif key_status == "contested" or "contested" in premise_status.values():
@@ -354,6 +468,7 @@ def judge(inp: RulesInput, requirements: dict[str, list[dict]]) -> Judgement:
         verdict, defect = "AMBIGUOUS", ("options" if inp.is_multi and ambiguous else "question_wording")
     elif (key_status == "supported" and blind_matches is True
           and all(premise_status.get(pr.id) == "supported" for pr in material)
+          and not parts_unsupported
           and s5 is not None and s5.key_assessment.factual_accuracy == "CORRECT"):
         verdict = "VERIFIED"
     else:
@@ -364,6 +479,9 @@ def judge(inp: RulesInput, requirements: dict[str, list[dict]]) -> Judgement:
         weak = [pr.id for pr in material if premise_status.get(pr.id) != "supported"]
         if key_status == "supported" and weak:
             reasons.append(f"Not verified: premise(s) {', '.join(weak)} lack strong support.")
+        if key_status == "supported" and parts_unsupported:
+            reasons.append(f"Not verified: part(s) {', '.join(parts_unsupported)} of the expected answer are not "
+                           "supported by the evidence.")
 
     # --- frame flags
     within_frame = bool(s5 and s5.frame.depends_on_frame and s5.frame.within_frame == "supported"
@@ -406,5 +524,7 @@ def judge(inp: RulesInput, requirements: dict[str, list[dict]]) -> Judgement:
         suggested_question=s5.suggested_question if s5 else None,
         acceptable_alternatives=[a.model_dump() for a in s5.acceptable_alternatives] if s5 else [],
         support={"key": {"for": sup.describe(), "against": con.describe(), "passages_for": list(sup.passages),
-                         "passages_against": list(con.passages)}},
+                         "passages_against": list(con.passages)},
+                 **{kid: {"against": st.describe(), "passages_against": list(st.passages)}
+                    for kid, st in comp_against.items()}},
     )

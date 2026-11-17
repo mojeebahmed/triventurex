@@ -229,3 +229,40 @@ def test_a_judge_pool_keeps_its_results_apart(db: Database, dataset: None) -> No
     assert sum(1 for st, _ in llm.prompts if st in ("s4", "s5")) == 2 * judged  # same judge: cached
     bad = start_run(db, "mini", ["135"], kind="validate", config={"judge_pool": "nope"})
     assert execute_run(deps, bad).failed == 1
+
+
+def test_s5_check_wants_every_key_component(q_kili: Any) -> None:
+    from tests.test_rules import verification
+    from qv.domain.stages import ClaimFormulation
+    s1b = ClaimFormulation.model_validate({
+        "key_claim": "k", "key_components": [{"id": "K1", "text": "t", "value": "Tanzania"},
+                                             {"id": "K2", "text": "t", "value": "5,895 m"}],
+        "answer_equivalents": [], "note_claims": [], "direct_lookups": [], "challenge_queries": [],
+        "note_queries": []})
+    v = verification(component_assessments=[{"id": "K1", "status": "supported", "evidence_value": None,
+                                              "passages": ["P1"]}])
+    assert any("missing ['K2']" in p for p in check_s5(v, q_kili, passages(), s1b))
+    assert not any("key component" in p for p in check_s5(v, q_kili, passages()))
+
+
+@respx.mock
+def test_rules_only_rejudge_calls_no_model(db: Database, dataset: None) -> None:
+    from qv.pipeline.rules import RULES_VERSION
+    from qv.services.judgement import rejudge_run
+    mock_web()
+    llm = JudgingLLM()
+    run_id = start_run(db, "mini", ["135"], kind="validate")
+    execute_run(judging_deps(db, llm), run_id)
+    with db.session() as s:
+        before = s.scalar(select(Validation))
+        before = (before.verdict, before.s5_output_id)
+        s.scalar(select(Validation)).rules_version = "1"  # as if judged by older rules
+    from qv.services.workflow import record_decision
+    record_decision(db, "mini", "135", "keep")  # a decision points at the validation: it must survive
+    n = len(llm.prompts)
+    lines = rejudge_run(judging_deps(db, llm), run_id)
+    assert len(llm.prompts) == n and "No model was called" in lines[-1]
+    with db.session() as s:
+        rows = list(s.scalars(select(Validation)))
+        assert len(rows) == 1 and (rows[0].verdict, rows[0].s5_output_id) == before
+        assert rows[0].rules_version == RULES_VERSION

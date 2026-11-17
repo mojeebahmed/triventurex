@@ -29,7 +29,7 @@ from qv.providers.usage import CallContext
 
 T = TypeVar("T", bound=BaseModel)
 
-PROMPT_VERSIONS = {"s1a": "s1a.v1", "s1b": "s1b.v1", "s3": "s3.v1", "s4": "s4.v1", "s5": "s5.v1", "s6": "s6.v1"}
+PROMPT_VERSIONS = {"s1a": "s1a.v1", "s1b": "s1b.v2", "s3": "s3.v1", "s4": "s4.v1", "s5": "s5.v2", "s6": "s6.v1"}
 CLAIM_TYPES = ("scripture_content | hadith_or_tradition | attribution | doctrine | historical_event | biography |\n"
                "            measurement_or_superlative | statistic_current | sports_record | "
                "definition_or_meaning |\n            classification_or_list | geography_fact | science_fact | other")

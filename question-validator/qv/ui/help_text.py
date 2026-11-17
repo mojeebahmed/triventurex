@@ -26,6 +26,10 @@ support, below the bar · WEAK: one source · NONE.
 **Answer found without the key** — the evidence was read by a step that was *not told* the expected answer.
 "same" is the strongest sign the answer is right; "different" is the strongest sign of an error.
 
+**Parts of the answer (K1, K2 …)** — an answer with several facts (a place, a year, a size …) is checked part by
+part. It is verified only when every part has support; one part the evidence contradicts (e.g. a wrong year) makes
+the answer wrong.
+
 **Origins (C1, C2 …)** — passages that trace back to the same source count once, however many sites repeat it.
 
 **🗄️ found in stored pages** — this page was not found by a web search this time but in the pages already collected

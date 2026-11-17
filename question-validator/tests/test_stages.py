@@ -14,6 +14,7 @@ from qv.db.session import Database
 from qv.domain.question import Question
 from qv.domain.stages import BlindAnswer, ClaimFormulation, Decomposition, Extraction, Quality, Verification
 from qv.pipeline.stages import (
+    PROMPT_VERSIONS,
     DocMeta, StageRunner, check_s1a, check_s1b, filter_s1b_lookups, render_s1a, render_s1b, render_s3,
     system_prompt, windows,
 )
@@ -65,7 +66,13 @@ def test_models_match_the_design_schemas(stage: str) -> None:
 def test_versioned_prompts_equal_the_design_docs(stage: str) -> None:
     text = (PROMPTS / DESIGN[stage][0]).read_text()
     block = re.search(r"## System prompt\s*\n```\n(.*?)\n```", text, re.S).group(1)
-    assert system_prompt(f"{stage}.v1") == block.strip()
+    assert system_prompt(PROMPT_VERSIONS[stage]) == block.strip()
+
+
+def test_older_prompt_versions_are_kept() -> None:
+    """A prompt in use by stored outputs is never edited: older versions stay as files."""
+    for stage in DESIGN:
+        assert system_prompt(f"{stage}.v1")
 
 
 @pytest.fixture

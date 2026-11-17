@@ -153,8 +153,9 @@ def _cited_s5(out: Verification) -> list[str]:
     return ids
 
 
-def check_s5(out: Verification, q: Question, passages: list[EvidencePassage]) -> list[str]:
-    """Code checks from prompts/s5."""
+def check_s5(out: Verification, q: Question, passages: list[EvidencePassage],
+             s1b: ClaimFormulation | None = None) -> list[str]:
+    """Code checks from prompts/s5 (with `s1b`: every key component is assessed)."""
     shown = {p.pid for p in passages}
     problems = []
     unknown = sorted(set(_cited_s5(out)) - shown)
@@ -168,6 +169,11 @@ def check_s5(out: Verification, q: Question, passages: list[EvidencePassage]) ->
     for d in out.disagreements:
         if not d.side_a_passages or not d.side_b_passages:
             problems.append(f"disagreement about {d.about}: cite passages on both sides")
+    if s1b is not None:
+        missing_parts = [c.id for c in s1b.key_components
+                         if c.id not in {a.id for a in out.component_assessments}]
+        if missing_parts:
+            problems.append(f"assess every key component; missing {missing_parts}")
     if q.is_multi:
         missing = set(present_letters(q)) - {o.option for o in out.option_assessments}
         if missing:

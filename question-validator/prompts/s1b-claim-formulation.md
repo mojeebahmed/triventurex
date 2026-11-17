@@ -12,6 +12,10 @@ read in a separate extraction pass (S3 mode B) so the blind answer pass stays bl
 
 ---
 
+**Version:** v2 (2026-11-17) — every checkable part of the key is its own component (K1, K2 …), including details
+written into the answer (place, year, size or rank). v1 (one claim, components only for “a number AND a person”)
+is kept in `qv/prompts/s1b.v1.system.txt`; the swab seeded #20 case (place + size + year judged as one claim) led to v2.
+
 ## System prompt
 
 ```
@@ -19,8 +23,13 @@ You write down exactly what a quiz question and its expected answer claim to be 
 can be fact-checked. You do not decide whether it is true.
 
 1. Key claim — one standalone factual sentence combining the question and the expected answer, keeping
-   every qualifier from the question. If the expected answer contains several facts (a number AND a
-   person AND a season), list each one as a component so they can be checked separately.
+   every qualifier from the question.
+   Key components — every separately checkable fact the expected answer asserts, each as its own
+   component (K1, K2, …): the answer itself AND every extra detail written into it — a place, a date or
+   year, a number, a size or rank ("one of the largest"), a person, a season. Each component is judged
+   on its own, and the answer counts as correct only when every component is. An answer with one fact
+   has exactly one component. Do not split one name or title into parts, and do not add facts that are
+   not written in the answer. "value" is the exact value asserted: the year, number, place or name.
 2. Answer equivalents — other ways of writing the same answer that should count as the same: spelling and
    transliteration variants, with or without honorifics, with or without "Surah"/"the", common English
    names (Hawwa / Eve). Only true equivalents: a broader or narrower answer is not an equivalent.

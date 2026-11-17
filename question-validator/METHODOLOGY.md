@@ -222,8 +222,12 @@ strength are recorded, not counted against the key. The quality stage should **r
   *Hawwa / Eve*; honorifics removed). S5 classifies alternatives as `equivalent_wording`,
   `transliteration`, `partial_but_acceptable` or `alternative_convention`. Wording differences are never
   grounds for INCORRECT.
-- **Long descriptive answers** (Swab Quest #253, #347): S5 splits the key into its factual components and
-  checks each; a correct core with a wrong detail is PARTIALLY_CORRECT.
+- **Long descriptive answers** (Swab Quest #253, #347): S1b splits the key into its factual components
+  (K1, K2 …: the answer itself and every detail written into it — place, year, size or rank) and S5 checks each
+  on its own; a correct core with a wrong detail is PARTIALLY_CORRECT, and S8 treats a contradicted part as a
+  wrong answer (§9.1, *Key components*). Added 2026-11-17 (S1b v2, S5 v2, rules v2) after eval run 23: *"An
+  Ahmadiyya mosque in Morden, London — one of the largest mosques in Western Europe, opened in 2006"* was
+  VERIFIED with a planted wrong year because the year was judged inside one claim.
 - **Multiple choice:** S3 maps every asserted answer to an option letter, so evidence for distractors is
   collected as a side effect of blind research. A **targeted distractor investigation** (one extra
   query round for that option) is triggered only when:
@@ -276,16 +280,26 @@ For each claim (K, each PR, each N), computed from grounded passages after origi
 For the key claim, "support" additionally requires that **passages' asserted answers equal the key** (or an
 accepted equivalent) — a passage that merely mentions the key's entity does not count.
 
+**Key components** (K1, K2 … from S1b; rules v2): each part of the key gets its own status. A part is
+`supported` when S5 says so with at least one grounded passage; `contradicted` when S5 says so and the passages it
+cites meet the §4 bar for the question's claim type (below the bar: `unverified` + review); `definition_dependent`
+when a definitional / convention disagreement is about it; otherwise `unverified`. Code overrides the model's label
+in one case: a part called `supported` whose `evidence_value` carries **numbers** that differ from the asserted
+value (2003 vs 2006) counts as contradicted. A part whose value is not written in the expected answer (e.g. the
+note's verse reference listed as a component) is not a part of the key and is skipped. A contradicted part makes
+the key wrong (row 2b); VERIFIED needs every part `supported` (row 6).
+
 ### 9.2 Question verdict (first matching row wins)
 
 | # | Condition | Verdict | Defect location |
 |---|---|---|---|
 | 1 | any presupposition `contradicted` | **INCORRECT** | `question_premise` |
 | 2 | key `contradicted` | **INCORRECT** | `answer` |
+| 2b | any key component `contradicted` (and the key not `outdated`) | **INCORRECT** | `answer` |
 | 3 | key `outdated` and question has no as-of qualifier | **OUTDATED** | `answer` |
 | 4 | key `contested` **or** any presupposition `contested` | **CONTESTED** | — |
 | 5 | MC: ≥ 2 options supported, or open: ≥ 2 non-equivalent answers supported; **or** key/premise `definition_dependent` | **AMBIGUOUS** | `question_wording` / `options` |
-| 6 | key `supported` **and** blind answer = key (or equivalent) **and** all presuppositions `supported` or not material **and** no decisive grounded objection (S7) **and** S5/S5b both CORRECT | **VERIFIED** | — |
+| 6 | key `supported` **and** every key component `supported` **and** blind answer = key (or equivalent) **and** all presuppositions `supported` or not material **and** no decisive grounded objection (S7) **and** S5/S5b both CORRECT | **VERIFIED** | — |
 | 7 | otherwise | **UNVERIFIED** | — |
 
 Note claims do not change the question verdict; they get their own `note_status`

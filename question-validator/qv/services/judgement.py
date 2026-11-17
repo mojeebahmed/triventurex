@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from qv.config import Profile
 from qv.db.models import Document, Passage, QuestionDocument, StageOutput, Validation
@@ -20,7 +20,7 @@ from qv.pipeline.judgement import (
     blind_passages, check_s4, check_s5, check_s6, key_letter, render_s4, render_s5, render_s6, s5_system_values,
     s6_hash_inputs, s6_system_values,
 )
-from qv.pipeline.rules import Judgement, PremiseInfo, RulesInput, judge, load_requirements
+from qv.pipeline.rules import RULES_VERSION, ComponentInfo, Judgement, PremiseInfo, RulesInput, judge, load_requirements
 from qv.pipeline.stages import StageRunner, filter_s1b_lookups
 from qv.providers.usage import CallContext
 
@@ -87,7 +87,8 @@ def judge_question(db: Database, runner: StageRunner, run_id: int, question_id: 
                                      "s1b": s1b_output_id,
                                      "ev": _evidence_hash(passages), "s4": s4_id},
                         system_values=s5_system_values(q, s1a, profile, s4, requirements),
-                        ctx=CallContext(run_id, question_id, "s5"), checks=lambda o: check_s5(o, q, passages))
+                        ctx=CallContext(run_id, question_id, "s5"),
+                        checks=lambda o: check_s5(o, q, passages, s1b))
         s5, s5_id = r5.output, r5.stage_output_id
         stats["s5_check_problems"] = len(r5.checks)
     r6 = runner.run(stage="s6", user=render_s6(q), schema_cls=Quality, hash_inputs=s6_hash_inputs(q),
@@ -95,26 +96,83 @@ def judge_question(db: Database, runner: StageRunner, run_id: int, question_id: 
                     ctx=CallContext(run_id, question_id, "s6"), checks=lambda o: check_s6(o, q))
     s6: Quality = r6.output  # type: ignore[assignment]
 
-    j = judge(RulesInput(
+    j = judge(rules_input(run_id, question_id, q, profile, s1a, s1b, passages, s4, s5, s6, audit_percent),
+              requirements)
+    store_validation(db, run_id, question_id, j, s1a, passages, s6, s4_id, s5_id, r6.stage_output_id)
+    stats.update(verdict=j.verdict, review=j.review_status, strength=j.evidence_strength)
+    return stats
+
+
+def rules_input(run_id: int, question_id: int, q: Question, profile: Profile, s1a: Decomposition,
+                s1b: ClaimFormulation, passages: list[EvidencePassage], s4: BlindAnswer | None,
+                s5: Verification | None, s6: Quality | None, audit_percent: float) -> RulesInput:
+    """Everything S8 needs for one question, from the stage outputs."""
+    return RulesInput(
         run_id=run_id, question_id=question_id, is_multi=q.is_multi, key_letter=key_letter(q),
         key_text=q.resolved_answer_text or q.answer, claim_type=str(s1a.claim_type), frame_class=str(s1a.frame_class),
         as_of_in_question=s1a.time_sensitivity.as_of_in_question,
         premises=[PremiseInfo(p.id, p.text, p.claim_type, p.frame_class, p.material) for p in s1a.presuppositions],
         note_claim_ids=[n.id for n in s1b.note_claims if n.kind != "explanation"],
         passages=passages, blind=s4, verification=s5, quality=s6,
-        specialist_for=profile.specialist_for, audit_percent=audit_percent), requirements)
-    store_validation(db, run_id, question_id, j, s1a, passages, s6, s4_id, s5_id, r6.stage_output_id)
-    stats.update(verdict=j.verdict, review=j.review_status, strength=j.evidence_strength)
-    return stats
+        specialist_for=profile.specialist_for, audit_percent=audit_percent,
+        key_components=[ComponentInfo(c.id, c.text, c.value) for c in s1b.key_components])
+
+
+def rejudge_run(deps: Any, run_id: int, ext_ids: list[str] | None = None) -> list[str]:
+    """Apply the current S8 rules again to a run's stored S4 / S5 / S6 outputs — no model is called.
+
+    For a rules change (RULES_VERSION): the stored stage outputs each validation was made from are
+    reused as they are, so the result only changes where the rules do. Returns report lines.
+    """
+    from qv.config import load_profile
+    from qv.db.models import DatasetVersion, QuestionRow, Run, RunQuestion
+    from qv.services.research import question_from_row
+
+    db = deps.db
+    requirements = load_requirements()
+    with db.session() as s:
+        run = s.get(Run, run_id)
+        if run is None:
+            raise ValueError(f"No run {run_id}")
+        profile = load_profile(s.get(DatasetVersion, run.dataset_version_id).profile)
+        rows = list(s.execute(
+            select(Validation, RunQuestion.stats_json, QuestionRow)
+            .join(QuestionRow, QuestionRow.id == Validation.question_id)
+            .join(RunQuestion, (RunQuestion.run_id == Validation.run_id)
+                  & (RunQuestion.question_id == Validation.question_id))
+            .where(Validation.run_id == run_id).order_by(QuestionRow.row_no)))
+        rows = [(v.verdict, v.s4_output_id, v.s5_output_id, v.s6_output_id, st, qr) for v, st, qr in rows]
+    if ext_ids:
+        rows = [r for r in rows if r[5].ext_id in set(ext_ids)]
+    lines, changed = [], 0
+    for old, s4_id, s5_id, s6_id, stats, qrow in rows:
+        q = question_from_row(qrow)
+        if not stats.get("s1a_output_id") or not stats.get("s1b_output_id"):
+            lines.append(f"  #{q.ext_id}: no research outputs recorded — skipped")
+            continue
+        s1a = _output(db, stats["s1a_output_id"], Decomposition)
+        s1b = filter_s1b_lookups(_output(db, stats["s1b_output_id"], ClaimFormulation), q)
+        s4 = _output(db, s4_id, BlindAnswer) if s4_id else None
+        s5 = _output(db, s5_id, Verification) if s5_id else None
+        s6 = _output(db, s6_id, Quality)
+        passages = load_evidence(db, run_id, qrow.id)
+        j = judge(rules_input(run_id, qrow.id, q, profile, s1a, s1b, passages, s4, s5, s6, deps.audit_percent),
+                  requirements)
+        store_validation(db, run_id, qrow.id, j, s1a, passages, s6, s4_id, s5_id, s6_id)
+        if j.verdict != old:
+            changed += 1
+            lines.append(f"  #{q.ext_id}: {old} → {j.verdict} ({j.evidence_strength}), {j.review_status}")
+    lines.append(f"Run {run_id}: {len(rows)} validation(s) judged again with rules v{RULES_VERSION}, "
+                 f"{changed} verdict(s) changed. No model was called.")
+    return lines
 
 
 def store_validation(db: Database, run_id: int, question_id: int, j: Judgement, s1a: Decomposition,
                      passages: list[EvidencePassage], s6: Quality, s4_id: int | None, s5_id: int | None,
                      s6_id: int) -> None:
-    """Replace the validation of this question in this run."""
+    """Replace the validation of this question in this run — in place, keeping its id: decisions point at it."""
     with db.session() as s:
-        s.execute(delete(Validation).where(Validation.run_id == run_id, Validation.question_id == question_id))
-        s.add(Validation(
+        values = dict(
             run_id=run_id, question_id=question_id, verdict=j.verdict, defect_location=j.defect_location,
             evidence_strength=j.evidence_strength, factual_accuracy=j.factual_accuracy,
             claim_type=str(s1a.claim_type), frame_class=str(s1a.frame_class),
@@ -126,7 +184,13 @@ def store_validation(db: Database, run_id: int, question_id: int, j: Judgement, 
             suggested_answer=j.suggested_answer, suggested_question=j.suggested_question,
             acceptable_alternatives_json=j.acceptable_alternatives,
             passage_map_json={p.pid: {"passage_id": p.passage_id, "cluster": p.cluster} for p in passages},
-            s4_output_id=s4_id, s5_output_id=s5_id, s6_output_id=s6_id, rules_version=j.rules_version))
+            s4_output_id=s4_id, s5_output_id=s5_id, s6_output_id=s6_id, rules_version=j.rules_version)
+        row = s.scalar(select(Validation).where(Validation.run_id == run_id, Validation.question_id == question_id))
+        if row is None:
+            s.add(Validation(**values))
+        else:
+            for k, v in values.items():
+                setattr(row, k, v)
 
 
 def judge_run(deps: Any, run_id: int, ext_ids: list[str] | None = None) -> list[str]:
