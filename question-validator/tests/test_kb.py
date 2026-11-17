@@ -55,6 +55,7 @@ def test_short_text_is_one_chunk_and_empty_is_none() -> None:
     ("https://example.com:8080/x", "https://example.com:8080/x"),
     ("https://example.com/", "https://example.com"),
     ("library://basics/p12", "library://basics/p12"),
+    ("https://www.x.org/a.pdf#page=3", "https://x.org/a.pdf#page=3"),     # a web PDF page is its own document
 ])
 def test_normalize_url(given: str, want: str) -> None:
     assert kbtext.normalize_url(given) == want

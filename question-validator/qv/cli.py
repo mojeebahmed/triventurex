@@ -418,11 +418,11 @@ def library_translate(book: Annotated[str | None, typer.Option(help="Only this b
 
 @library_app.command("suggestions")
 def library_suggestions() -> None:
-    """PDFs the research found on the web but could not read — candidates for the library."""
+    """PDFs the research found on the web (read page by page, needs OCR, or not read) — candidates for the library."""
     from qv.services import views
     rows = views.pdfs_found_on_web(_db())
     for r in rows:
-        typer.echo(f"{r['site']:<28} {r['file'][:60]:<60} {r['url']}")
+        typer.echo(f"{r['site']:<28} {r['file'][:50]:<50} {r['read'][:34]:<34} {r['url']}")
     typer.echo(f"{len(rows)} PDF(s)")
 
 
@@ -569,10 +569,15 @@ def _print_run_report(report) -> None:  # noqa: ANN001
     for q in report.questions:
         typer.echo(f"  id {q['id']}: {q.get('documents', 0)} documents, {q.get('passages_grounded', 0)} passages "
                    f"({q.get('passages_dropped', 0)} dropped), searches {q.get('searches_run', 0)} run / "
-                   f"{q.get('searches_cached', 0)} cached")
+                   f"{q.get('searches_cached', 0)} cached, {q.get('stored_pages', 0)} stored page(s)")
         if q.get("verdict"):
             typer.echo(f"         verdict {q['verdict']} ({q['strength']}), {q['review']}")
     typer.echo(f"Run {report.run_id}: {report.done} done, {report.failed} failed, {report.pending} still pending")
+    from qv.services.research import search_summary
+    sm = search_summary(_db(), report.run_id)
+    if sm["questions"]:
+        typer.echo(f"Searches per question: {sm['searches_per_question']} ({sm['searches_run_per_question']} run on "
+                   f"the web) · stored pages added per question: {sm['stored_pages_per_question']}")
     if report.stopped_reason:
         typer.echo(f"Stopped: {report.stopped_reason}")
     typer.echo(f"Details: qv evidence {report.run_id} <id>   ·   web view: qv ui")

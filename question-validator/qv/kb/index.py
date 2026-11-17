@@ -139,6 +139,22 @@ class KnowledgeIndex:
         """The index of a data directory."""
         return cls(index_path(data_dir))
 
+    @classmethod
+    def open_readonly(cls, path: Path) -> KnowledgeIndex:
+        """Open an existing index for reading only (research: never creates, rebuilds or changes the file).
+        Raises when the file is missing, broken or has another layout — callers treat that as "no index"."""
+        if not path.exists():
+            raise FileNotFoundError(f"no knowledge index at {path} (run: qv kb index)")
+        obj = cls.__new__(cls)
+        obj.path = path
+        obj.conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
+        obj.conn.row_factory = sqlite3.Row
+        version = obj._meta_raw("schema_version")
+        if version is None or int(version) != SCHEMA_VERSION:
+            obj.conn.close()
+            raise ValueError(f"knowledge index layout {version} ≠ {SCHEMA_VERSION} (run: qv kb index)")
+        return obj
+
     def close(self) -> None:
         """Close the connection."""
         self.conn.close()

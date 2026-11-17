@@ -176,7 +176,10 @@ The **Book library** page (Advanced) has three tabs:
   publisher, trust and editions; it is read at once. Click a book to see it or **remove** it (the PDF and its pages
   go; quotes already used stay in the results). Books added on the page are listed in
   `data/library/books.yaml` (yours, not in git); `config/library.yaml` keeps the built-in list.
-- **Books found on the web** — PDFs the research met but could not read (e.g. *Life of the Promised Messiah*). Click
+- **Books found on the web** — PDFs the research met on websites (e.g. *Life of the Promised Messiah*). A readable
+  one is already used page by page, like a web page with that site's trust; the **Read** column says how many pages
+  were stored, *needs OCR* (no usable text) or *not read*. Adding it as a book makes it searched for every question
+  of its editions. Click
   one: **⬇ Download and add** fetches it and adds it like an upload (if the site refuses, download it in your
   browser and use *Add a book*), or **🙈 Not a book for the library** hides it.
 - **Search** — type words; the results table shows where each page matches. Click a result: the whole page opens
@@ -210,6 +213,18 @@ AI requests.
   every edition that contain the words, with where each one stands.
 - **Judging (optional)** — in a result's popup, enter a file and a question id and click *✅ Relevant* or
   *❌ Not relevant*. Your judgements change no result; `qv kb benchmark` uses them to measure the search.
+
+**Stored pages first**: before searching the web, each question looks in this index with its own answer-blind search
+words and reads up to 2 pages collected earlier (for other questions or from your books) — again, without the
+answer; quotes found for other questions are never reused. On a source they show **🗄️ found in stored pages**. For
+answers that change over time (records, current figures) only pages collected in the last year are reused. Web
+searches still run as before; a setting (`stored_first_skip_web` in `config/research.yaml`, off) could later skip
+them when enough stored pages are found. After a batch the terminal shows *searches per question* and *stored pages
+added per question*.
+
+**PDFs on websites** are now read too, page by page (each page is its own source with the site's trust); a PDF
+whose text is unreadable is marked *needs OCR* and not used. `qv kb benchmark` also reports the *stored-page
+recall* (how often the stored pages step would pick a page that turned out useful).
 
 ## Websites
 

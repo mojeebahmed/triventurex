@@ -26,6 +26,11 @@ support, below the bar · WEAK: one source · NONE.
 "same" is the strongest sign the answer is right; "different" is the strongest sign of an error.
 
 **Origins (C1, C2 …)** — passages that trace back to the same source count once, however many sites repeat it.
+
+**🗄️ found in stored pages** — this page was not found by a web search this time but in the pages already collected
+for other questions (or books). Only the page is reused: it was read again for this question, without the answer,
+and quotes found for other questions are never used. For answers that change over time (records, current figures)
+only recently collected pages are reused.
 """ + TIERS
 
 TABLES = """
@@ -261,8 +266,10 @@ searched.
 - **📚 Books** — every book and its state. **➕ Add a book (PDF)** uploads one and reads it at once. Click a book to
   see it or remove it (the PDF and its pages go; quotes already used stay in the results). **🔄 Refresh** reads
   PDFs you put into the books folder yourself and listed in `config/library.yaml`.
-- **🌐 Found on the web** — PDFs the research met but could not read (web PDFs are skipped). Click one to
-  **download and add** it (if the site refuses, download it in your browser and use *Add a book*), or hide it.
+- **🌐 Found on the web** — PDFs the research met on websites. A readable one is already used page by page, like a
+  web page with that site's trust (column **Read**: how many pages were stored, *needs OCR* when the PDF has no
+  usable text, or *not read*). Adding it as a book makes it searched for every question of its editions. Click one
+  to **download and add** it (if the site refuses, download it in your browser and use *Add a book*), or hide it.
 """),
         ("Terminal", """
 `qv library status` · `qv library search "first Jalsa Salana"` · `qv library suggestions` · `qv library index`

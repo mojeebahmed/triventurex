@@ -13,3 +13,12 @@ s3_window_overlap_chars: 1000
 s3_max_windows: 2                    # … at most this many per document
 audit_sample_percent: 5              # share of auto_ok questions routed to review anyway (METHODOLOGY §9.3)
 batch_size: 25                       # most questions per `qv next` batch (also limited by today's free quota)
+# Stored pages first (knowledge base phase 3): pages already collected (data/kb/index.sqlite) are searched with the
+# question's blind queries before the web, and the best ones are read again, blind — documents only, never another
+# question's quotes or answers.
+stored_pages_per_question: 2         # stored pages read per question, on top of the web documents (0 = off)
+stored_results_per_query: 10         # index results looked at per blind query (fused with RRF)
+stored_max_age_days: 365             # time-sensitive questions (records, current figures) skip older stored pages
+stored_first_skip_web: false         # true = skip the web searches when enough stored pages qualify (keep off for now)
+stored_skip_web_min: 2               # … how many stored pages are "enough"
+pdf_pages_per_document: 1            # a web PDF is stored page by page; this many best-matching pages are read

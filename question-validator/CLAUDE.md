@@ -78,12 +78,14 @@ all other commands stay for power users and debugging.
    benchmark · 2 knowledge search page + saved topics · 3 stored pages first in research (+ web PDFs) · 4 embeddings /
    local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
    generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
-   **Phase 1 built 2026-11-17** (branch `feat/qv-kb-index`): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
-   the plan's phase-1 result note. **Phase 2 built 2026-11-17** (branch `claude/qv-kb-search-page-a3ae38`): Knowledge
-   page, topics, relevance judgements — see the plan's phase-2 result note.
+   **Phase 1 built 2026-11-17** (merged to main): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
+   the plan's phase-1 result note. **Phase 2 built 2026-11-17** (merged): Knowledge
+   page, topics, relevance judgements — see the plan's phase-2 result note. **Phase 3 code built 2026-11-17**
+   (merged): stored pages first + web PDFs; the eval-set acceptance run is still to
+   do (plan's phase-3 note).
 
-Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
-(`not_text`); refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
+Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); web PDFs are read page by page since
+KB phase 3; refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
 worth a look); no hadith direct source yet. Done 2026-11-16: `QV_CONTACT` is set (Wikipedia searches run); the
 free Gemini limits were checked in AI Studio — 4 more models with 20/day each were added to the pools
 (gemini-4-hydrogen, gemini-3-flash-preview, gemini-2.5-flash in `judge`; gemini-2.5-flash-lite in `cheap`), their
@@ -270,6 +272,37 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   `clear` takes one back. They belong to a question's exact wording. `qv kb benchmark` always passes
   `knowledge.benchmark_labels(db)` as `extra_labels` (key `<profile>#<id>@<hash8>`, profile of the version holding
   that wording). Judgements never change a result.
+
+## Implementation invariants (stored pages first + web PDFs — KB phase 3, 2026-11-17)
+- **Stored pages** (`research._stored_pages`): before the web, the knowledge index is searched with **S1a's blind
+  queries only** (`stored_queries`; never S1b, key, note or options), each query BM25 then RRF (k = 60); up to
+  `stored_pages_per_question` (research.yaml, default 2) documents are added in **mode A**, on top of the web budget,
+  and S3 reads them blind like any document. **Documents only**: never another question's passages or asserted
+  answers (test proves the S3 prompt has none). `found_by = {via: "stored", query, doc_key, rank}`; a `book:` hit
+  becomes the same `library://` document the library path makes (`_store_book_page`), a `doc:` hit reuses its
+  `documents.id`. Skipped: anything this question already read (any run, by canon key), tier X and "needs special
+  access" sites, books not listed for the edition, a second page from the same site / book (echo defence), and — for
+  time-sensitive questions (`is_time_sensitive`: S1a flag, or claim type / presupposition `statistic_current` /
+  `sports_record`) — pages fetched more than `stored_max_age_days` ago or without a date (book pages).
+- The index is opened **read-only** (`KnowledgeIndex.open_readonly`); research never creates or rebuilds it. A
+  missing / broken index or a search error is logged in the stats (`stored_index_unavailable`, `stored_errors`,
+  `errors`) and research goes on — never fails.
+- Web searches still run. `stored_first_skip_web` (off by default; keep it off until the eval set says otherwise)
+  skips the **paid-pool** web queries when ≥ `stored_skip_web_min` stored pages qualify; free searches (Wikipedia,
+  alislam.org, sitemaps) and the library still run. Stats per question: `stored_pages`, `stored_searches`,
+  `searches_total`; `search_summary(db, run)` → the "searches per question" line after a batch.
+- **Web PDFs** (`Fetcher._store_pdf`): fetched like pages (robots.txt, rate limit, `fetch.max_pdf_bytes`), read with
+  the library reader (`read_pdf_pages` takes bytes too, `clean_page`, `text_quality` ≥ `pdf_min_quality`); one
+  document per readable page: `source_kind = pdf`, `url` = the PDF, `final_url` = `<pdf url>#page=N`, trust = the
+  **site's** registry tier (lowered by S3's page kind like any web page). No readable page → fetch status
+  `needs_ocr`, no text stored. `FetchResult.page_ids` lists the pages (also from the cache); research reads the
+  `pdf_pages_per_document` pages that best match the queries that found the PDF (`found_by[].pdf_page`).
+  `normalize_url` keeps a `#page=N` fragment so PDF pages are separate documents in the index, not versions.
+- `views.pdfs_found_on_web` lists every web PDF met (read / needs OCR / not read, column `read`) — still the Book
+  library's "Found on the web" candidates. Websites' refused list skips PDF statuses; "possibly good" counts `pdf`
+  pages with `web` pages.
+- `qv kb benchmark` adds `stored_pages` (hit / recall in the top `stored_pages_per_question` of bm25-queries-rrf —
+  an upper bound of what research picks). Tests: `tests/test_stored_pages.py`.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,

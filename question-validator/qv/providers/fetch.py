@@ -3,6 +3,8 @@
 - robots.txt is respected (our user agent and `*`).
 - Size cap, timeout, per-domain rate limit; failures are cached so a dead page is not retried every run.
 - HTML → main text with trafilatura; Wikipedia articles via the API's plain-text extract.
+- PDFs (KB phase 3) → read page by page with the library's reader; one document per readable page
+  (`<pdf url>#page=N`, source_kind `pdf`); pages whose text looks broken are not stored ("needs OCR").
 - A document's text is stored once and never changed (database trigger).
 """
 
@@ -11,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import time
 import urllib.robotparser
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from urllib.parse import unquote, urlsplit
@@ -22,6 +25,8 @@ from sqlalchemy import select
 from qv.config import FetchConfig
 from qv.db.models import Document, Fetch
 from qv.db.session import Database
+from qv.kb.text import guess_language
+from qv.library import clean_page, read_pdf_pages, text_quality
 from qv.providers.search.base import domain_of
 from qv.providers.search.free import WIKIPEDIA_API
 from qv.providers.search.web import USER_AGENT, wikimedia_user_agent
@@ -30,6 +35,19 @@ from qv.providers.usage import CallContext, RateLimiter, UsageRecorder
 ROBOTS_AGENT = "TriventurexQuestionValidator"
 FAILURE_RETRY_AFTER = timedelta(days=7)
 MIN_TEXT_CHARS = 200
+MIN_PDF_PAGE_CHARS = 100          # shorter PDF pages (title pages, blank pages) are not stored
+
+
+def is_pdf_response(content_type: str, url: str) -> bool:
+    """True for a PDF answer (by content type, or a `.pdf` URL served as a generic binary)."""
+    ctype = content_type.lower()
+    return "pdf" in ctype or (urlsplit(url).path.lower().endswith(".pdf") and
+                              ("octet-stream" in ctype or not ctype))
+
+
+def pdf_page_url(pdf_url: str, page: int) -> str:
+    """The stored URL of one page of a web PDF (opens that page in a browser)."""
+    return f"{pdf_url.split('#', 1)[0]}#page={page}"
 
 
 @dataclass(frozen=True)
@@ -40,6 +58,7 @@ class FetchResult:
     status: str
     document_id: int | None = None
     error: str | None = None
+    page_ids: tuple[int, ...] = ()   # a web PDF: one stored document per readable page (document_id = the first)
 
     @property
     def ok(self) -> bool:
@@ -66,8 +85,10 @@ class Fetcher:
     """Fetches URLs into stored documents (cached by URL)."""
 
     def __init__(self, db: Database, recorder: UsageRecorder, limiter: RateLimiter, cfg: FetchConfig, *,
-                 client: httpx.Client | None = None, contact: str = "") -> None:
-        """`client` is injectable for tests; `contact` enables Wikipedia (Wikimedia requires it)."""
+                 client: httpx.Client | None = None, contact: str = "",
+                 pdf_reader: Callable[[bytes], list[str]] = read_pdf_pages) -> None:
+        """`client` and `pdf_reader` are injectable for tests; `contact` enables Wikipedia (Wikimedia requires it)."""
+        self.pdf_reader = pdf_reader
         self.db = db
         self.wikimedia_ua = wikimedia_user_agent(contact)
         self.recorder = recorder
@@ -117,7 +138,9 @@ class Fetcher:
             if row is None:
                 return None
             if row.status == "ok":
-                return FetchResult(url, "ok", row.document_id)
+                pages = tuple(s.scalars(select(Document.id).where(Document.url == url, Document.source_kind == "pdf")
+                                        .order_by(Document.id)))
+                return FetchResult(url, "ok", row.document_id, row.error, pages)
             fetched = row.fetched_at if row.fetched_at.tzinfo else row.fetched_at.replace(tzinfo=UTC)
             if datetime.now(UTC) - fetched < FAILURE_RETRY_AFTER:
                 return FetchResult(url, row.status, None, row.error)
@@ -168,20 +191,25 @@ class Fetcher:
                 if status != 200:
                     self._log(ctx, "error", start, status, f"HTTP {status}")
                     return self.remember(url, "error", status, None, f"HTTP {status}")
-                if not any(t in ctype for t in ("text/html", "text/plain", "application/xhtml")):
+                pdf = is_pdf_response(ctype, final_url)
+                cap = self.cfg.max_pdf_bytes if pdf else self.cfg.max_bytes
+                if not pdf and not any(t in ctype for t in ("text/html", "text/plain", "application/xhtml")):
                     self._log(ctx, "error", start, status, f"content-type {ctype}")
                     return self.remember(url, "not_text", status, None, f"content-type {ctype or 'unknown'}")
                 body = bytearray()
                 for chunk in resp.iter_bytes():
                     body += chunk
-                    if len(body) > self.cfg.max_bytes:
+                    if len(body) > cap:
                         self._log(ctx, "error", start, status, "too large")
-                        return self.remember(url, "too_large", status, None, f"> {self.cfg.max_bytes} bytes")
+                        return self.remember(url, "too_large", status, None,
+                                             f"{'pdf: ' if pdf else ''}> {cap} bytes")
                 encoding = resp.encoding or "utf-8"
         except httpx.HTTPError as exc:
             self._log(ctx, "error", start, None, str(exc))
             return self.remember(url, "error", None, None, str(exc)[:300])
 
+        if pdf:
+            return self._store_pdf(url, final_url, bytes(body), ctx, start)
         raw = bytes(body).decode(encoding, errors="replace")
         if "text/plain" in ctype:
             text, title, method = raw, "", "plain"
@@ -197,6 +225,41 @@ class Fetcher:
                                  extract_method=method)
         self._log(ctx, "ok", start, 200, None)
         return self.remember(url, "ok", 200, doc_id, None)
+
+    def _store_pdf(self, url: str, final_url: str, body: bytes, ctx: CallContext, start: float) -> FetchResult:
+        """A web PDF, page by page: readable pages become documents with the site's URL (`#page=N`); a PDF
+        without any readable page is remembered as `needs_ocr` (its text is never stored)."""
+        if not body.startswith(b"%PDF"):
+            self._log(ctx, "error", start, 200, "not a PDF file")
+            return self.remember(url, "not_text", 200, None, "pdf: not a PDF file")
+        try:
+            pages = self.pdf_reader(body)
+        except Exception as exc:  # noqa: BLE001 — a broken PDF is a fetch failure, never a crash
+            self._log(ctx, "error", start, 200, f"unreadable PDF: {exc}"[:300])
+            return self.remember(url, "not_text", 200, None, f"pdf: could not be read ({type(exc).__name__})")
+        name = unquote(urlsplit(final_url).path.rsplit("/", 1)[-1]) or domain_of(final_url)
+        ids: list[int] = []
+        needs_ocr = 0
+        for n, raw in enumerate(pages[: self.cfg.max_pdf_pages], 1):
+            text = clean_page(raw)
+            if len(text) < MIN_PDF_PAGE_CHARS:
+                continue
+            lang = guess_language(text)
+            if text_quality(text, lang if lang in ("ar", "ur") else "en") < self.cfg.pdf_min_quality:
+                needs_ocr += 1
+                continue
+            ids.append(self.store_text(url=url, final_url=pdf_page_url(final_url, n), title=f"{name}, page {n}",
+                                       text=text, source_kind="pdf", extract_method="pypdf", ref=f"pdf page {n}"))
+        if not ids:
+            self._log(ctx, "error", start, 200, "PDF needs OCR")
+            return self.remember(url, "needs_ocr", 200, None,
+                                 f"pdf: no readable text on {len(pages)} pages (needs OCR)")
+        note = (f"pdf: {len(ids)} of {len(pages)} pages stored"
+                + (f", {needs_ocr} need OCR" if needs_ocr else "")
+                + (f", only the first {self.cfg.max_pdf_pages} read" if len(pages) > self.cfg.max_pdf_pages else ""))
+        self._log(ctx, "ok", start, 200, None)
+        res = self.remember(url, "ok", 200, ids[0], note)
+        return FetchResult(url, "ok", res.document_id, note, tuple(ids))
 
     def _fetch_wikipedia(self, url: str, ctx: CallContext) -> FetchResult:
         title = unquote(urlsplit(url).path.split("/wiki/", 1)[1]).replace("_", " ")

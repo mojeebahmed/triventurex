@@ -99,6 +99,7 @@ def question_detail(db: Database, run_id: int, question_id: int) -> dict:
             "mode": qd.mode, "registry_tier": qd.registry_tier, "effective_tier": qd.effective_tier,
             "frame_authority": qd.frame_authority, "page_kind": qd.page_kind, "status": qd.status,
             "about_right_subject": qd.about_right_subject, "concerns": qd.concerns_json, "found_by": qd.found_by_json,
+            "found_in_stored": any(fb.get("via") == "stored" for fb in qd.found_by_json or []),
             "grounded": qd.grounded_count, "dropped": qd.dropped_count, "fetched": doc.fetched_at.strftime("%Y-%m-%d"),
             "text": doc.text,
             "passages": [{"pid": p.id, "target": p.target, "quote": p.quote, "start": p.char_start, "end": p.char_end,
@@ -294,14 +295,33 @@ def dataset_cards(db: Database, *, include_eval: bool = False) -> list[dict]:
 
 
 def pdfs_found_on_web(db: Database) -> list[dict]:
-    """PDFs that research found on the web but could not read (web PDFs are skipped): candidates for the
-    book library. Newest first."""
+    """PDFs that research found on the web: candidates for the book library. Newest first.
+
+    Since KB phase 3 readable web PDFs are read page by page (their pages are sources like web pages, with the
+    site's trust); "read" says what happened: pages stored, needs OCR, or not read (too large / unreadable /
+    met before web PDFs were read). Adding one as a book still helps: a book is searched for every question of
+    its editions."""
     from urllib.parse import unquote, urlsplit
 
     from qv.db.models import Fetch
     from qv.providers.search.base import domain_of
     with db.session() as s:
-        rows = list(s.scalars(select(Fetch).where(Fetch.status == "not_text", Fetch.error.like("%pdf%"))
+        rows = list(s.scalars(select(Fetch).where(Fetch.status.in_(("not_text", "needs_ocr", "ok", "too_large")),
+                                                  Fetch.error.like("%pdf%"))
                               .order_by(Fetch.fetched_at.desc())))
         return [{"file": unquote(urlsplit(f.url).path.rsplit("/", 1)[-1]) or f.url, "site": domain_of(f.url),
-                 "seen": f.fetched_at.strftime("%Y-%m-%d"), "url": f.url} for f in rows]
+                 "seen": f.fetched_at.strftime("%Y-%m-%d"), "read": _pdf_read_text(f.status, f.error),
+                 "url": f.url} for f in rows]
+
+
+def _pdf_read_text(status: str, error: str | None) -> str:
+    """What happened to a web PDF, in plain words."""
+    if status == "ok":
+        return (error or "pdf: pages stored").removeprefix("pdf: ")
+    if status == "needs_ocr":
+        return "needs OCR (no readable text)"
+    if status == "too_large":
+        return "not read (too large)"
+    if error and error.startswith("pdf:"):
+        return "not read (" + error.removeprefix("pdf: ") + ")"
+    return "not read (found before web PDFs were read)"

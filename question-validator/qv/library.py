@@ -147,13 +147,15 @@ def text_quality(text: str, language: str) -> float:
     return 1 - bad / len(chars)
 
 
-def read_pdf_pages(path: Path) -> list[str]:
-    """Text of every page (pypdf). Pages without a text layer come back empty."""
+def read_pdf_pages(path: Path | bytes) -> list[str]:
+    """Text of every page (pypdf) of a PDF file or of PDF bytes (a web PDF). Pages without a text layer come
+    back empty."""
+    import io
     import logging
 
     import pypdf
     logging.getLogger("pypdf").setLevel(logging.ERROR)   # font warnings are noise here
-    reader = pypdf.PdfReader(str(path))
+    reader = pypdf.PdfReader(io.BytesIO(path) if isinstance(path, bytes) else str(path))
     out = []
     for page in reader.pages:
         try:

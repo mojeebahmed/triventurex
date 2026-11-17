@@ -1,6 +1,7 @@
 """Research pipeline (phase 2): from a question to grounded, stored evidence. No verdicts.
 
-Per question:  S1a (blind) → S1b (claims) → direct lookups (Qur'an) → searches (free
+Per question:  S1a (blind) → S1b (claims) → direct lookups (Qur'an) → stored pages (the
+knowledge index, searched with S1a's blind queries only — KB phase 3) → searches (free
 pools, cached) → choose and fetch documents → S3 per document (blind) → grounding
 check → passages stored. Every step is idempotent: stage outputs are reused by input
 hash, searches and fetches are cached, and a document's passages are written in the
@@ -9,8 +10,11 @@ same transaction that marks it extracted — so an interrupted run resumes clean
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -24,7 +28,8 @@ from qv.db.models import (
 )
 from qv.db.session import Database
 from qv.domain.question import Question
-from qv.domain.stages import ClaimFormulation, Decomposition, Extraction
+from qv.domain.stages import ClaimFormulation, ClaimType, Decomposition, Extraction
+from qv.kb.search import search as kb_search
 from qv.pipeline.grounding import DocumentIndex
 from qv.pipeline.stages import (
     DocMeta, StageRunner, check_s1a, check_s1b, filter_s1b_lookups, render_s1a, render_s1b, render_s3,
@@ -41,13 +46,16 @@ from qv.providers.search.free import AlislamSearch, SitemapSearch, WikipediaSear
 from qv.providers.search.router import Pool, SearchRouter
 from qv.providers.search.web import ExaSearch, ParallelMCPSearch, TavilySearch
 from qv.providers.usage import CallContext, Limit, Metering, QuotaExhausted
-from qv.library import Library
+from qv.library import Library, PageHit, parse_page_url, query_words
 from qv.services.websites import registry_with_marks
 from qv.sources import Registry, effective_tier, is_frame_authority
 from qv.services.datasets import get_version
 from qv.services.judgement import judge_question
 
 PURPOSE_PRIORITY = {"core": 0, "presupposition": 1, "competitor": 2, "definition": 3, "primary_source": 4}
+#: Claim types whose answer can change over time: stored pages older than `stored_max_age_days` are skipped.
+TIME_SENSITIVE_CLAIMS = {ClaimType.STATISTIC_CURRENT.value, ClaimType.SPORTS_RECORD.value}
+RRF_K = 60   # reciprocal rank fusion constant (the phase-1 benchmark's bm25-queries-rrf)
 
 
 # --- wiring ---------------------------------------------------------------------
@@ -71,6 +79,7 @@ class ResearchDeps:
     polite_rpm: dict[str, int] = field(default_factory=lambda: {"wikipedia": 60, "alislam": 10})
     audit_percent: float = 3.0
     named_pools: dict[str, ModelPool] = field(default_factory=dict)  # every llm.pools entry, for --judge-pool
+    data_dir: Path | None = None                                     # for the knowledge index (stored pages)
 
 
 def pool_entries(labels: list[str], providers: dict[str, LLMProvider], pcfg: ProvidersConfig) -> list[PoolEntry]:
@@ -163,6 +172,7 @@ def build_deps(settings: Settings, db: Database) -> ResearchDeps:
                     **{name: site.rpm for name, site in pcfg.search.sitemaps.items()}},
         audit_percent=rcfg.audit_sample_percent,
         library=Library(settings.data_dir),
+        data_dir=settings.data_dir,
     )
 
 
@@ -340,7 +350,13 @@ def research_question(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
         direct_docs += _direct_lookup(deps, lk.source, lk.ref, lk.scheme or profile.conventions.get(
             "quran_numbering"), "B", ctx, stats, for_claim=lk.for_claim)
 
-    for query, purpose, mode, objective in _plan_web_queries(s1a, s1b, deps.cfg.max_web_queries_per_question):
+    # Stored pages first (KB phase 3): S1a's blind queries only; documents only, never another question's passages.
+    stored = _stored_pages(deps, question_id, profile, s1a, stats)
+    skip_web = deps.cfg.stored_first_skip_web and len(stored) >= deps.cfg.stored_skip_web_min
+    if skip_web:
+        stats["web_searches_skipped"] = 1
+    web_plan = [] if skip_web else _plan_web_queries(s1a, s1b, deps.cfg.max_web_queries_per_question)
+    for query, purpose, mode, objective in web_plan:
         try:
             routed = deps.router.search(query, max_results=deps.cfg.results_per_query,
                                         ctx=CallContext(run_id, question_id, "search"), objective=objective)
@@ -365,12 +381,20 @@ def research_question(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
             if _frame_lists(profile, domain):
                 _free_search(deps, provider, core, deps.cfg.site_search_results, candidates, profile, ctx, stats)
 
-    chosen: list[tuple[int, str, list[dict]]] = []
+    chosen: list[tuple[int, str, list[dict]]] = list(stored)
+    taken = {doc_id for doc_id, _, _ in stored}
     for mode, budget in (("A", deps.cfg.max_documents_per_question), ("B", deps.cfg.max_note_documents_per_question)):
-        chosen += _choose_and_fetch(deps, [c for c in candidates.values() if c.mode == mode], budget, ctx, stats)
+        chosen += _choose_and_fetch(deps, [c for c in candidates.values() if c.mode == mode], budget, ctx, stats,
+                                    taken=taken if mode == "A" else set())
     chosen += [(doc_id, mode, [fb]) for doc_id, mode, fb in direct_docs]
     chosen += _library_pages(deps, profile, [core] + [x.q for x in sorted(s1a.queries, key=lambda x: PURPOSE_PRIORITY[
         x.purpose])[:2]], stats)
+    seen: set[tuple[int, str]] = set()
+    chosen = [c for c in chosen if (c[0], c[1]) not in seen and not seen.add((c[0], c[1]))]  # each document once
+    stats["searches_total"] = (stats.get("searches_run", 0) + stats.get("searches_cached", 0)
+                               + sum(v for k, v in stats.items() if k.startswith("searches_")
+                                     and k not in ("searches_run", "searches_cached", "searches_total")
+                                     and isinstance(v, int)))
 
     step("extraction")
     note_claims = [(n.id, n.text) for n in s1b.note_claims if n.kind != "explanation"]
@@ -403,13 +427,149 @@ def _library_pages(deps: ResearchDeps, profile: Profile, queries: list[str],
                 best[key] = (h.score, h, query)
     out = []
     for _, h, query in sorted(best.values(), key=lambda x: -x[0])[:n]:
-        doc_id = deps.fetcher.store_text(url=h.url, final_url=h.url, title=lib.title_for(h), text=h.text,
-                                         source_kind="library", extract_method="pypdf", http_status=None,
-                                         ref=f"{h.book_id}:{h.page}")
+        doc_id = _store_book_page(deps, h)
         stats["library_pages"] += 1
         out.append((doc_id, "A", [{"via": "library", "query": query, "book": h.book_id, "page": h.page,
                                    "printed_page": h.printed}]))
     return out
+
+
+def _store_book_page(deps: ResearchDeps, h: PageHit) -> int:
+    """A book page as a `library://` document (the same document whichever path found it)."""
+    return deps.fetcher.store_text(url=h.url, final_url=h.url, title=deps.library.title_for(h), text=h.text,
+                                   source_kind="library", extract_method="pypdf", http_status=None,
+                                   ref=f"{h.book_id}:{h.page}")
+
+
+# --- stored pages first (KB phase 3) ------------------------------------------------------
+
+def stored_queries(s1a: Decomposition) -> list[str]:
+    """What the knowledge index is searched with: S1a's answer-blind queries only — never S1b's challenge or
+    note queries, the key, the note or the options (METHODOLOGY: retrieval for mode A stays blind)."""
+    return list(dict.fromkeys(x.q for x in sorted(s1a.queries, key=lambda x: PURPOSE_PRIORITY[x.purpose])))
+
+
+def is_time_sensitive(s1a: Decomposition) -> bool:
+    """True when the answer can change over time (S1a says so, or a claim type that changes)."""
+    return (s1a.time_sensitivity.is_time_sensitive or s1a.claim_type in TIME_SENSITIVE_CLAIMS
+            or any(p.claim_type in TIME_SENSITIVE_CLAIMS for p in s1a.presuppositions))
+
+
+def _stored_pages(deps: ResearchDeps, question_id: int, profile: Profile, s1a: Decomposition,
+                  stats: dict) -> list[tuple[int, str, list[dict]]]:
+    """Up to `stored_pages_per_question` stored documents for this question (mode A). A missing or broken
+    knowledge index never fails research: it is noted in the stats and research goes on without it."""
+    if not deps.cfg.stored_pages_per_question or deps.data_dir is None:
+        return []
+    from qv.kb.index import KnowledgeIndex, index_path
+    try:
+        idx = KnowledgeIndex.open_readonly(index_path(deps.data_dir))
+    except Exception as exc:  # noqa: BLE001
+        stats["stored_index_unavailable"] = 1
+        stats.setdefault("errors", []).append(f"stored pages: {type(exc).__name__}: {exc}"[:200])
+        return []
+    try:
+        return _pick_stored(deps, idx, question_id, profile, s1a, stats)
+    except Exception as exc:  # noqa: BLE001 — a broken index must not stop research
+        stats["stored_errors"] += 1
+        stats.setdefault("errors", []).append(f"stored pages: {type(exc).__name__}: {exc}"[:200])
+        return []
+    finally:
+        idx.close()
+
+
+def _pick_stored(deps: ResearchDeps, idx: Any, question_id: int, profile: Profile, s1a: Decomposition,
+                 stats: dict) -> list[tuple[int, str, list[dict]]]:
+    """Per-query BM25 fused with RRF; skips what this question already read, tier X / skipped sites, books this
+    edition does not use, too-old pages for time-sensitive questions, and a second page from the same site."""
+    cfg = deps.cfg
+    fused: dict[str, float] = defaultdict(float)
+    first: dict[str, tuple[str, int, Any]] = {}          # doc key → (query, rank, hit) where it ranked best
+    for query in stored_queries(s1a):
+        stats["stored_searches"] += 1
+        for rank, h in enumerate(kb_search(idx, query, limit=cfg.stored_results_per_query, chunks_per_doc=0), 1):
+            fused[h.doc_key] += 1 / (RRF_K + rank)
+            if h.doc_key not in first or rank < first[h.doc_key][1]:
+                first[h.doc_key] = (query, rank, h)
+    if not fused:
+        return []
+    canon_of = idx.canon_of_document()
+    with deps.db.session() as s:
+        read = set(s.scalars(select(QuestionDocument.document_id).where(QuestionDocument.question_id == question_id)))
+    read_canon = {canon_of.get(d, f"doc:{d}") for d in read}
+    books = set(deps.library.books_for(profile)) if deps.library else set()
+    fresh_only = is_time_sensitive(s1a)
+    oldest = datetime.now(UTC) - timedelta(days=cfg.stored_max_age_days)
+    out: list[tuple[int, str, list[dict]]] = []
+    sites: set[str] = set()
+    for key in sorted(fused, key=lambda k: -fused[k]):
+        if len(out) >= cfg.stored_pages_per_question:
+            break
+        query, rank, h = first[key]
+        if h.canon_key in read_canon or key in read_canon or (h.document_id is not None and h.document_id in read):
+            stats["stored_already_read"] += 1
+            continue
+        book = (h.book_id, h.page) if h.source_kind == "book" else (
+            parse_page_url(h.url) if h.source_kind == "library" else None)
+        if book is not None:
+            if book[0] not in books:
+                stats["stored_skipped_book"] += 1        # a book this edition does not use
+                continue
+            site = f"book:{book[0]}"
+        else:
+            if deps.registry.is_excluded(h.url):
+                stats["stored_skipped_site"] += 1        # tier X or a site marked "needs special access"
+                continue
+            site = domain_of(h.url)
+        if fresh_only and not _fresh_enough(h.fetched_at, oldest):
+            stats["stored_too_old"] += 1
+            continue
+        if site in sites:                                # echo defence: one stored page per site / book
+            continue
+        doc_id = _stored_document_id(deps, h, book)
+        if doc_id is None or doc_id in read:
+            continue
+        sites.add(site)
+        out.append((doc_id, "A", [{"via": "stored", "query": query, "doc_key": h.doc_key, "rank": rank}]))
+        stats["stored_pages"] += 1
+    return out
+
+
+def _fresh_enough(fetched_at: str, oldest: datetime) -> bool:
+    """True when a stored page was fetched after `oldest` (no date — e.g. a book page — is never fresh)."""
+    try:
+        when = datetime.fromisoformat(fetched_at)
+    except (TypeError, ValueError):
+        return False
+    return (when if when.tzinfo else when.replace(tzinfo=UTC)) >= oldest
+
+
+def _stored_document_id(deps: ResearchDeps, h: Any, book: tuple[str, int] | None) -> int | None:
+    """The `documents.id` to read: the existing one for a stored page; for a book page the same `library://`
+    document the library path makes (None when the page is no longer in the library)."""
+    if book is None:
+        return h.document_id
+    lib = deps.library
+    row = lib.conn.execute("SELECT printed, text FROM pages WHERE book_id = ? AND page = ?", book).fetchone() \
+        if lib and book[0] in lib.books else None
+    if row is None:
+        return h.document_id
+    return _store_book_page(deps, PageHit(book[0], book[1], row[0], 0.0, row[1]))
+
+
+def search_summary(db: Database, run_id: int) -> dict:
+    """Searches and stored pages per question of a run (for "searches per question go down" in a later eval)."""
+    with db.session() as s:
+        stats = [r or {} for (r,) in s.execute(select(RunQuestion.stats_json).where(
+            RunQuestion.run_id == run_id, RunQuestion.status == "done"))]
+    n = len(stats)
+    tot = {k: sum(int(st.get(k, 0) or 0) for st in stats) for k in
+           ("searches_run", "searches_cached", "searches_total", "stored_pages", "stored_searches",
+            "web_searches_skipped")}
+    return {"questions": n, **tot,
+            "searches_run_per_question": round(tot["searches_run"] / n, 2) if n else 0.0,
+            "searches_per_question": round(tot["searches_total"] / n, 2) if n else 0.0,
+            "stored_pages_per_question": round(tot["stored_pages"] / n, 2) if n else 0.0}
 
 
 def _frame_name(profile: Profile) -> str | None:
@@ -493,7 +653,7 @@ def _free_search(deps: ResearchDeps, provider: SearchProvider, query: str, n: in
 
 
 def _choose_and_fetch(deps: ResearchDeps, cands: list[Candidate], budget: int, ctx: CallContext,
-                      stats: dict) -> list[tuple[int, str, list[dict]]]:
+                      stats: dict, *, taken: set[int] | None = None) -> list[tuple[int, str, list[dict]]]:
     """Fetch the best candidates until `budget` documents are stored.
 
     Round-robin over the queries that found them (so each query — blind, presupposition,
@@ -524,28 +684,56 @@ def _choose_and_fetch(deps: ResearchDeps, cands: list[Candidate], budget: int, c
                 deferred.append(c)
                 continue
             seen_urls.add(c.url)
-            if _fetch_into(deps, c, ctx, stats, chosen):
+            if _fetch_into(deps, c, ctx, stats, chosen, taken or set()):
                 domains.add(domain_of(c.url))
     for c in deferred:  # same-domain pages only if there was nothing else
         if len(chosen) >= budget:
             break
         if c.url not in seen_urls:
             seen_urls.add(c.url)
-            _fetch_into(deps, c, ctx, stats, chosen)
+            _fetch_into(deps, c, ctx, stats, chosen, taken or set())
     return chosen
 
 
 def _fetch_into(deps: ResearchDeps, c: Candidate, ctx: CallContext, stats: dict,
-                chosen: list[tuple[int, str, list[dict]]]) -> bool:
+                chosen: list[tuple[int, str, list[dict]]], taken: set[int]) -> bool:
+    """Fetch one candidate into `chosen` (a web PDF: its best pages). `taken` = documents already chosen by
+    another path (stored pages), so the web budget is not spent on them again."""
     res = deps.fetcher.fetch(c.url, CallContext(ctx.run_id, ctx.question_id, "fetch"))
     if not res.ok:
         stats[f"fetch_{res.status}"] += 1
         return False
-    if any(doc_id == res.document_id and m == c.mode for doc_id, m, _ in chosen):
+    have = {doc_id for doc_id, m, _ in chosen if m == c.mode} | taken
+    if res.page_ids:
+        pages = [(pid, n) for pid, n in _best_pdf_pages(deps, res.page_ids, c, deps.cfg.pdf_pages_per_document)
+                 if pid not in have]
+        for pid, n in pages:
+            chosen.append((pid, c.mode, [{**fb, "pdf_page": n} for fb in c.found_by]))
+        stats["documents"] += len(pages)
+        stats["pdf_pages"] += len(pages)
+        return bool(pages)
+    if res.document_id in have:
         return False
     stats["documents"] += 1
     chosen.append((res.document_id, c.mode, c.found_by))
     return True
+
+
+def _best_pdf_pages(deps: ResearchDeps, page_ids: tuple[int, ...], c: Candidate, n: int) -> list[tuple[int, int]]:
+    """The `n` pages of a web PDF that best match the queries that found it: (document id, page number).
+    Shared query words weighted by rarity across the PDF's pages; earlier pages win ties."""
+    words = list(dict.fromkeys(w for fb in c.found_by for w in query_words(fb.get("query") or "")))
+    with deps.db.session() as s:
+        pages = [(d.id, d.final_url, d.text.lower()) for d in s.scalars(select(Document).where(Document.id.in_(page_ids)))]
+    pages.sort(key=lambda p: p[0])
+    df = {w: sum(w in t for _, _, t in pages) for w in words}
+    idf = {w: math.log(1 + len(pages) / df[w]) for w in words if df[w]}
+
+    def page_no(url: str) -> int:
+        return int(url.rsplit("#page=", 1)[1]) if "#page=" in url else 0
+
+    ranked = sorted(pages, key=lambda p: -sum(v for w, v in idf.items() if w in p[2]))
+    return [(pid, page_no(url)) for pid, url, _ in ranked[:n]]
 
 
 def _direct_lookup(deps: ResearchDeps, source: str, ref: str, scheme: str | None, mode: str, ctx: CallContext,

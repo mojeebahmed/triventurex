@@ -67,8 +67,8 @@ api_calls, quota_usage                              (every call made, and the fr
 | `runs` | one `qv research` / `qv validate` run | `kind` (research / validate), `status`, `stop_reason`, `config_json` |
 | `run_questions` | one question in one run | `status` (pending / done / failed), `step`, `error`, `stats_json` |
 | `search_queries` | one search we sent, with its results (kept for reuse) | `provider`, `query`, `results_json` (url, title, snippet), `expires_at` |
-| `fetches` | one attempt to download a page | `url`, `status` (ok · error · not_text (e.g. a PDF) · empty · robots_disallowed), `http_status`, `error` |
-| `documents` | one saved page — **its full text** | `url`, `domain`, `title`, `text`, `char_len`, `fetched_at` |
+| `fetches` | one attempt to download a page | `url`, `status` (ok · error · not_text · empty · robots_disallowed · too_large · needs_ocr (a PDF without readable text)), `http_status`, `error` (for a web PDF read page by page: "pdf: 12 of 14 pages stored, 2 need OCR") |
+| `documents` | one saved page — **its full text** | `url`, `final_url`, `domain`, `title`, `source_kind` (web · wikipedia · quran · library (a book page) · pdf (one page of a web PDF: `final_url` = `<pdf url>#page=N`, `url` = the PDF)), `text`, `char_len`, `fetched_at` |
 | `question_documents` | a page used for one question in one run, with its rating | `effective_tier` (P primary · S secondary · T tertiary · X excluded), `publisher`, `page_kind`, `frame_authority`, `status`, `grounded_count`, `dropped_count` |
 | `passages` | one exact quote from a page | `quote`, `mode` (A = about the question, B = about the note), `target`, `asserted_answer`, `matches_option`, `stance`, `char_start`/`char_end` (where in the page) |
 | `stage_outputs` | one model answer (S1a, S1b, S3, S4, S5, S6) | `stage`, `model`, `output_json`, `valid`, `checks_json`, `input_hash` (same input → reused, no new call) |
@@ -170,6 +170,21 @@ Your topics and relevance judgements are **not** in this cache: they are in `val
 ```bash
 # Your current relevance judgements (newest per question + page)
 sqlite3 -header -column data/validation.db "select d.name file, r.ext_id, r.doc_key, r.label, r.created_at from relevance_labels r join datasets d on d.id = r.dataset_id where r.id in (select max(id) from relevance_labels group by dataset_id, ext_id, content_hash, doc_key) and r.label != 'clear'"
+```
+
+**Stored pages first** (phase 3): research searches this index with a question's blind (S1a) queries and reads up to
+`stored_pages_per_question` stored documents again. Such a read is an ordinary `question_documents` row whose
+`found_by_json` holds `{"via": "stored", "query": …, "doc_key": …, "rank": …}`; a book page becomes the same
+`library://` document the library path makes. Nothing new is stored in the database for it. `run_questions.stats_json`
+gets `stored_pages`, `stored_searches`, `searches_total` (and `stored_too_old`, `stored_already_read`,
+`stored_index_unavailable`, `web_searches_skipped` when they happen).
+
+```bash
+# Documents that were read because they were found in stored pages
+sqlite3 -header -column data/validation.db "select qd.run_id, qd.question_id, d.id, substr(d.title, 1, 50) title from question_documents qd join documents d on d.id = qd.document_id where qd.found_by_json like '%\"via\": \"stored\"%'"
+
+# Pages of web PDFs
+sqlite3 -header -column data/validation.db "select id, final_url, char_len from documents where source_kind = 'pdf'"
 
 # The ten biggest documents in the index
 sqlite3 -header -column data/kb/index.sqlite "select doc_key, tier, lang, char_len, substr(title, 1, 50) title from kb_docs order by char_len desc limit 10"

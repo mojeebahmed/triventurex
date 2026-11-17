@@ -332,7 +332,9 @@ def source_viewer(run_id: int, question_id: int, key: str, *, all_pages: bool = 
     purpose = "for the question" if d["mode"] == "A" else "for the note"
     st.markdown(f"#### {d['title'] or d['url']}")
     link = d["url"] if d["url"].startswith("http") else None
-    st.markdown(f"{badge}{' · **frame authority**' if d['frame_authority'] else ''} · {purpose} · "
+    stored = " · 🗄️ **found in stored pages**" if d.get("found_in_stored") else ""
+    pdf = " · PDF page" if d.get("source_kind") == "pdf" else ""
+    st.markdown(f"{badge}{' · **frame authority**' if d['frame_authority'] else ''}{stored}{pdf} · {purpose} · "
                 f"{d['grounded']} quote(s) · read {d['fetched']} · {d['page_kind'] or '-'} · "
                 f"{STATUS_TEXT.get(d['status'], d['status'])}"
                 + (f" · {d['dropped']} quote(s) rejected (not found word for word)" if d["dropped"] else "")
@@ -1163,9 +1165,11 @@ def page_library() -> None:
                    on_open=lambda row, _o: book_dialog(books[row]["book"]))
 
     with t_found:
-        st.caption("PDFs the research met but could not read. Click one to download and add it, or to hide it.")
+        st.caption("PDFs the research met on the web. Readable ones are already used page by page; adding one "
+                   "as a book makes it searched for every question of its editions. Click one to add it or hide it.")
         data_table(found, key="lib_found", max_rows=10,
-                   columns={"file": TEXT("File", width="medium"), "url": TEXT("Link", width="large")},
+                   columns={"file": TEXT("File", width="medium"), "read": TEXT("Read", width="medium"),
+                            "url": TEXT("Link", width="large")},
                    on_open=lambda row, _o: candidate_dialog(found[row]))
 
     with t_search:

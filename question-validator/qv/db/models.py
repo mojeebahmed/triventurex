@@ -266,7 +266,7 @@ class Document(Base):
     final_url: Mapped[str] = mapped_column(Text)
     domain: Mapped[str] = mapped_column(String(255), index=True)
     title: Mapped[str] = mapped_column(Text, default="")
-    source_kind: Mapped[str] = mapped_column(String(20))  # web | wikipedia | quran | library
+    source_kind: Mapped[str] = mapped_column(String(20))  # web | wikipedia | quran | library | pdf (a web PDF page)
     ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
     http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -283,7 +283,7 @@ class Fetch(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     url: Mapped[str] = mapped_column(Text, unique=True)
-    status: Mapped[str] = mapped_column(String(30))  # ok|error|robots_disallowed|too_large|not_text|empty
+    status: Mapped[str] = mapped_column(String(30))  # ok|error|robots_disallowed|too_large|not_text|empty|needs_ocr
     http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
     document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id"), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

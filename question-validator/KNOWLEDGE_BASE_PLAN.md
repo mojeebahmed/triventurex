@@ -269,6 +269,33 @@ DB changes: none required (found_by is JSON). Acceptance: evaluation set rules a
 down (report); benchmark: stored-page recall reported. Tests: blind queries only, no passage reuse, freshness rule,
 PDF page storage and trust.
 
+**Result (2026-11-17, branch `claude/qv-kb-stored-first-aaa96c`, on top of phase 1) — code and tests only.**
+- **Stored pages first** in S2 (`qv/services/research.py`): the index is searched with the S1a blind queries only
+  (per-query BM25 + RRF, as the phase-1 baseline suggested), up to `stored_pages_per_question` = 2 documents not yet
+  read for the question are added in mode A on top of the web budget and read blind by S3 (`found_by: {via: stored,
+  query, doc_key, rank}`). Skipped: tier X / "needs special access" sites, books not listed for the edition, a second
+  page per site or book, and for time-sensitive questions pages older than `stored_max_age_days` = 365 (or without
+  a date). The index is opened read-only; a missing or broken index is noted in the stats and never fails research.
+- **Documents only**: a test shows the S3 prompt of a stored page holds no other question's passages or answers and
+  that only S1a queries reach the index.
+- `stored_first_skip_web` implemented and tested, **off** (skips only the paid-pool web queries).
+- **Web PDFs**: fetched like pages (robots.txt, 20 MB cap, ≤ 400 pages), read page by page with the library reader,
+  one document per readable page (`<pdf url>#page=N`, `source_kind = pdf`, the site's trust); a PDF without readable
+  text → `needs_ocr`, nothing stored. They are in the index (normalised URLs keep `#page=N`). The Book library's
+  *Found on the web* now lists every web PDF with what happened to it (*Read* column) — still book candidates.
+- Page: 🗄️ *found in stored pages* badge (and *PDF page*) on sources, help text in the legend and the Book library.
+- Report: per-question `stored_pages`, `stored_searches`, `searches_total` in the run stats; a "searches per
+  question · stored pages added per question" line after every batch; `qv kb benchmark` reports **stored-page
+  recall** (hit / recall in the top 2 of bm25-queries-rrf).
+- Tests: `tests/test_stored_pages.py` (14), no network.
+- **Still to do — the acceptance check on the evaluation set** (uses free Gemini / search quota, so Mojeeb decides
+  when; not run). After merging, on the evaluation set: `qv kb index`, then `qv eval import` (it prints the runs to
+  start), then `qv validate eval-known-errors --judge-pool cheap` and the same for every other eval dataset it lists
+  (seeded per edition and controls; `qv resume <run>` until done), then `qv eval score <new runs…>` and compare with the
+  last scores (errors to review must not fall, false INCORRECT ≤ 3 %, false VERIFIED not up, quotes dropped < 2 %,
+  need coverage ≥ 85 %), and compare the "Searches per question" lines with earlier runs (`stats_json`
+  `searches_total`). `qv kb benchmark` gives the stored-page recall (no quota used).
+
 ### Phase 4 — Retrieval experiments (embeddings) + local models per stage
 
 **Delivers**: a measured decision, not a feature. **Depends on**: phases 1 and 3.

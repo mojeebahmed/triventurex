@@ -209,14 +209,38 @@ def compare(report: dict, a: str, b: str, *, n: int = BOOTSTRAP, seed: int = 0) 
     return result
 
 
+def stored_page_recall(questions: list[BenchQuestion], idx: KnowledgeIndex, n: int) -> dict:
+    """KB phase 3: how well the stored-pages step's ranking (each S1a query, fused with RRF — what research uses)
+    finds a question's relevant documents in its top `n` (= `stored_pages_per_question`).
+
+    `hit@n` = share of questions (with ≥ 1 relevant document) with a relevant one in the top n; `recall@n` = share
+    of relevant documents in the top n. An upper bound: research also skips what the question already read,
+    tier-X sites, other editions' books and (time-sensitive) old pages, and takes one page per site."""
+    qs = [q for q in questions if q.relevant]
+    if not qs or n <= 0:
+        return {"n": n, "questions": len(qs), "hit": 0.0, "recall": 0.0}
+    hits, recalls = [], []
+    for q in qs:
+        top = rrf([ranked_keys(idx, x, limit=DEPTH) for x in (q.queries or [q.need])])[:n]
+        hits.append(1.0 if set(top) & q.relevant else 0.0)
+        recalls.append(len(set(top) & q.relevant) / len(q.relevant))
+    return {"n": n, "questions": len(qs), "hit": round(sum(hits) / len(qs), 3),
+            "recall": round(sum(recalls) / len(qs), 3)}
+
+
 def run_benchmark(db: Database, data_dir: Path, *, save: bool = True,
-                  extra_labels: list[tuple[str, str, str]] | None = None) -> tuple[dict, Path | None]:
+                  extra_labels: list[tuple[str, str, str]] | None = None,
+                  stored_n: int | None = None) -> tuple[dict, Path | None]:
     """Build the labels, evaluate the default systems, save `<data_dir>/kb/benchmarks/<date-time>.json`."""
     idx = KnowledgeIndex.for_data_dir(data_dir)
     try:
         questions = load_questions(db, idx, extra_labels)
         t0 = time.monotonic()
         report = evaluate(questions, default_systems(idx))
+        if stored_n is None:
+            from qv.config import load_research_config
+            stored_n = load_research_config().stored_pages_per_question
+        report["stored_pages"] = stored_page_recall(questions, idx, stored_n)
         report["seconds"] = round(time.monotonic() - t0, 1)
         report["index"] = idx.status()
     finally:
@@ -244,4 +268,8 @@ def summary_lines(report: dict) -> list[str]:
         m = sysr["metrics"]
         cells = "".join(f"{m[k]['mean']:>7.3f} [{m[k]['ci95'][0]:.2f}-{m[k]['ci95'][1]:.2f}]" for k in METRICS)
         lines.append(f"{name:<20}{cells}{m['unjudged_share@10']:>14.2f}")
+    sp = report.get("stored_pages")
+    if sp:
+        lines.append(f"Stored-page recall (top {sp['n']} of bm25-queries-rrf, {sp['questions']} questions): "
+                     f"hit {sp['hit']:.3f}, recall {sp['recall']:.3f}")
     return lines

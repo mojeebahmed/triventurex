@@ -103,7 +103,7 @@ def registry_with_marks(db: Database, base: Registry | None = None) -> Registry:
 def problem_text(status: str, http: int | None, error: str | None) -> str | None:
     """A failed fetch in plain words; None for what is not a site problem (web PDFs → Book library)."""
     err = (error or "").lower()
-    if status == "not_text":
+    if status in ("not_text", "needs_ocr") or (err.startswith("pdf:")):
         return None
     if status == "robots_disallowed":
         return "asks robots not to read it"
@@ -171,7 +171,7 @@ def candidate_sites(db: Database, registry: Registry | None = None, *, base: Reg
                    QuestionDocument.question_id, QuestionDocument.page_kind, QuestionDocument.about_right_subject,
                    QuestionDocument.grounded_count, QuestionDocument.frame_authority)
             .join(QuestionDocument, QuestionDocument.document_id == Document.id)
-            .where(Document.source_kind == "web")))
+            .where(Document.source_kind.in_(("web", "pdf")))))
     agg: dict[str, dict] = {}
     for dom, url, title, _qd_id, qid, kind, right, grounded, frame in qd:
         a = agg.setdefault(dom, {"pages": set(), "questions": set(), "quotes": 0, "weak": set(), "frame": False,

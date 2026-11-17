@@ -19,7 +19,10 @@ _TRACKING = re.compile(r"^(utm_.*|fbclid|gclid|ref|mc_.*)$", re.I)
 
 def normalize_url(url: str) -> str:
     """One spelling per page: lower-case host, no `www.`, https, no fragment, no tracking parameters, the
-    remaining parameters sorted, no trailing slash. Non-web URLs (library://) come back unchanged."""
+    remaining parameters sorted, no trailing slash. Non-web URLs (library://) come back unchanged.
+
+    The one fragment kept is `#page=N`: each page of a web PDF is its own stored document (KB phase 3), not a
+    version of the PDF's other pages."""
     parts = urlsplit(url.strip())
     if parts.scheme not in ("http", "https"):
         return url.strip()
@@ -28,7 +31,8 @@ def normalize_url(url: str) -> str:
         host = f"{host}:{parts.port}"
     params = sorted((k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if not _TRACKING.match(k))
     path = parts.path.rstrip("/")
-    return urlunsplit(("https", host, path, urlencode(params), ""))
+    frag = parts.fragment if re.fullmatch(r"page=\d+", parts.fragment) else ""
+    return urlunsplit(("https", host, path, urlencode(params), frag))
 
 
 @dataclass(frozen=True)

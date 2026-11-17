@@ -240,6 +240,9 @@ class FetchConfig(BaseModel):
     rpm_per_domain: int = 10
     timeout_s: float = 20
     max_bytes: int = 3_000_000
+    max_pdf_bytes: int = Field(20_000_000, ge=0, description="web PDFs larger than this are not read")
+    max_pdf_pages: int = Field(400, ge=1, description="pages read from one web PDF")
+    pdf_min_quality: float = Field(0.85, ge=0, le=1, description="page text quality below this → needs OCR")
 
 
 class ProvidersConfig(BaseModel):
@@ -277,6 +280,13 @@ class ResearchConfig(BaseModel):
     s3_max_windows: int = Field(2, ge=1)
     audit_sample_percent: float = Field(3.0, ge=0, le=100, description="auto_ok questions sent to review anyway")
     batch_size: int = Field(25, ge=1, description="most questions in one `qv next` batch")
+    # KB phase 3 — stored pages first
+    stored_pages_per_question: int = Field(2, ge=0, description="stored pages (knowledge index) read per question")
+    stored_results_per_query: int = Field(10, ge=1, description="index results looked at per blind query")
+    stored_max_age_days: int = Field(365, ge=0, description="time-sensitive questions skip stored pages older than this")
+    stored_first_skip_web: bool = Field(False, description="skip the web searches when enough stored pages qualify")
+    stored_skip_web_min: int = Field(2, ge=1, description="stored pages needed before web searches are skipped")
+    pdf_pages_per_document: int = Field(1, ge=1, description="best pages of a web PDF read per question")
 
 
 def load_providers_config(path: Path = CONFIG_DIR / "providers.yaml") -> ProvidersConfig:
