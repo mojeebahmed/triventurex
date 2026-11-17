@@ -38,6 +38,8 @@ function _parseCSV(text) {
  *
  * CSV columns (header row required):
  *   id, question, type, answer, opt_a, opt_b, opt_c, opt_d, difficulty, category, subcategory, topic, note
+ * Optional `tags` column: a few lower-case tags separated by ";" (e.g. "animals;water") —
+ *   see _parseTags; shown as chips and used to filter in the Questions tab and the Academy.
  * Optional check columns (from the Question Validator's export — see _questionCheck):
  *   checked, checked_on, check_how, sources, source_links, source_quote, as_of, check_hash
  *
@@ -71,9 +73,22 @@ function _parseQuestionsCSV(text) {
         subcat: r.subcategory  || '',
         topic:  r.topic        || '',
         note:   r.note         || '',
+        ...(_parseTags(r.tags).length ? { tags: _parseTags(r.tags) } : {}),
         ...(r.checked ? { check: _questionCheck(r) } : {}),
       };
     });
+}
+
+/** Separator between tags in the `tags` column. */
+const TAG_SEP = ';';
+
+/**
+ * The `tags` column as a list: split on ";", trimmed, lower-case, inner spaces
+ * collapsed, empties and repeats dropped ("Animals; water;;water" → ['animals', 'water']).
+ */
+function _parseTags(v) {
+  const tags = String(v ?? '').split(TAG_SEP).map(t => t.trim().toLowerCase().replace(/\s+/g, ' ')).filter(Boolean);
+  return [...new Set(tags)];
 }
 
 /**
@@ -156,5 +171,5 @@ function _parseActionsCSV(text) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { _csvSplit, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV };
+  module.exports = { _csvSplit, _parseTags, TAG_SEP, _parseCSV, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV };
 }

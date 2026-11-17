@@ -16,7 +16,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { _csvSplit, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = require('../js/shared/csv.js');
+const { _csvSplit, _parseCSV, _parseTags, _parseQuestionsCSV, _parseDeedsCSV, _parseActionsCSV } = require('../js/shared/csv.js');
 
 const EDITIONS_DIR = path.join(__dirname, '..', 'game_editions');
 
@@ -42,6 +42,24 @@ function checkHash(r) {
  */
 const SHARED_ID = 'shared';
 
+/**
+ * Tag vocabulary: game_editions/shared/tags.csv (tags every edition can use) plus an
+ * optional tags.csv in the edition's folder (its own tags). Columns: tag, meaning.
+ * Returns a Map tag → meaning, or null when there is no list at all (then any tag is fine).
+ */
+function loadTagList(id) {
+  const files = [path.join(EDITIONS_DIR, SHARED_ID, 'tags.csv')];
+  if (id && id !== SHARED_ID) files.push(path.join(EDITIONS_DIR, id, 'tags.csv'));
+  const found = files.filter(f => fs.existsSync(f));
+  if (!found.length) return null;
+  const list = new Map();
+  for (const f of found) for (const r of _parseCSV(fs.readFileSync(f, 'utf8'))) if (r.tag) list.set(r.tag, r.meaning || '');
+  return list;
+}
+
+/** A well-formed tag: lower-case letters (any language), digits, spaces and hyphens, at most 30 characters. */
+const TAG_FORMAT = /^[\p{Ll}\p{Lo}0-9][\p{Ll}\p{Lo}0-9 -]{0,29}$/u;
+
 /** Edition folders that have content CSVs (includes `template`). */
 function listEditions() {
   return fs.readdirSync(EDITIONS_DIR)
@@ -62,7 +80,7 @@ function loadEdition(id) {
     config = ctx.window.EDITION_CONFIG || {};
   }
   return { ...makeEdition({ id, config, questionsCsv: read('questions.csv'), deedsCsv: read('deeds.csv'),
-                           actionsCsv: read('actions.csv') }), dir, configJs };
+                           actionsCsv: read('actions.csv'), tagList: loadTagList(id) }), dir, configJs };
 }
 
 /** The shared folder as an edition-like object: only actions.csv, generated as GENERAL_ACTIONS_DATA. */
@@ -74,11 +92,11 @@ function loadSharedContent() {
 }
 
 /** Build an edition object from CSV text (also used by tests for made-up content). */
-function makeEdition({ id = 'test', config = {}, questionsCsv = null, deedsCsv = null, actionsCsv = null }) {
+function makeEdition({ id = 'test', config = {}, questionsCsv = null, deedsCsv = null, actionsCsv = null, tagList = null }) {
   // Parser warnings (e.g. a missing id) are reported by checkEdition instead
   const quiet = fn => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
   return {
-    id, config, questionsCsv, deedsCsv, actionsCsv,
+    id, config, questionsCsv, deedsCsv, actionsCsv, tagList,
     questions: questionsCsv ? quiet(() => _parseQuestionsCSV(questionsCsv)) : [],
     deeds:     deedsCsv     ? quiet(() => _parseDeedsCSV(deedsCsv))         : [],
     actions:   actionsCsv   ? _parseActionsCSV(actionsCsv)                  : [],
@@ -146,6 +164,7 @@ function checkEdition(ed) {
       }
       if (r.type === 'open' && !r.answer) err(f, n, 'open question has no answer');
       if (usesTopics && !r.topic) warn(f, n, 'no topic — the question is always asked, whatever the topic filter');
+      if (r.tags) checkTags(r, n, warn, ed.tagList);
       if (r.checked && !CHECKED.has(r.checked)) err(f, n, `checked "${r.checked}" must be ${[...CHECKED].join(', ')} or empty`);
       if (r.checked && r.check_hash && r.check_hash !== checkHash(r)) {
         warn(f, n, `question ${r.id} was changed after it was checked — check it again in the Question Validator, or empty its check columns`);
@@ -197,6 +216,28 @@ function checkEdition(ed) {
 
   checkIcons(ed, err, warn);
   return { errors, warnings };
+}
+
+/**
+ * The `tags` column: warnings only (a tag never breaks the game). Odd spelling (capitals,
+ * a comma instead of ";", other characters), a repeated tag, or a tag missing from the
+ * tag list (shared/tags.csv + the edition's tags.csv) — usually a typo, or a new tag to add there.
+ */
+function checkTags(r, n, warn, tagList) {
+  const f = 'questions.csv';
+  const raw = r.tags.split(';').map(t => t.trim()).filter(Boolean);
+  if (r.tags.includes(',')) warn(f, n, `tags "${r.tags}" — separate tags with ";", not ","`);
+  const seen = new Set();
+  for (const t of raw) {
+    const tag = _parseTags(t)[0];
+    if (seen.has(tag)) warn(f, n, `tag "${tag}" is listed twice`);
+    seen.add(tag);
+    if (t !== tag || !TAG_FORMAT.test(tag)) {
+      warn(f, n, `tag "${t}" — tags are lower-case words (letters, digits, spaces, hyphens), at most 30 characters`);
+    } else if (tagList && !tagList.has(tag)) {
+      warn(f, n, `tag "${tag}" is not in the tag list — a typo? Or add it to game_editions/shared/tags.csv (all editions) or the edition's own tags.csv`);
+    }
+  }
 }
 
 // ── Icons (the edition's ICONS block in config.js) ────────────────────────────
@@ -314,5 +355,5 @@ function generateEditionJs(ed) {
   return out;
 }
 
-module.exports = { EDITIONS_DIR, EFFECTS, SHARED_ID, listEditions, loadEdition, loadSharedContent, makeEdition,
+module.exports = { EDITIONS_DIR, EFFECTS, SHARED_ID, listEditions, loadTagList, csvLines, loadEdition, loadSharedContent, makeEdition,
                    checkEdition, generateEditionJs, checkHash };

@@ -18,6 +18,10 @@ STANDARD_COLUMNS: tuple[str, ...] = (
 CHECK_COLUMNS: tuple[str, ...] = (
     "checked", "checked_on", "check_how", "sources", "source_links", "source_quote", "as_of", "check_hash",
 )
+#: Optional columns the game reads that the validator only carries along: `tags` (";"-separated, lower-case —
+#: the game's tag filter). Not checked, not part of `content_hash` (tagging never resets a result), kept
+#: byte for byte on export. Suggesting tags from a question's content is a later step.
+GAME_OPTIONAL_COLUMNS: tuple[str, ...] = ("tags",)
 #: Columns without which a row cannot be understood at all.
 REQUIRED_COLUMNS: tuple[str, ...] = ("id", "question", "type", "answer")
 OPTION_COLUMNS: tuple[str, ...] = ("opt_a", "opt_b", "opt_c", "opt_d")
@@ -89,7 +93,8 @@ class ParsedCsv(BaseModel):
     @property
     def extra_columns(self) -> tuple[str, ...]:
         """Header columns the game does not know (kept, never dropped)."""
-        return tuple(h for h in self.header if h not in STANDARD_COLUMNS and h not in CHECK_COLUMNS)
+        known = (*STANDARD_COLUMNS, *GAME_OPTIONAL_COLUMNS, *CHECK_COLUMNS)
+        return tuple(h for h in self.header if h not in known)
 
     @property
     def missing_columns(self) -> tuple[str, ...]:

@@ -78,3 +78,27 @@ def test_how_checked_in_plain_words() -> None:
     assert how_checked("verified", 1, 1, False) == "Checked against 1 independent source"
     assert how_checked("confirmed", 0, 0, False) == "Confirmed by a reviewer"
     assert how_checked("edited", 2, 2, True).startswith("Corrected")
+
+
+def test_tags_column_is_known_kept_on_export_and_not_in_the_content_hash() -> None:
+    """The game's `tags` column: no "not used by the game" notice, untouched by an export, and
+    tagging a question does not change its content hash (so no result is lost)."""
+    from qv.domain.question import GAME_OPTIONAL_COLUMNS, Question
+
+    tagged = (b"id,question,type,answer,opt_a,opt_b,opt_c,opt_d,difficulty,category,subcategory,topic,note,tags\r\n"
+              b'1,"Where, exactly?",open,Here,,,,,easy,c,s,t,,"water;records"\r\n'
+              b"2,Two?,multi,1,yes,no,,,hard,c,s,t,a note,numbers\r\n")
+    assert "tags" in GAME_OPTIONAL_COLUMNS
+    parsed = parse_csv(tagged)
+    assert parsed.extra_columns == ()
+    report = run_structural_checks(parsed, load_profile("swab-quest").structural)
+    assert not [i for i in report.issues if i.column == "tags"]
+    out = set_columns(tagged, CHECK_COLUMNS, {2: {"checked": "verified"}})
+    lines = out.split(b"\r\n")
+    assert lines[0].endswith(b",note,tags," + ",".join(CHECK_COLUMNS).encode())
+    assert lines[1].startswith(b'1,"Where, exactly?",open,Here,,,,,easy,c,s,t,,"water;records",verified')
+    assert [r.get("tags") for r in parse_csv(out).rows] == ["water;records", "numbers"]
+    untagged = BASE.replace(b",note\r\n", b",note,tags\r\n", 1).replace(b"t,\r\n", b"t,,\r\n").replace(b"a note\r\n", b"a note,\r\n")
+    hashes = lambda data: [Question.from_row(r, parse_csv(data).header).content_hash() for r in parse_csv(data).rows]  # noqa: E731
+    tagged_same = untagged.replace(b"t,,\r\n", b"t,,water\r\n")
+    assert hashes(untagged) == hashes(tagged_same)

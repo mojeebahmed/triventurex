@@ -353,6 +353,9 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
   `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
 - `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
+- The game's optional `tags` column (`;`-separated, lower-case) is in `GAME_OPTIONAL_COLUMNS`: not reported as unknown,
+  not in `content_hash` (tagging a question keeps its result), carried byte for byte on every export
+  (`tests/test_check_export.py`). Suggesting tags from a question's content is a later step (not built).
 
 ## Implementation invariants (Qur'an references, 2026-11-17)
 - `providers/quran.py VERSES_COMMON` (114 surahs, 6,236 verses; Bismillah numbering = +1 except surahs 1 and 9):

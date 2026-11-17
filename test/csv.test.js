@@ -246,3 +246,40 @@ describe('check columns (Question Validator export)', () => {
     assert.match(messages(check({ questionsCsv: CH + row('maybe', good) }).errors), /checked "maybe" must be/);
   });
 });
+
+describe('tags column', () => {
+  const { _parseTags } = require('../js/shared/csv.js');
+  const { loadTagList } = require('../scripts/content.js');
+  const TH = QH.trimEnd() + ',tags\n';
+  const row = tags => `1,Q?,open,x,,,,,easy,c,s,t,,${tags}\n`;
+
+  it('splits on ";", lower-cases, trims, drops empties and repeats', () => {
+    assert.deepEqual(_parseTags(' Animals ;water;; water ;sea  life'), ['animals', 'water', 'sea life']);
+    assert.deepEqual(_parseTags(''), []);
+    assert.deepEqual(_parseTags(undefined), []);
+  });
+  it('puts tags on the question, and leaves the key out when there are none', () => {
+    assert.deepEqual(_parseQuestionsCSV(TH + row('records;water'))[0].tags, ['records', 'water']);
+    assert.equal('tags' in _parseQuestionsCSV(TH + row(''))[0], false);
+    assert.equal('tags' in _parseQuestionsCSV(QH + '1,Q?,open,x,,,,,easy,c,s,t,\n')[0], false);
+  });
+  it('warns (never errors) about odd tags, repeats and tags missing from the tag list', () => {
+    const tagList = new Map([['water', ''], ['records', '']]);
+    const r = check({ questionsCsv: TH + row('"Water,records"') + row('water;water').replace(/^1,/, '2,') + row('wtaer').replace(/^1,/, '3,') + row('a_b').replace(/^1,/, '4,'), tagList });
+    assert.deepEqual(r.errors, []);
+    const m = messages(r.warnings);
+    assert.match(m, /separate tags with ";"/);
+    assert.match(m, /lower-case words/);
+    assert.match(m, /listed twice/);
+    assert.match(m, /"wtaer" is not in the tag list/);
+    assert.deepEqual(check({ questionsCsv: TH + row('records;water'), tagList }).warnings, []);
+    assert.deepEqual(check({ questionsCsv: TH + row('anything') }).warnings, [], 'no tag list → any well-formed tag is fine');
+  });
+  it('every tag the editions use is in the tag list (game_editions/shared/tags.csv)', () => {
+    const list = loadTagList('world-tour');
+    assert.ok(list.has('animals') && list.has('numbers'));
+    for (const id of listEditions()) {
+      for (const q of loadEdition(id).questions) for (const t of q.tags || []) assert.ok(loadTagList(id).has(t), `${id} #${q.id}: ${t}`);
+    }
+  });
+});
