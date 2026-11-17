@@ -41,6 +41,9 @@ ROUTE_STATUS = {"auto_ok": "verified", "audit_sample": "spot_check", "needs_revi
                 "needs_specialist": "specialist", "needs_evidence": "no_evidence"}
 DECISION_STATUS = {"keep": "approved", "edit": "edited", "remove": "removed", "specialist": "specialist"}
 ACTIONS = ("keep", "edit", "specialist", "remove", "later")
+#: Prepare-page decisions, made before checking: a new wording, or "the wording is fine". They never make a
+#: question ready (only a check or a review decision does) and are kept apart from the review decision.
+PREPARE_ACTIONS = ("reword", "wording_ok")
 #: Statuses a person should look at, in review order.
 REVIEW_STATUSES = ("to_review", "specialist", "no_evidence", "spot_check")
 #: Ready for the game: verified automatically, confirmed by a person, or edited by a person.
@@ -80,6 +83,9 @@ class QuestionState:
     decision_changes: dict = field(default_factory=dict)
     decision_comment: str = ""
     later: bool = False
+    prepare: str = ""
+    prepare_changes: dict = field(default_factory=dict)
+    prepare_comment: str = ""
 
     @property
     def label(self) -> str:
@@ -128,8 +134,9 @@ def question_states(db: Database, dataset: str) -> list[QuestionState]:
             vals[(ext, h)] = val
             checked_ids.add(ext)
         decisions: dict[tuple[str, str], Decision] = {}
+        prepared: dict[tuple[str, str], Decision] = {}
         for d in s.scalars(select(Decision).where(Decision.dataset_id == v.dataset_id).order_by(Decision.id)):
-            decisions[(d.ext_id, d.content_hash)] = d
+            (prepared if d.action in PREPARE_ACTIONS else decisions)[(d.ext_id, d.content_hash)] = d
         unfinished = _unfinished_run(s, v.id)
         in_progress = unfinished[1] if unfinished else set()
         failed = {qid for qid, st in s.execute(
@@ -139,7 +146,7 @@ def question_states(db: Database, dataset: str) -> list[QuestionState]:
         for r in rows:
             q = question_from_row(r)
             key = (r.ext_id, r.content_hash)
-            val, dec = vals.get(key), decisions.get(key)
+            val, dec, prep = vals.get(key), decisions.get(key), prepared.get(key)
             changed = r.ext_id in checked_ids and val is None
             p = priority(q, has_warnings=r.id in warned, changed=changed)
             if r.has_errors:
@@ -163,7 +170,9 @@ def question_states(db: Database, dataset: str) -> list[QuestionState]:
                 verdict=val.verdict if val else "", review_status=val.review_status if val else "",
                 validation_id=val.id if val else None, run_id=val.run_id if val else None,
                 decision=dec.action if dec else "", decision_changes=dict(dec.changes_json) if dec else {},
-                decision_comment=dec.comment if dec else "", later=bool(dec and dec.action == "later")))
+                decision_comment=dec.comment if dec else "", later=bool(dec and dec.action == "later"),
+                prepare=prep.action if prep else "", prepare_changes=dict(prep.changes_json) if prep else {},
+                prepare_comment=prep.comment if prep else ""))
         return out
 
 
@@ -297,18 +306,24 @@ def start_batch(db: Database, plan: BatchPlan, sel: Selection) -> int | None:
 
 def judge_requests_left(db: Database) -> float | None:
     """Free requests left today on the pool that judges (S4/S5); None when a local model can take over."""
+    return requests_left(db, "s5")
+
+
+def requests_left(db: Database, stage: str) -> float | None:
+    """Free requests left today on a stage's pool; None when a local model can take over."""
     from qv.config import load_providers_config, split_entry
     from qv.providers.usage import Limit, QuotaLedger
     pcfg = load_providers_config()
     ledger = QuotaLedger(db, reserve_fraction=pcfg.reserve_fraction)
     g = pcfg.llm.gemini
     total = 0.0
-    for entry in pcfg.pool_for("s5"):
+    for entry in pcfg.pool_for(stage):
         provider, model = split_entry(entry)
         if provider != "gemini":
             return None
         if model in g.models:
-            total += ledger.remaining("gemini", model, Limit("day", g.models[model].rpd, g.daily_reset_timezone))
+            total += max(0.0, ledger.remaining("gemini", model,
+                                               Limit("day", g.models[model].rpd, g.daily_reset_timezone)))
     return total
 
 
@@ -334,13 +349,14 @@ def next_reset_local() -> datetime:
 def record_decision(db: Database, dataset: str, ext_id: str, action: str, *,
                     changes: dict[str, str] | None = None, comment: str = "") -> int:
     """Store a decision for the latest version's question `ext_id`. Edits are checked for format."""
-    if action not in ACTIONS:
+    if action not in ACTIONS + PREPARE_ACTIONS:
         raise ValueError(f"Unknown action {action!r}")
+    changing = action in ("edit", "reword")
     changes = {k: v for k, v in (changes or {}).items()}
     bad = set(changes) - set(EDITABLE_COLUMNS)
     if bad:
         raise ValueError(f"These columns cannot be edited here: {sorted(bad)}")
-    if action == "edit" and not changes:
+    if changing and not changes:
         raise ValueError("An edit needs at least one changed field")
     with db.session() as s:
         v = get_version(s, dataset)
@@ -348,7 +364,7 @@ def record_decision(db: Database, dataset: str, ext_id: str, action: str, *,
         if q is None:
             raise ValueError(f"No question {ext_id} in {dataset}")
         changes = {k: val for k, val in changes.items() if val != getattr(q, k)}
-        if action == "edit" and not changes:
+        if changing and not changes:
             raise ValueError("Nothing was changed")
         same = select(DatasetVersion.id).where(DatasetVersion.dataset_id == v.dataset_id)
         val = s.scalar(select(Validation).join(QuestionRow, QuestionRow.id == Validation.question_id)
@@ -356,7 +372,7 @@ def record_decision(db: Database, dataset: str, ext_id: str, action: str, *,
                               QuestionRow.content_hash == q.content_hash).order_by(Validation.id.desc()))
         d = Decision(dataset_id=v.dataset_id, ext_id=ext_id, content_hash=q.content_hash, question_id=q.id,
                      validation_id=val.id if val else None, action=action,
-                     changes_json=changes if action == "edit" else {}, comment=comment.strip(),
+                     changes_json=changes if changing else {}, comment=comment.strip(),
                      created_at=datetime.now(UTC))
         s.add(d)
         s.flush()
@@ -380,16 +396,23 @@ def pending_edits(states: list[QuestionState]) -> dict[str, dict[str, str]]:
     return {st.ext_id: st.decision_changes for st in states if st.decision == "edit" and st.decision_changes}
 
 
-def apply_edits_as_new_version(db: Database, dataset: str) -> int | None:
+def pending_rewords(states: list[QuestionState]) -> dict[str, dict[str, str]]:
+    """New wordings chosen on the Prepare page for the latest version: {id: {column: value}}."""
+    return {st.ext_id: st.prepare_changes for st in states if st.prepare == "reword" and st.prepare_changes}
+
+
+def apply_edits_as_new_version(db: Database, dataset: str, *, prepared: bool = False) -> int | None:
     """Store the latest version with the decided edits as a new version, so edited questions get checked.
 
+    `prepared`: apply the Prepare page's new wordings instead of the review edits (each kind is saved by its
+    own button; the other kind's decisions stay with their unchanged questions).
     Returns the new version number (None when there is nothing to apply). Removed questions stay in the
     file (they are left out only at export); unchanged questions keep their results and decisions.
     """
     from qv.services.datasets import import_dataset
     from qv.services.exports import corrected_csv
     states = question_states(db, dataset)
-    edits = pending_edits(states)
+    edits = pending_rewords(states) if prepared else pending_edits(states)
     if not edits:
         return None
     with db.session() as s:
@@ -397,8 +420,9 @@ def apply_edits_as_new_version(db: Database, dataset: str) -> int | None:
         result = corrected_csv(v, edits)
         name = v.source_filename.split(" + ")[0]
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        what = "new wording(s)" if prepared else "edit(s)"
         res = import_dataset(s, result.data, dataset_name=dataset,
-                             source_filename=f"{name} + {len(edits)} edit(s) {stamp}")
+                             source_filename=f"{name} + {len(edits)} {what} {stamp}")
         return res.version_no
 
 

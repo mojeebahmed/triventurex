@@ -183,6 +183,13 @@ def s6_system_values(profile: Profile) -> dict[str, object]:
     return {"edition_name": profile.edition, "audience": profile.audience, "style_summary": style}
 
 
+def s6_hash_inputs(q: Question) -> dict[str, object]:
+    """What the S6 output is cached under. Shared by validation and Prepare, so a quality check made on the
+    Prepare page is reused by the full check of the same wording (and costs no second request)."""
+    return {"q": q.question, "type": q.type, "opts": q.options, "key": q.answer, "note": q.note,
+            "diff": q.difficulty, "cat": [q.category, q.subcategory, q.topic]}
+
+
 def render_s6(q: Question) -> str:
     """S6 user message — the question as players see it; no evidence."""
     lines = [f"Question ({q.type}, stated difficulty {q.difficulty}): {q.question}"]

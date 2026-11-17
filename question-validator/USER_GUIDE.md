@@ -70,6 +70,22 @@ in the list with what to do.
 A new version of a file keeps every result and decision of questions that did not change — only new and changed
 questions need checking.
 
+## ✏️ Prepare (optional, before validating)
+
+Look at the wording before checking, so the checks see the final wording and nothing is checked twice.
+
+- **Wording flags** — worked out in code for every question at once, free: *answer holds several facts*,
+  *statement before the question*, *several numbers or dates*, *exact figure*, *'not' question*, *asks two
+  things*, *long question / answer*, *similar to another question*. Hints for you, never verdicts.
+- **AI quality check** — **▶ Check … question(s) now**: one free Flash-Lite request per question, no searching. It
+  reads the question as a quiz editor (two facts in one, wording that can be read two ways, answers given away,
+  weak wrong options, difficulty …) and suggests a new wording when one would help. It does not judge whether the
+  answer is right. The full check later reuses it for the same wording.
+- Click a question: **👍 Wording is fine** or **✎ Reword** (optionally from the suggestion). Then **Save … new
+  wording(s) as a new version** at the top. Reworded questions count as not checked yet (never as ready).
+
+Start with **👀 To look at** and filter by one flag. Terminal: `qv prepare <file>` (flag counts + the quality check).
+
 ## 2 · Validate
 
 Choose the next batch in three steps, then press **▶ Start checking now** — the batch starts right away and runs in
@@ -160,7 +176,7 @@ import the file again: only new and changed questions are checked.
 ## For power users
 
 Everything above also works with commands: `qv status` (where every file stands) and the full set in
-`qv --help` — `research`, `validate`, `judge`, `resume`, `runs`, `verdicts`, `verdict`, `evidence`, `metrics`,
+`qv --help` — `prepare`, `research`, `validate`, `judge`, `resume`, `runs`, `verdicts`, `verdict`, `evidence`, `metrics`,
 `usage`, `quota`, `issues`, `diff`, `export`, `eval …`. The **Advanced** pages in the browser have the detailed
 views: **Batches** (every batch; a question opens with its result, every page that was read and the research
 plan), **Files & versions** (imports, their questions and format problems), **Book library**, **Websites** and

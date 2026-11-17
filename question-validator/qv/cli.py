@@ -347,6 +347,50 @@ def next_batch(dataset: str,
     _print_status(db, dataset)
 
 
+@app.command()
+def prepare(dataset: str,
+            ids: Annotated[str | None, typer.Option(help="Only these CSV ids, e.g. 1,5,10-12")] = None,
+            limit: Annotated[int | None, typer.Option(help="Check at most this many questions")] = None,
+            yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation")] = False) -> None:
+    """Before checking: wording flags for every question (free) and the quality check alone (one Flash-Lite
+    request per question, no searching) for questions that have none yet. Run it again whenever it stops."""
+    import os
+
+    from qv.services import prepare as prep
+    from qv.services import worker
+    from qv.services.research import build_deps
+    from qv.pipeline.wording import FLAG_BY_CODE
+    settings = _settings()
+    db = _db()
+    items = prep.prepare_items(db, dataset)
+    flagged = [it for it in items if it.flags]
+    typer.echo(f"{dataset}: {len(items)} questions, {len(flagged)} with a wording flag")
+    for code, flag in FLAG_BY_CODE.items():
+        n = sum(code in it.flags for it in items)
+        if n:
+            typer.echo(f"  {flag.label}: {n}")
+    todo = [i for i in prep.unchecked_ids(items) if not ids or i in set(_parse_ids(ids) or ())]
+    if limit is not None:
+        todo = todo[:max(limit, 0)]
+    left = prep.requests_left(db)
+    typer.echo(f"Quality check: {len(todo)} question(s) to check"
+               + (f" · about {int(left)} free requests left today" if left is not None else ""))
+    if not todo:
+        return
+    if not yes and not typer.confirm("Start the quality check?"):
+        raise typer.Exit(1)
+    log = os.environ.get("QV_BATCH_LOG")
+    if not worker.acquire(settings.data_dir, dataset, Path(log) if log else None):
+        st = worker.status(settings.data_dir)
+        typer.echo(f"A batch is running ({st.dataset}, started {st.started}); try again when it is done.")
+        raise typer.Exit(1)
+    try:
+        for line in prep.quality_check(build_deps(settings, db).runner, db, dataset, todo):
+            typer.echo(line)
+    finally:
+        worker.release(settings.data_dir)
+
+
 def _print_status(db: Database, dataset: str) -> None:
     from qv.services import workflow
     states = workflow.question_states(db, dataset)

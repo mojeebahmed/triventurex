@@ -417,7 +417,7 @@ class Decision(Base):
     content_hash: Mapped[str] = mapped_column(String(64))
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     validation_id: Mapped[int | None] = mapped_column(ForeignKey("validations.id"), nullable=True)
-    action: Mapped[str] = mapped_column(String(20))  # keep | edit | specialist | remove | later
+    action: Mapped[str] = mapped_column(String(20))  # keep|edit|specialist|remove|later; Prepare: reword|wording_ok
     changes_json: Mapped[dict] = mapped_column(JSON, default=dict)  # edit: {column: new value}
     comment: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

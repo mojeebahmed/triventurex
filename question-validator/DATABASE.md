@@ -54,7 +54,7 @@ question_documents ─ passages ───────────┤          (w
                                          │
 stage_outputs ─▶ validations ────────────┤          (each model's answer, and the final verdict)
                                          │
-decisions ───────────────────────────────┘          (what you decided in the Review step)
+decisions ───────────────────────────────┘          (what you decided in the Review and Prepare steps)
 api_calls, quota_usage                              (every call made, and the free quota used)
 ```
 
@@ -74,7 +74,7 @@ api_calls, quota_usage                              (every call made, and the fr
 | `stage_outputs` | one model answer (S1a, S1b, S3, S4, S5, S6) | `stage`, `model`, `output_json`, `valid`, `checks_json`, `input_hash` (same input → reused, no new call) |
 | `validations` | the verdict for one question in one run | `verdict`, `evidence_strength`, `review_status`, `blind_answer`, `blind_matches_key`, `reasons_json`, `suggested_answer`, `passage_map_json` (P1, P2 … → passage) |
 | `source_marks` | your mark on a website (use with a trust P/S/T / don't use / needs special access / clear) — never changed, the newest per site counts; applied on top of `config/sources.yaml` | `domain`, `action`, `tier`, `note`, `created_at` |
-| `decisions` | your decision about one question (keep / edit / specialist / remove / later) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
+| `decisions` | your decision about one question (keep / edit / specialist / remove / later; on the Prepare page reword / wording_ok, counted apart from the review decision) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
 | `topics` | a saved search on the Knowledge page: a name, the search words and the filters — can be renamed and changed | `name` (unique), `query`, `filters_json` (`source_kinds`, `languages`, `tiers`, `edition`, `category`, `include_older`), `created_at`, `updated_at` |
 | `relevance_labels` | your judgement that a stored page / book page is relevant or not for a question — never changed, the newest per question + page counts (`clear` takes it back); used by `qv kb benchmark` | `dataset_id`, `ext_id`, `content_hash` (the wording it was made for), `doc_key` (`doc:<documents.id>` or `book:<book>/p<page>`), `label` (relevant · not_relevant · clear), `who`, `created_at` |
 | `api_calls` | every call to a model, search engine or website | `provider`, `model`, `stage`, `status` (ok / error / quota), `input_tokens`, `output_tokens`, `latency_ms`, `error` |

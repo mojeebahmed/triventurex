@@ -224,14 +224,10 @@ class StageRunner:
         `system_values` fill the system prompt's placeholders (S5, S6); they are part of the input hash.
         """
         version = PROMPT_VERSIONS[stage]
-        h = input_hash(stage, version, {"in": hash_inputs, "sys": system_values} if system_values else hash_inputs)
-        with self.db.session() as s:
-            row = s.scalar(select(StageOutput).where(StageOutput.stage == stage, StageOutput.input_hash == h,
-                                                     StageOutput.valid.is_(True))
-                           .order_by(StageOutput.id.desc()).limit(1))
-            if row is not None:
-                return StageRun(schema_cls.model_validate(row.output_json), row.id, True, row.model,
-                                row.checks_json)
+        h = self.hash_for(stage, hash_inputs, system_values)
+        cached = self.stored(stage, h, schema_cls)
+        if cached is not None:
+            return cached
 
         pool = self.pools[stage]
         system = fill_template(system_prompt(version), system_values or {})
@@ -251,6 +247,22 @@ class StageRunner:
         sid = self._store(ctx, stage, version, h, result.provider, result.model,
                           result.output.model_dump(mode="json"), problems, True, None)
         return StageRun(result.output, sid, False, result.model, problems)
+
+    @staticmethod
+    def hash_for(stage: str, hash_inputs: Any, system_values: dict[str, Any] | None = None) -> str:
+        """The input hash `run` looks up and stores an output under (same inputs → same hash)."""
+        return input_hash(stage, PROMPT_VERSIONS[stage],
+                          {"in": hash_inputs, "sys": system_values} if system_values else hash_inputs)
+
+    def stored(self, stage: str, h: str, schema_cls: type[T]) -> StageRun | None:
+        """The newest valid stored output for this input hash, without calling a model."""
+        with self.db.session() as s:
+            row = s.scalar(select(StageOutput).where(StageOutput.stage == stage, StageOutput.input_hash == h,
+                                                     StageOutput.valid.is_(True))
+                           .order_by(StageOutput.id.desc()).limit(1))
+            if row is None:
+                return None
+            return StageRun(schema_cls.model_validate(row.output_json), row.id, True, row.model, row.checks_json)
 
     def _store(self, ctx: CallContext, stage: str, version: str, h: str, provider: str, model: str,
                output: dict | None, checks: list[str], valid: bool, error: str | None) -> int:

@@ -80,14 +80,21 @@ def release(data_dir: Path) -> None:
         pass
 
 
-def start_background(data_dir: Path, dataset: str, args: list[str]) -> Path:
-    """Start `qv next <dataset> --yes <args>` detached from the web page; returns its log file."""
+def start_background(data_dir: Path, dataset: str, args: list[str], command: str = "next") -> Path:
+    """Start `qv <command> <dataset> --yes <args>` detached from the web page; returns its log file.
+
+    `command` is `next` (a batch) or `prepare` (the quality check alone); both hold the same lock, so they
+    never compete for the free quota.
+    """
+    if command not in ("next", "prepare"):
+        raise ValueError(f"Unknown background command {command!r}")
     logs = data_dir / "logs"
     logs.mkdir(parents=True, exist_ok=True)
-    log = logs / f"batch-{dataset}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"
+    kind = "batch" if command == "next" else "prepare"
+    log = logs / f"{kind}-{dataset}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"
     env = {**os.environ, "QV_DATA_DIR": str(data_dir), "QV_BATCH_LOG": str(log), "PYTHONUNBUFFERED": "1"}
     with log.open("w", encoding="utf-8") as fh:
-        proc = subprocess.Popen([sys.executable, "-m", "qv.cli", "next", dataset, "--yes", *args],
+        proc = subprocess.Popen([sys.executable, "-m", "qv.cli", command, dataset, "--yes", *args],
                                 stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=env,
                                 start_new_session=True, cwd=Path(__file__).parents[2])
     # Hold the lock for the child at once, so the page shows it running before it has started up.
@@ -104,7 +111,7 @@ def tail(log: Path | None, lines: int = 15) -> str:
     return "\n".join(log.read_text(encoding="utf-8", errors="replace").splitlines()[-lines:])
 
 
-def latest_log(data_dir: Path, dataset: str) -> Path | None:
-    """The newest log of a dataset's batches."""
-    logs = sorted((data_dir / "logs").glob(f"batch-{dataset}-*.log"))
+def latest_log(data_dir: Path, dataset: str, kind: str = "batch") -> Path | None:
+    """The newest log of a dataset's batches (`kind` "prepare": of its quality checks on the Prepare page)."""
+    logs = sorted((data_dir / "logs").glob(f"{kind}-{dataset}-*.log"))
     return logs[-1] if logs else None

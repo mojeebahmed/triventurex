@@ -18,7 +18,7 @@ from qv.domain.stages import BlindAnswer, ClaimFormulation, Decomposition, Quali
 from qv.pipeline.evidence import EvidencePassage, number_passages
 from qv.pipeline.judgement import (
     blind_passages, check_s4, check_s5, check_s6, key_letter, render_s4, render_s5, render_s6, s5_system_values,
-    s6_system_values,
+    s6_hash_inputs, s6_system_values,
 )
 from qv.pipeline.rules import Judgement, PremiseInfo, RulesInput, judge, load_requirements
 from qv.pipeline.stages import StageRunner, filter_s1b_lookups
@@ -90,9 +90,7 @@ def judge_question(db: Database, runner: StageRunner, run_id: int, question_id: 
                         ctx=CallContext(run_id, question_id, "s5"), checks=lambda o: check_s5(o, q, passages))
         s5, s5_id = r5.output, r5.stage_output_id
         stats["s5_check_problems"] = len(r5.checks)
-    r6 = runner.run(stage="s6", user=render_s6(q), schema_cls=Quality,
-                    hash_inputs={"q": q.question, "type": q.type, "opts": q.options, "key": q.answer,
-                                 "note": q.note, "diff": q.difficulty, "cat": [q.category, q.subcategory, q.topic]},
+    r6 = runner.run(stage="s6", user=render_s6(q), schema_cls=Quality, hash_inputs=s6_hash_inputs(q),
                     system_values=s6_system_values(profile),
                     ctx=CallContext(run_id, question_id, "s6"), checks=lambda o: check_s6(o, q))
     s6: Quality = r6.output  # type: ignore[assignment]

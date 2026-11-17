@@ -7,6 +7,7 @@ and short captions next to a control; field explanations are `help=` tooltips; e
 from __future__ import annotations
 
 from qv.pipeline.priority import SIGNALS
+from qv.pipeline.wording import FLAGS
 
 TIERS = """
 **How much a source is trusted** — **P** primary (the text itself, the official record, the author's own book) ·
@@ -45,6 +46,12 @@ def signals_table() -> str:
     return "| Signal | Points | Meaning |\n|---|---|---|\n" + rows
 
 
+def flags_table() -> str:
+    """The Prepare page's wording flags as a Markdown table."""
+    rows = "\n".join(f"| {f.label} | {f.meaning} |" for f in FLAGS)
+    return "| Flag | Meaning |\n|---|---|\n" + rows
+
+
 #: Page → sections (title, Markdown). A page with several sections shows them as tabs in the help popup.
 HELP: dict[str, list[tuple[str, str]]] = {
     "overview": [
@@ -57,6 +64,8 @@ looked) + 👍 confirmed by you + ✏️ edited by you.
 """),
         ("How it works", """
 1. **Import** a question file (the game's CSV format) — its format is checked first.
+   Optional: **Prepare** — look at the wording first (free flags + an AI quality check without searching) and
+   reword what helps, so the checks see the final wording.
 2. **Validate**: choose the next batch and press *Start checking now*. The free AI limits allow a few dozen
    questions a day; when a batch stops, press it again later — or turn on the **Daily run**. Finished work is
    never repeated.
@@ -107,6 +116,37 @@ The format is checked first (no AI, nothing leaves your Mac). Every problem show
 **✨ Fix them for me** fixes what has a certain fix (encoding, spaces, column names, an answer written as text or
 letter …) — ids never change; then download the fixed file for your own copy. Your original file is never changed.
 """),
+    ],
+    "prepare": [
+        ("This page", """
+Look at the wording of a file's questions **before** checking them. Rewording first means the checks look at
+the final wording, so nothing has to be checked twice.
+
+1. **Wording flags** are worked out in code for every question at once — free, no AI. They point at wording worth
+   a quick look: several facts in one answer, a statement before the question, exact figures, 'not' questions …
+   (the *Flags* tab). A flag is a hint, never a verdict.
+2. **AI quality check** — press *Check … question(s) now*: one free Flash-Lite request per question, **no
+   searching**. It reads the question as a quiz editor would (two facts in one question, wording that can be read
+   two ways, more than one possible answer, answers given away, weak wrong options, difficulty …) and suggests a
+   new wording when one would help. It does not decide whether the answer is right — that is what *Validate* does.
+   The result is kept: the full check later reuses it for the same wording, so it is never paid twice.
+3. Click a question: **👍 Wording is fine**, or **✎ Reword** (optionally starting from the suggestion).
+4. **Save … new wording(s) as a new version** (box at the top). The questions you reworded are then checked
+   with their new wording; nothing else changes. Your game files are never changed here — the corrected file
+   comes from *Export*.
+
+**Show** — 👀 *To look at* = a flag or a quality check that is not 'good', and you have not decided yet.
+"""),
+        ("Flags", "{flags}"),
+        ("Tips", """
+- Start with *To look at*, filter by one flag (e.g. *answer holds several facts*) and work through it with
+  ◀ Previous / Next ▶ in the popup.
+- Short answers with one fact are easier to check, to answer and to remember. Extra facts can go in the note.
+- *Wording is fine* also takes back a new wording you chose here (the newest choice counts).
+- A question that was already checked can be reworded too, but it is then checked again — edits after a check
+  usually belong on the Review page.
+- Terminal: `qv prepare <file>` shows the flag counts and runs the quality check.
+""" + TABLES),
     ],
     "validate": [
         ("Choosing a batch", """
@@ -313,4 +353,5 @@ always $0. Terminal: `qv quota` · `qv usage`.
 
 def help_for(page: str) -> list[tuple[str, str]]:
     """The help sections of a page."""
-    return [(title, text.replace("{signals}", signals_table())) for title, text in HELP[page]]
+    return [(title, text.replace("{signals}", signals_table()).replace("{flags}", flags_table()))
+            for title, text in HELP[page]]

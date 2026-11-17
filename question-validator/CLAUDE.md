@@ -52,7 +52,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 
 ## Simple workflow (built 2026-11-16)
 Mojeeb wants the tool usable with very few steps, in the web page: `Start Question Validator.command` → Overview
-(menu since 2026-11-16 evening: Import · Validate · Daily run · Review · Export, + Advanced pages). Commands: `qv status`, `qv next`,
+(menu since 2026-11-16 evening: Import · Prepare · Validate · Daily run · Review · Export, + Advanced pages). Commands: `qv status`, `qv next`,
 `qv export corrected|ready|results`, `qv auto on|off|status|run`. User-facing description: `USER_GUIDE.md` (keep
 it current). One-click import fixes and the automatic daily batch were added on 2026-11-16. This is ARCHITECTURE.md phases 4–5, made simple;
 all other commands stay for power users and debugging.
@@ -201,6 +201,19 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   `ready` (old name `verified` still accepted).
 - The web page now writes (imports, decisions, new versions, starting batches) — through services only; it never
   calls a model itself. Streamlit keeps imported modules loaded: restart `qv ui` after changing `qv/services`.
+
+## Implementation invariants (Prepare, 2026-11-17)
+- **Prepare page** (`qv/services/prepare.py`, page `prepare` in Check questions): wording flags + the quality check
+  (S6) alone, before any research. Flags are pure code (`qv/pipeline/wording.py`, `FLAGS` shown in Help; thresholds
+  `prepare_long_*` in research.yaml) — hints, never verdicts, never change anything.
+- **S6 cache is shared**: `s6_hash_inputs` (pipeline/judgement.py) + `StageRunner.hash_for` / `stored` — the Prepare
+  check (stage output with `run_id` NULL) is reused by `judge_question` for the same wording (test). Keep both on
+  `s6_hash_inputs`; never add run-specific values to it.
+- **Prepare decisions** `reword` / `wording_ok` (`workflow.PREPARE_ACTIONS`) live in `decisions` but are read apart
+  (`QuestionState.prepare*`): they never change the review status, so a reworded question is never "ready".
+  `apply_edits_as_new_version(prepared=True)` turns pending rewords into a new version (review edits stay as they are).
+- `qv prepare <file>` and the page's button (`worker.start_background(..., command="prepare")`, log
+  `data/logs/prepare-*.log`) take the same lock as batches.
 
 ## Implementation invariants (import fixes, daily run)
 - **Import fixes** (`qv/services/import_fixes.py`) only make changes whose result is certain, never touch `id`,

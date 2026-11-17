@@ -1,6 +1,6 @@
 """Web page (Streamlit). Run with `qv ui`, or double-click `Start Question Validator.command`.
 
-Menu (sidebar, in sections): Overview · Files: Import · Check questions: Validate, Daily run, Review, Export ·
+Menu (sidebar, in sections): Overview · Files: Import · Check questions: Prepare, Validate, Daily run, Review, Export ·
 Advanced: Batches, Files & versions, Knowledge, Book library, Websites, Usage & quota. The file being worked on is chosen in
 the bar at the top of the pages that work on one file. Queries and writes live in qv.services; this file only lays
 them out. Long work (a batch) runs as a separate `qv next` process, so the page can be closed while it works.
@@ -551,6 +551,258 @@ def page_import() -> None:
     if st.session_state.get("imported") == name and st.button("Next: Validate", type="primary"):
         st.session_state.pending_dataset = name
         st.switch_page(PAGES["validate"])
+
+
+# ===========================================================================================
+PREP_GROUPS = {
+    "to_look": "👀 To look at",
+    "flagged": "🚩 Wording flags",
+    "quality": "🤖 Quality: could be better",
+    "rewrite": "💡 Rewrite suggested",
+    "decided": "✏️ Decided by you",
+    "all": "All",
+}
+PREP_GROUP_HELP = {
+    "to_look": "A wording flag or a quality check that is not 'good', and you have not decided yet.",
+    "flagged": "Questions with at least one wording flag (worked out in code, free).",
+    "quality": "The AI quality check rated the wording 'could be better' or 'poor'.",
+    "rewrite": "The AI quality check suggested a new wording.",
+    "decided": "Questions you reworded or marked 'wording is fine'.",
+    "all": "Every question of the file.",
+}
+PREP_CHOICE = {"reword": "✏️ new wording", "wording_ok": "👍 fine"}
+CHECKED_BEFORE = ("not_checked", "failed", "format_error", "in_progress")
+
+
+def _prep_group(it, group: str) -> bool:  # noqa: ANN001
+    q = it.quality
+    return {"to_look": it.needs_look and not it.state.prepare,
+            "flagged": bool(it.flags),
+            "quality": bool(q and q.overall != "GOOD"),
+            "rewrite": bool(q and q.suggested_rewrite),
+            "decided": bool(it.state.prepare),
+            "all": True}[group]
+
+
+def page_prepare() -> None:
+    """Before checking: wording flags (free), the quality check alone, and new wordings saved as a version."""
+    from qv.pipeline.wording import FLAG_BY_CODE
+    from qv.services import prepare
+    name = current()
+    page_title("✏️ Prepare", "prepare", "Look at the wording before checking: free flags for every question and "
+                                       "an AI quality check (one free request per question, no searching). "
+                                       "Reword what helps, then save the new wordings as a new version.")
+    items = prepare.prepare_items(db, name)
+    rewords = workflow.pending_rewords([it.state for it in items])
+    if rewords:
+        c = st.columns([4, 2], vertical_alignment="center")
+        c[0].info(f"✏️ {len(rewords)} new wording(s) waiting. Save them as a new version so the checks see them.")
+        if c[1].button(f"Save {len(rewords)} new wording(s) as a new version", type="primary", width="stretch"):
+            v = workflow.apply_edits_as_new_version(db, name, prepared=True)
+            st.toast(f"Saved as version {v}. These questions are checked with their new wording.")
+            st.rerun()
+
+    @st.fragment(run_every=5)
+    def live() -> None:
+        """The running quality check (refreshes every few seconds)."""
+        b = worker.status(settings.data_dir)
+        log = b.log if b.running else worker.latest_log(settings.data_dir, name, "prepare")
+        if b.running:
+            st.info(f"⏳ Working on **{b.dataset}** since {b.started}. You can close this page.")
+        text = worker.tail(log, 10)
+        if text:
+            with st.expander("Quality check log" + (" (running)" if b.running else " (last one)"),
+                             expanded=b.running):
+                st.code(text, language=None)
+        if not b.running and st.session_state.get("prep_was_running"):
+            st.session_state.prep_was_running = False
+            st.rerun()
+        st.session_state.prep_was_running = b.running
+
+    unchecked = prepare.unchecked_ids(items)
+    with st.container(border=True):
+        n_ok = len(items) - len(unchecked)
+        left = prepare.requests_left(db)
+        c = st.columns([3, 2], vertical_alignment="center")
+        c[0].markdown(f"**AI quality check** — {n_ok} of {len(items)} questions have one. "
+                      + (f"About **{int(left)}** free requests left today." if left is not None else ""))
+        running = worker.status(settings.data_dir).running
+        n = min(len(unchecked), int(left)) if left is not None else len(unchecked)
+        if unchecked:
+            if c[1].button(f"▶ Check {n} question(s) now", type="primary", width="stretch",
+                           disabled=running or n == 0,
+                           help="Runs in the background; one free Flash-Lite request per question. A full check "
+                                "later reuses it for the same wording." if not running else "Something is running"):
+                worker.start_background(settings.data_dir, name, ["--limit", str(n)], command="prepare")
+                st.rerun()
+        else:
+            c[1].caption("Every question has a quality check.")
+        live()
+
+    counts = {g: sum(_prep_group(it, g) for it in items) for g in PREP_GROUPS}
+    default = "to_look" if counts["to_look"] else "all"
+    group = st.segmented_control("Show", list(PREP_GROUPS), default=default, key=f"prep_group_{name}",
+                                 format_func=lambda g: f"{PREP_GROUPS[g]} ({counts[g]})") or default
+    st.caption(PREP_GROUP_HELP[group])
+    shown = [it for it in items if _prep_group(it, group)]
+    bar = st.columns(2)
+    flag_names = {f"🚩 {FLAG_BY_CODE[c].label}": ("flag", c) for it in shown for c in it.flags}
+    flag_names |= {f"🤖 {t.replace('_', ' ')}": ("quality", t) for it in shown for t in it.quality_issues}
+    picked = bar[0].multiselect("Flag or quality note", sorted(flag_names), placeholder="Any flag or quality note",
+                                label_visibility="collapsed")
+    cats = sorted({it.state.category for it in shown if it.state.category})
+    sel_cats = bar[1].multiselect("Category", cats, placeholder="All categories", label_visibility="collapsed")
+    wanted = [flag_names[p] for p in picked]
+    shown = [it for it in shown if (not sel_cats or it.state.category in sel_cats)
+             and all((c in it.flags) if k == "flag" else (c in it.quality_issues) for k, c in wanted)]
+
+    def open_question(row: int, order: list[int]) -> None:
+        st.session_state["pp_ids"] = [shown[i].ext_id for i in order]
+        st.session_state["pp_pos"] = order.index(row) if row in order else 0
+        prepare_dialog(name)
+
+    data_table([{"id": it.ext_id,
+                 "flags": ", ".join(FLAG_BY_CODE[c].label for c in it.flags),
+                 "quality": prepare.QUALITY_TEXT[it.quality.overall] if it.quality else "—",
+                 "question": it.state.question, "answer": it.state.answer_text,
+                 "your choice": PREP_CHOICE.get(it.state.prepare, ""),
+                 "status": status_text(it.state),
+                 "category": path(it.state.category, it.state.subcategory, it.state.topic)}
+                for it in shown],
+               key=f"prep_{name}_{group}_{','.join(picked)}_{','.join(sel_cats)}",
+               columns={**COLS_QUESTION, "flags": TEXT("Wording flags", width="medium"),
+                        "quality": TEXT("Quality", width="small"), "your choice": TEXT("Your choice", width="small")},
+               search="🔎 Search: words in the question or answer, or an id", on_open=open_question)
+    st.page_link(PAGES["validate"], label="When the wording is ready → Validate", icon="▶️")
+
+
+def _rewrite_answer_index(answer: str, options: list[str]) -> str | None:
+    """The option number ('1'–'4') a suggested answer points at: a letter, a number or an option's text."""
+    a = answer.strip().rstrip(".").strip()
+    if len(a) == 1 and a.upper() in "ABCD":
+        return str("ABCD".index(a.upper()) + 1)
+    if a in ("1", "2", "3", "4"):
+        return a
+    for i, o in enumerate(options):
+        if o and (o.casefold() == a.casefold() or o.casefold() in a.casefold()):
+            return str(i + 1)
+    return None
+
+
+@st.dialog("Prepare a question", width="large", on_dismiss="rerun")
+def prepare_dialog(name: str) -> None:
+    """One question: its wording flags and quality check; keep the wording or reword it. Previous / Next."""
+    from qv.pipeline.wording import FLAG_BY_CODE
+    from qv.services import prepare
+    ids: list[str] = st.session_state.get("pp_ids") or []
+    if not ids:
+        return
+    pos = popup_nav("pp_pos", len(ids), "question")
+    item = {it.ext_id: it for it in prepare.prepare_items(db, name)}.get(ids[pos])
+    if item is None:
+        st.warning("This question is no longer in the file.")
+        return
+    s = item.state
+    st.markdown(f"#### #{s.ext_id} · {status_text(s)}")
+    st.markdown(f"**{s.question}**")
+    if s.type == "multi":
+        key_idx = int(s.answer) - 1 if s.answer.isdigit() else -1
+        st.markdown("  ·  ".join(("✅ " if i == key_idx else "") + f"**{'ABCD'[i]}.** {o}"
+                                 for i, o in enumerate(s.options) if o))
+    else:
+        st.markdown(f"**Answer:** {s.answer_text}")
+    if s.note:
+        st.markdown(f"**Note:** {s.note}")
+    st.caption(f"{path(s.category, s.subcategory, s.topic)} · {s.difficulty}")
+    if s.prepare == "reword":
+        st.info("✏️ **Your new wording** (not saved as a version yet): "
+                + " · ".join(f"{k.replace('_', ' ')}: *{v}*" for k, v in s.prepare_changes.items()))
+    with st.container(border=True):
+        if item.flags:
+            st.markdown("**🚩 Wording flags** (worked out in code — hints, not verdicts)\n" + "\n".join(
+                f"- **{FLAG_BY_CODE[c].label}** — {FLAG_BY_CODE[c].meaning}" for c in item.flags))
+        else:
+            st.caption("No wording flags.")
+        q = item.quality
+        if q is None:
+            st.caption("No AI quality check yet — run it from the page.")
+        else:
+            st.markdown(f"**🤖 Quality check: {prepare.QUALITY_TEXT[q.overall]}** · difficulty seems "
+                        f"*{q.difficulty_estimate}* · fit for the audience: *{q.audience_fit.replace('_', ' ')}*")
+            if q.issues:
+                st.markdown("\n".join(
+                    f"- {i.type.replace('_', ' ')} ({i.severity}{', a guess' if i.is_hypothesis else ''}"
+                    f"{', option ' + i.option if i.option else ''}): {i.detail}" for i in q.issues))
+            if q.suggested_rewrite:
+                r = q.suggested_rewrite
+                st.markdown(f"💡 **Suggested:** {r.question}"
+                            + (f"  \nOptions: {' · '.join(r.options)}" if r.options else "")
+                            + f"  \nAnswer: {r.answer}" + (f"  \nNote: {r.note}" if r.note else "")
+                            + (f"  \n*Why:* {q.rewrite_reason}" if q.rewrite_reason else ""))
+    if s.status not in CHECKED_BEFORE:
+        st.caption("Already checked — a new wording means it is checked again. Edits after a check usually belong "
+                   "on the Review page.")
+    last = pos >= len(ids) - 1
+    comment = st.text_input("Comment (optional)", key=f"pp_comment_{s.ext_id}", placeholder="Comment (optional)",
+                            label_visibility="collapsed")
+    b = st.columns(3)
+    if b[0].button("👍 Wording is fine", width="stretch", type="primary",
+                   help="Keep it as it is (also takes back a new wording you chose here)"):
+        workflow.record_decision(db, name, s.ext_id, "wording_ok", comment=comment)
+        st.toast(f"#{s.ext_id}: wording is fine" + ("" if last else " — next question"))
+        if not last:
+            st.session_state["pp_pos"] = pos + 1
+        st.rerun(scope="fragment")
+    if b[1].button("✎ Reword", width="stretch", help="Change the question, options, answer or note"):
+        st.session_state[f"pp_editing_{s.ext_id}"] = True
+    if b[2].button("⏭ Skip", width="stretch", help="Decide later", disabled=last):
+        st.session_state["pp_pos"] = pos + 1
+        st.rerun(scope="fragment")
+    if st.session_state.get(f"pp_editing_{s.ext_id}"):
+        reword_form(name, item, comment, last=last)
+
+
+def reword_form(name: str, item, comment: str, *, last: bool) -> None:  # noqa: ANN001
+    """A new wording, optionally starting from the quality check's suggestion."""
+    s = item.state
+    r = item.quality.suggested_rewrite if item.quality else None
+    use = st.checkbox("Start from the suggestion", value=bool(r), disabled=not r, key=f"pp_use_{s.ext_id}")
+    cur = {"question": s.question, "answer": s.answer, "note": s.note,
+           **dict(zip(("opt_a", "opt_b", "opt_c", "opt_d"), s.options)), **s.prepare_changes}
+    if use and r:
+        cur["question"] = r.question
+        if r.note:
+            cur["note"] = r.note
+        if s.type == "multi":
+            if r.options and len(r.options) <= 4:
+                cur.update(dict(zip(("opt_a", "opt_b", "opt_c", "opt_d"), [*r.options, "", "", ""][:4])))
+            opts = [cur["opt_a"], cur["opt_b"], cur["opt_c"], cur["opt_d"]]
+            cur["answer"] = _rewrite_answer_index(r.answer, opts) or cur["answer"]
+        else:
+            cur["answer"] = r.answer
+    with st.form(f"pp_edit_{s.ext_id}"):
+        new = {"question": st.text_input("Question", cur["question"])}
+        if s.type == "multi":
+            cols = st.columns(4)
+            for i, col in enumerate(("opt_a", "opt_b", "opt_c", "opt_d")):
+                new[col] = cols[i].text_input(f"Option {'ABCD'[i]} ({i + 1})", cur[col])
+            new["answer"] = st.selectbox("Right option", ["1", "2", "3", "4"],
+                                         index=["1", "2", "3", "4"].index(cur["answer"])
+                                         if cur["answer"] in ("1", "2", "3", "4") else 0)
+        else:
+            new["answer"] = st.text_input("Answer", cur["answer"])
+        new["note"] = st.text_area("Note", cur["note"])
+        if st.form_submit_button("Keep this new wording", type="primary"):
+            try:
+                workflow.record_decision(db, name, s.ext_id, "reword", changes=new, comment=comment)
+            except ValueError as exc:
+                st.error(str(exc))
+            else:
+                st.session_state[f"pp_editing_{s.ext_id}"] = False
+                st.toast(f"#{s.ext_id}: new wording kept — save it as a new version on the page")
+                if not last:
+                    st.session_state["pp_pos"] = st.session_state.get("pp_pos", 0) + 1
+                st.rerun(scope="fragment")
 
 
 # ===========================================================================================
@@ -1517,6 +1769,7 @@ def website_dialog(domain: str, example: str | None) -> None:
 PAGES = {
     "overview": st.Page(page_overview, title="Overview", icon=":material/dashboard:", default=True),
     "import": st.Page(page_import, title="Import a file", icon=":material/upload_file:", url_path="import"),
+    "prepare": st.Page(page_prepare, title="Prepare", icon=":material/edit_note:", url_path="prepare"),
     "validate": st.Page(page_validate, title="Validate", icon=":material/fact_check:", url_path="validate"),
     "daily": st.Page(page_daily, title="Daily run", icon=":material/schedule:", url_path="daily"),
     "review": st.Page(page_review, title="Review", icon=":material/rate_review:", url_path="review"),
@@ -1531,11 +1784,11 @@ PAGES = {
 SECTIONS = {
     "": ["overview"],
     "Files": ["import"],
-    "Check questions": ["validate", "daily", "review", "export"],
+    "Check questions": ["prepare", "validate", "daily", "review", "export"],
     "Advanced": ["batches", "files", "knowledge", "library", "websites", "usage"],
 }
 #: Pages that work on one file show the "Working on" bar.
-WITH_FILE = {"overview", "validate", "review", "export", "batches"}
+WITH_FILE = {"overview", "prepare", "validate", "review", "export", "batches"}
 
 nav = st.navigation({section: [PAGES[k] for k in keys] for section, keys in SECTIONS.items()})
 st.markdown(CSS, unsafe_allow_html=True)

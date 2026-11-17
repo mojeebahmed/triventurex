@@ -287,6 +287,9 @@ class ResearchConfig(BaseModel):
     stored_first_skip_web: bool = Field(False, description="skip the web searches when enough stored pages qualify")
     stored_skip_web_min: int = Field(2, ge=1, description="stored pages needed before web searches are skipped")
     pdf_pages_per_document: int = Field(1, ge=1, description="best pages of a web PDF read per question")
+    # Prepare page — wording flags (pure code)
+    prepare_long_question_words: int = Field(25, ge=5, description="a question with more words is flagged as long")
+    prepare_long_answer_words: int = Field(8, ge=2, description="an open answer with more words is flagged as long")
 
 
 def load_providers_config(path: Path = CONFIG_DIR / "providers.yaml") -> ProvidersConfig:

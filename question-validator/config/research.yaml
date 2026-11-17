@@ -22,3 +22,7 @@ stored_max_age_days: 365             # time-sensitive questions (records, curren
 stored_first_skip_web: false         # true = skip the web searches when enough stored pages qualify (keep off for now)
 stored_skip_web_min: 2               # … how many stored pages are "enough"
 pdf_pages_per_document: 1            # a web PDF is stored page by page; this many best-matching pages are read
+
+# Prepare page: wording flags worked out in code (free) before checking — hints for a person, never a verdict.
+prepare_long_question_words: 25      # a question with more words is flagged "long question"
+prepare_long_answer_words: 8         # an open answer with more words is flagged "long answer"
