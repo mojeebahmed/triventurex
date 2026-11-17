@@ -21,7 +21,7 @@ import streamlit as st
 
 from qv.config import Settings, available_profiles, load_profile, load_research_config
 from qv.db.session import Database
-from qv.services import views, worker, workflow
+from qv.services import fact_pairs, views, worker, workflow
 from qv.services.workflow import STATUS_LABEL
 from qv.ui.help_text import help_for
 from qv.ui.table import render_table
@@ -1000,6 +1000,104 @@ def page_review() -> None:
                search="🔎 Search: words in the question or answer, or an id", on_open=open_question)
 
 
+PAIR_ICON = {"differ": "🔀", "undecided": "🆕", "same_fact": "🟰", "set_aside": "🙈", "all": "📋"}
+COLS_PAIR = {"similar": TEXT("Similar", width="small"), "kind": TEXT("Answers", width="small"),
+             "first": TEXT("Question 1", width="small"), "question 1": TEXT("Wording 1", width="large"),
+             "answer 1": TEXT("Answer 1", width="medium"), "result 1": TEXT("Result 1", width="small"),
+             "second": TEXT("Question 2", width="small"), "question 2": TEXT("Wording 2", width="large"),
+             "answer 2": TEXT("Answer 2", width="medium"), "result 2": TEXT("Result 2", width="small"),
+             "what differs": TEXT("What differs", width="large"), "your decision": TEXT("Your decision", width="small")}
+
+
+def page_pairs() -> None:
+    """Question pairs about the same fact, within and across files; the person decides per pair."""
+    page_title("Same fact", "pairs", "Questions about the same fact — in one file or across editions — and where "
+                                     "their answers or results differ. Free: no AI.")
+    pairs = fact_pairs.find_pairs(db)
+    if not pairs:
+        st.info("No two questions about the same fact were found.")
+        return
+    c = fact_pairs.counts(pairs)
+    default = next(g for g in ("differ", "undecided", "all") if c[g] or g == "all")
+    group = st.segmented_control("Show", list(fact_pairs.GROUPS), default=default, key="fp_group",
+                                 format_func=lambda g: f"{PAIR_ICON[g]} {fact_pairs.GROUPS[g]} ({c[g]})") or default
+    st.caption(fact_pairs.GROUP_HELP[group])
+    items = [p for p in pairs if fact_pairs.in_group(p, group)]
+
+    def open_pair(row: int, order: list[int]) -> None:
+        st.session_state["fp_keys"] = [items[i].key for i in order]
+        st.session_state["fp_pos"] = order.index(row) if row in order else 0
+        pair_dialog()
+
+    data_table([{"similar": f"{p.similarity:.0%}", "kind": p.kind, "first": p.a.ref.label,
+                 "question 1": p.a.question, "answer 1": p.a.answer, "result 1": p.a.verdict or "not checked",
+                 "second": p.b.ref.label, "question 2": p.b.question, "answer 2": p.b.answer,
+                 "result 2": p.b.verdict or "not checked", "what differs": "; ".join(p.differences) or "—",
+                 "your decision": fact_pairs.ACTION_LABEL[p.decision]} for p in items],
+               key=f"pairs_{group}", columns=COLS_PAIR, search="🔎 Search: words, an answer or an id",
+               on_open=open_pair)
+
+
+def _pair_side(q: fact_pairs.QInfo) -> None:
+    """One question of a pair, in its column."""
+    st.markdown(f"**{q.ref.label}** · {STATUS_LABEL.get(q.status, q.status)}")
+    st.markdown(q.question)
+    st.markdown(f"**Answer:** {q.answer}")
+    st.caption(" · ".join(x for x in (f"result {q.verdict}" if q.verdict else "not checked yet",
+                                       f"kind of fact: {q.claim_type.replace('_', ' ')}" if q.claim_type else "")
+                          if x))
+
+
+@st.dialog("Same fact?", width="large", on_dismiss="rerun")
+def pair_dialog() -> None:
+    """Two questions side by side, what differs, and the decision; Previous / Next through the list."""
+    keys: list[str] = st.session_state.get("fp_keys") or []
+    if not keys:
+        return
+    pos = popup_nav("fp_pos", len(keys), "pair")
+    p = {x.key: x for x in fact_pairs.find_pairs(db)}.get(keys[pos])
+    if p is None:
+        st.warning("This pair is gone — one of the questions was changed or removed.")
+        return
+    st.caption(f"Wording {p.similarity:.0%} similar · {p.kind}")
+    cols = st.columns(2, border=True)
+    for col, q in zip(cols, (p.a, p.b)):
+        with col:
+            _pair_side(q)
+    if p.differences:
+        st.markdown("**What differs**\n" + "\n".join(f"- {d}" for d in p.differences))
+    else:
+        st.caption("Same answer, and no difference in the results so far.")
+    st.markdown("**Your decision**")
+    hist = fact_pairs.decision_history(db, p.a.ref, p.b.ref)
+    if hist:
+        st.caption("So far: " + " · ".join(f"{h['when']} **{fact_pairs.ACTION_LABEL.get(h['action'], h['action'])}**"
+                                            + (f" ({h['reason']})" if h["reason"] else "") for h in hist))
+    reason = st.text_input("Reason (optional)", key=f"fp_reason_{p.key}", placeholder="Reason (optional)",
+                           label_visibility="collapsed")
+    last = pos >= len(keys) - 1
+
+    def decide(action: str) -> None:
+        fact_pairs.record_decision(db, p.a.ref, p.b.ref, action, reason=reason)
+        st.toast(f"{p.a.ref.label} ↔ {p.b.ref.label}: {fact_pairs.ACTION_LABEL.get(action, 'cleared')}"
+                 + ("" if last or action == "clear" else " — next pair"))
+        if not last and action != "clear":
+            st.session_state["fp_pos"] = pos + 1
+        st.rerun(scope="fragment")
+
+    b = st.columns(4)
+    if b[0].button("🟰 Same fact", type="primary", width="stretch",
+                   help="They ask the same thing — make them agree (Review page or the game files)"):
+        decide("same_fact")
+    if b[1].button("≠ Different facts", width="stretch", help="Similar wording, but they ask different things"):
+        decide("different_fact")
+    if b[2].button("🙈 Ignore", width="stretch", help="Not worth a look"):
+        decide("ignore")
+    if b[3].button("↺ Clear", width="stretch", disabled=not p.decision, help="Take your decision back"):
+        decide("clear")
+    st.caption("After a decision the next pair opens. Close the popup to see the updated list.")
+
+
 @st.dialog("Review a question", width="large", on_dismiss="rerun")
 def review_dialog(name: str) -> None:
     """One question: result, sources (one at a time) and the decision; Previous / Next through the list."""
@@ -1773,6 +1871,7 @@ PAGES = {
     "validate": st.Page(page_validate, title="Validate", icon=":material/fact_check:", url_path="validate"),
     "daily": st.Page(page_daily, title="Daily run", icon=":material/schedule:", url_path="daily"),
     "review": st.Page(page_review, title="Review", icon=":material/rate_review:", url_path="review"),
+    "pairs": st.Page(page_pairs, title="Same fact", icon=":material/compare_arrows:", url_path="same-fact"),
     "export": st.Page(page_export, title="Export", icon=":material/download:", url_path="export"),
     "batches": st.Page(page_batches, title="Batches", icon=":material/list_alt:", url_path="batches"),
     "files": st.Page(page_files, title="Files & versions", icon=":material/folder:", url_path="files"),
@@ -1784,7 +1883,7 @@ PAGES = {
 SECTIONS = {
     "": ["overview"],
     "Files": ["import"],
-    "Check questions": ["prepare", "validate", "daily", "review", "export"],
+    "Check questions": ["prepare", "validate", "daily", "review", "pairs", "export"],
     "Advanced": ["batches", "files", "knowledge", "library", "websites", "usage"],
 }
 #: Pages that work on one file show the "Working on" bar.

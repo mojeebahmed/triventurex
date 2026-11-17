@@ -638,6 +638,27 @@ def _update_kb() -> None:
 
 
 @app.command()
+def pairs(group: Annotated[str, typer.Option(help="differ | undecided | same_fact | set_aside | all")] = "differ",
+          limit: Annotated[int, typer.Option(help="At most this many pairs")] = 50) -> None:
+    """Questions about the same fact, within and across the files, and where their results differ (no AI)."""
+    from qv.services import fact_pairs
+    if group not in fact_pairs.GROUPS:
+        raise typer.BadParameter(f"group must be one of {', '.join(fact_pairs.GROUPS)}")
+    found = fact_pairs.find_pairs(_db())
+    c = fact_pairs.counts(found)
+    typer.echo("  ·  ".join(f"{label}: {c[g]}" for g, label in fact_pairs.GROUPS.items()))
+    shown = [p for p in found if fact_pairs.in_group(p, group)][:limit]
+    for p in shown:
+        typer.echo(f"\n{p.similarity:.0%} {p.kind}  {p.a.ref.label} ↔ {p.b.ref.label}"
+                   + (f"  [{fact_pairs.ACTION_LABEL[p.decision]}]" if p.decision else ""))
+        typer.echo(f"   {p.a.question}  →  {p.a.answer}  ({p.a.verdict or 'not checked'})")
+        typer.echo(f"   {p.b.question}  →  {p.b.answer}  ({p.b.verdict or 'not checked'})")
+        if p.differences:
+            typer.echo("   differs: " + "; ".join(p.differences))
+    typer.echo(f"\n{len(shown)} pair(s) shown. Decide on the web page: Check questions → Same fact.")
+
+
+@app.command()
 def runs() -> None:
     """List research runs."""
     from sqlalchemy import func, select

@@ -337,6 +337,27 @@ DB changes (Alembic): `fact_pairs` (two question refs = ext id + content hash + 
 hand-checked sample of 30 candidates, ≥ 80 % are real same-fact pairs. Tests: candidate generation, answer
 normalisation, decisions history.
 
+**Result (2026-11-17, branch `claude/qv-fact-pairs`) — built, no model calls.**
+- `qv/services/fact_pairs.py`: TF-IDF cosine over the question words (honorifics, accents, punctuation and stop words
+  removed; **question words kept** — *when* vs *where* is another fact), or over S1a's information need when both
+  were researched (the higher counts); answers equal after normalising, ≥ 90 % similar with the same numbers, one
+  inside the other only when it is ≥ 40 % of it or a year inside a short date, or an S1b accepted equivalent. A pair
+  = same answer and similarity ≥ 0.45, or **the same question with another answer**: similarity ≥ 0.8 and the same
+  meaningful words. What differs: answers, verdicts (both checked), claim types (both researched).
+- **Deviation from the plan:** no `fact_pairs` table — pairs are recomputed from the latest versions (< 1 s), so they
+  follow every new version and nothing stale is stored. Only `fact_pair_decisions` (Alembic 0007, append-only +
+  triggers; same_fact / different_fact / ignore / clear; the newest per pair wins; both questions by dataset + id +
+  content hash, so a reworded question makes the pair new again).
+- Page **Check questions → Same fact** (groups *Different result* · *Not decided yet* · *Same fact (you)* ·
+  *Different facts / ignored* · *All*; popup with both questions side by side, what differs, decision + history,
+  Help) and `qv pairs [--group …]`.
+- **Acceptance:** the known pair swab-quest #127 / #285 is found, and its third copy prophets-stories #133. On the
+  editions (2026-11-17 copy of the database): 37 pairs, all hand-checked — 33 real same-fact pairs (89 %, target
+  ≥ 80 %). Misses: football #23 / #55 (two Maradona goals of 1986), animal-safari #61 / #76 (biggest bird / biggest
+  eggs), prophets #108 / #212 and swab #380 / #384 (same story, other detail). A first version without question
+  words and with token-set matching found 59 pairs with ≈ 60 % precision ("when" / "where" pairs, a year inside a
+  long description). Only 1 pair has two different verdicts so far — most questions are not checked yet.
+
 ### Phase 6 — Facts and question generation
 
 **Delivers**: new questions from collected knowledge, safely. **Depends on**: phases 1, 3, 5.

@@ -188,6 +188,41 @@ Choose a time a little after the free limits reset (the page shows when).
 Terminal: `qv auto status` · `qv auto on --file <name>` · `qv auto off` · `qv auto run` (run today's work now).
 """),
     ],
+    "pairs": [
+        ("This page", """
+Questions about **the same fact** — in one file or in two editions — side by side, so the same fact gets the same
+answer and the same result everywhere (e.g. *Who was the mother of Hadhrat Isa?* is in Swab Quest twice and in
+Prophets' Stories once). Found in code from the wording and the answers — free, no AI; nothing is changed.
+
+**Show** — 🔀 *Different result* first: pairs whose answers, results or kind of fact differ. Click a row: both
+questions open side by side. Decide:
+
+- **🟰 Same fact** — they ask the same thing. Fix them on the Review page (or in the game files) so they agree.
+- **≠ Different facts** — similar wording, but they ask different things.
+- **🙈 Ignore** — not worth a look.
+- **↺ Clear** — take your decision back.
+
+Every decision is kept with its date (the newest counts) and belongs to both questions' exact wording: after one of
+them is reworded the pair is new again.
+"""),
+        ("How pairs are found", """
+1. **Wording** — the questions' words are compared (accents, punctuation and honorifics such as *Hadhrat* or *(as)*
+   removed; *who / when / where / how* kept). Where both were checked, the information each question asks for is
+   compared too.
+2. **Answer** — the same answer after the same clean-up (*Makkah* = *Mecca (Makkah)*, *1908* = *26 May 1908*), or one
+   the check listed as an accepted way of writing the other.
+3. A pair = the same answer with similar wording, **or the same question with another answer** — the case to fix
+   first.
+4. **What differs** — the answers, the results (when both were checked) and the kind of fact the check saw.
+
+On the editions (2026-11-17): 37 pairs, 33 of them really the same fact. Terminal: `qv pairs` (`--group all`).
+"""),
+        ("Tips", """
+- A pair where one question is verified and the other is not checked yet: the second can usually take the same
+  answer.
+- Two questions about the same fact in one edition: maybe one of them can go, or become a different fact.
+""" + TABLES),
+    ],
     "review": [
         ("Groups", """
 | Group | Meaning | What you do |

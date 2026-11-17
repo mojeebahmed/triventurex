@@ -36,6 +36,7 @@ it). Still, change nothing by hand — use `qv` for everything that writes.
 | `qv usage` | calls, tokens and errors per provider and model |
 | `qv quota` | free quota left today / this month |
 | `qv eval score 5` | how a run on an eval dataset compares with the expected verdicts |
+| `qv pairs` | questions about the same fact (within and across files) whose answers or results differ; `--group all` for every pair |
 | `qv kb status` / `qv kb search "first Jalsa Salana"` | the knowledge index: what it holds; search every stored page and book page |
 | `qv kb benchmark` | how well that search finds the pages research found useful (saved in `data/kb/benchmarks/`) |
 
@@ -77,6 +78,7 @@ api_calls, quota_usage                              (every call made, and the fr
 | `decisions` | your decision about one question (keep / edit / specialist / remove / later; on the Prepare page reword / wording_ok, counted apart from the review decision) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
 | `topics` | a saved search on the Knowledge page: a name, the search words and the filters — can be renamed and changed | `name` (unique), `query`, `filters_json` (`source_kinds`, `languages`, `tiers`, `edition`, `category`, `include_older`), `created_at`, `updated_at` |
 | `relevance_labels` | your judgement that a stored page / book page is relevant or not for a question — never changed, the newest per question + page counts (`clear` takes it back); used by `qv kb benchmark` | `dataset_id`, `ext_id`, `content_hash` (the wording it was made for), `doc_key` (`doc:<documents.id>` or `book:<book>/p<page>`), `label` (relevant · not_relevant · clear), `who`, `created_at` |
+| `fact_pair_decisions` | your decision about two questions that seem to be about the same fact (Check questions → Same fact) — never changed, the newest per pair counts (`clear` takes it back). The pairs themselves are not stored: they are worked out again from the questions each time | `a_dataset_id` / `a_ext_id` / `a_content_hash`, the same for `b_…` (the wording the decision was made for), `action` (same_fact · different_fact · ignore · clear), `reason`, `created_at` |
 | `api_calls` | every call to a model, search engine or website | `provider`, `model`, `stage`, `status` (ok / error / quota), `input_tokens`, `output_tokens`, `latency_ms`, `error` |
 | `quota_usage` | free quota used per provider and day / month | `used`, `exhausted` |
 | `alembic_version` | the database schema version (internal) | — |

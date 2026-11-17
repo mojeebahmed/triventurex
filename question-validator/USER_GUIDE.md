@@ -148,6 +148,14 @@ After editing, **Check my edits again** stores the edited file as a new version;
 the front of the next batch. You can also export without re-checking. Every decision is saved with its date
 (*Decided* group); you can change it at any time, and the imported file itself is never changed.
 
+## 🔀 Same fact (any time)
+
+**Check questions → Same fact** lists questions about the same fact — in one file or across editions (e.g. *Who was
+the mother of Hadhrat Isa?* is in Swab Quest twice and in Prophets' Stories once) — and shows where their answers or
+results differ. It is worked out in code from the wording and the answers: free, no AI, nothing is changed. Start
+with *Different result*; click a pair and decide **Same fact** (then make them agree on the Review page or in the
+game files), **Different facts** or **Ignore**. Decisions are kept with their date. Terminal: `qv pairs`.
+
 ## 4 · Export
 
 **✅ Ready** (on the Overview and Export pages) = questions ready for the game:

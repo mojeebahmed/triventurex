@@ -519,3 +519,37 @@ RELEVANCE_LABEL_TRIGGERS: dict[str, str] = {
         BEGIN SELECT RAISE(ABORT, 'relevance labels are append-only'); END
     """,
 }
+
+
+class FactPairDecision(Base):
+    """A person's decision about two questions that seem to be about the same fact (KB phase 5; append-only, the
+    newest per pair wins, `clear` takes it back). Each question is its exact content (dataset + `ext_id` +
+    `content_hash`); `a` is the first of the two in (dataset name, id, hash) order. Pairs themselves are not stored:
+    they are recomputed from the questions (qv/services/fact_pairs.py)."""
+
+    __tablename__ = "fact_pair_decisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    a_dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), index=True)
+    a_ext_id: Mapped[str] = mapped_column(String(50))
+    a_content_hash: Mapped[str] = mapped_column(String(64))
+    b_dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), index=True)
+    b_ext_id: Mapped[str] = mapped_column(String(50))
+    b_content_hash: Mapped[str] = mapped_column(String(64))
+    action: Mapped[str] = mapped_column(String(20))  # same_fact | different_fact | ignore | clear
+    reason: Mapped[str] = mapped_column(Text, default="")
+    who: Mapped[str] = mapped_column(String(100), default="you")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+#: Pair decisions are a history: never changed or deleted.
+FACT_PAIR_DECISION_TRIGGERS: dict[str, str] = {
+    "fact_pair_decisions_no_update": """
+        CREATE TRIGGER fact_pair_decisions_no_update BEFORE UPDATE ON fact_pair_decisions
+        BEGIN SELECT RAISE(ABORT, 'fact pair decisions are append-only'); END
+    """,
+    "fact_pair_decisions_no_delete": """
+        CREATE TRIGGER fact_pair_decisions_no_delete BEFORE DELETE ON fact_pair_decisions
+        BEGIN SELECT RAISE(ABORT, 'fact pair decisions are append-only'); END
+    """,
+}

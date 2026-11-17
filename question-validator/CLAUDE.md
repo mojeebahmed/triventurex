@@ -78,6 +78,8 @@ all other commands stay for power users and debugging.
    benchmark · 2 knowledge search page + saved topics · 3 stored pages first in research (+ web PDFs) · 4 embeddings /
    local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
    generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
+   **Phase 5 built 2026-11-17** (branch `claude/qv-fact-pairs`): Same fact page + `qv pairs` — see the plan's
+   phase-5 result note.
    **Phase 1 built 2026-11-17** (merged to main): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
    the plan's phase-1 result note. **Phase 2 built 2026-11-17** (merged): Knowledge
    page, topics, relevance judgements — see the plan's phase-2 result note. **Phase 3 code built 2026-11-17**
@@ -348,6 +350,16 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
   `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
 - `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
+
+## Implementation invariants (same fact — KB phase 5, 2026-11-17)
+- `qv/services/fact_pairs.py`, pure code: pairs are **recomputed** from every edition file's latest version (eval-…
+  left out), never stored; only `fact_pair_decisions` (Alembic 0007, append-only + triggers, newest per pair wins,
+  `clear` takes it back). A decision belongs to both questions' exact wording (dataset id + ext id + content hash,
+  stored in (dataset, id, hash) order; `pair_key` is order-free).
+- Question words (who / when / where / how) are kept in `tokens` — dropping them pairs "when did he die" with "where did
+  he die". "Same question, other answer" needs identical meaningful words; answer containment is limited
+  (`answers_match`). Thresholds `SAME_ANSWER_MIN`, `SAME_QUESTION_MIN`, `ANSWER_MIN` at the top of the module.
+- Page `pairs` (Check questions → Same fact, not a per-file page), `qv pairs`. Decisions change no result.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,
