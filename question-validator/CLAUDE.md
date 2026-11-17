@@ -10,6 +10,7 @@ A **separate Python project** that lives inside the Triventurex repo. The game r
 - `ARCHITECTURE.md` — stack, database design, workflow, API strategy, phased plan (§6). Where §3 differs from
   METHODOLOGY.md, METHODOLOGY.md wins.
 - `prompts/` — prompt + JSON schema per stage. Prompts are versioned: change a prompt → new version file.
+- `KNOWLEDGE_BASE_PLAN.md` — the knowledge base plan and its 6-phase roadmap (start here for any phase).
 - `USER_GUIDE.md` — the simple four-step workflow for Mojeeb (web page + `qv status` / `qv next` / `qv export`).
 - `DATABASE.md` — tables in plain words, how to inspect the database, example queries. Update it when a table
   or an inspecting command changes.
@@ -71,18 +72,12 @@ all other commands stay for power users and debugging.
    (pypdf; OCR with Tesseract `urd` for scanned/Nastaliq Urdu), local full-text search (SQLite FTS5) and
    cross-language retrieval (Urdu books, English questions). Citations as book + page; quotes stay in the original
    language, translations are display only, never evidence. Books stay local; exports carry short excerpts only.
-4. **Reuse of stored research** — plan agreed to keep (2026-11-16; 290 stored pages ≈ 3 M chars, 596 quotes for 67
-   questions at that time). Build in this order:
-   - **A. Stored pages first**: a full-text index (FTS5, like the library) over every stored document; per question
-     search it with the same answer-blind queries as the web (S1a core + blind queries) and send the best stored
-     pages to S3 in mode A next to the web results (found_by `via: stored`). Saves search requests and fetches,
-     grows with every batch. Show "found in stored pages" as a source on the page.
-   - **B. Same question, same judgement**: find identical / near-identical questions within and across editions;
-     flag differing claim types or verdicts (e.g. #127 vs #285) in a new Review group.
-   - **C. Suggestions from stored passages** (later): notes and new questions from stored quotes — each suggestion
-     carries its source quote, goes through the same validation + duplicate check + Mojeeb's approval, exported as
-     new rows with new ids, never written into `game_editions/`.
-
+4. **Knowledge base** — the agreed plan is **`KNOWLEDGE_BASE_PLAN.md`** (2026-11-17, after two review rounds with
+   ChatGPT): what exists, decisions + risks, and a 6-phase roadmap, each phase its own session and branch:
+   1 unified FTS5 index over all stored documents + book pages (`data/kb/index.sqlite`, a rebuildable cache) + retrieval
+   benchmark · 2 knowledge search page + saved topics · 3 stored pages first in research (+ web PDFs) · 4 embeddings /
+   local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
+   generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
 (`not_text`); refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
