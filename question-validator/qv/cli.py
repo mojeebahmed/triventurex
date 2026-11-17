@@ -22,6 +22,9 @@ library_app = typer.Typer(no_args_is_help=True, help="Book library (config/libra
 app.add_typer(library_app, name="library")
 auto_app = typer.Typer(no_args_is_help=True, help="Continue automatically every day (macOS).")
 app.add_typer(auto_app, name="auto")
+kb_app = typer.Typer(no_args_is_help=True, help="Knowledge index: one search over every stored page and book page "
+                                                "(data/kb/index.sqlite, a rebuildable cache).")
+app.add_typer(kb_app, name="kb")
 
 _state: dict[str, Settings] = {}
 
@@ -373,6 +376,7 @@ def library_index() -> None:
         typer.echo(f"  needs OCR {book}: the PDF's text is not usable (text quality {q:.2f}) — skipped")
     for book in rep.missing:
         typer.echo(f"  missing   {book}: put its PDF in {lib.dir}")
+    _update_kb()
 
 
 @library_app.command("status")
@@ -572,6 +576,13 @@ def _print_run_report(report) -> None:  # noqa: ANN001
     if report.stopped_reason:
         typer.echo(f"Stopped: {report.stopped_reason}")
     typer.echo(f"Details: qv evidence {report.run_id} <id>   ·   web view: qv ui")
+    _update_kb()
+
+
+def _update_kb() -> None:
+    """Bring the knowledge index up to date after a batch or a library change (never fails the command)."""
+    from qv.kb.index import update_quietly
+    typer.echo(update_quietly(_db(), _settings().data_dir))
 
 
 @app.command()
@@ -781,6 +792,86 @@ def _edition_sources() -> dict:
     from qv.evaluation import EDITIONS_DIR, load_questions
     return {p.parent.name: load_questions(p) for p in sorted(EDITIONS_DIR.glob("*/questions.csv"))
             if p.parent.name != "template"}
+
+
+@kb_app.command("index")
+def kb_index() -> None:
+    """Add new or changed documents and book pages to the knowledge index (fast when nothing is new)."""
+    from qv.kb.index import index_path, update_index
+    settings = _settings()
+    typer.echo(update_index(_db(), settings.data_dir).line())
+    typer.echo(f"Index: {index_path(settings.data_dir)}")
+
+
+@kb_app.command("rebuild")
+def kb_rebuild() -> None:
+    """Build the knowledge index from scratch (it is a cache; nothing is lost)."""
+    from qv.kb.index import update_index
+    typer.echo(update_index(_db(), _settings().data_dir, rebuild=True).line())
+
+
+@kb_app.command("status")
+def kb_status() -> None:
+    """What the knowledge index holds."""
+    from qv.kb.index import KnowledgeIndex
+    idx = KnowledgeIndex.for_data_dir(_settings().data_dir)
+    st = idx.status()
+    idx.close()
+    typer.echo(f"{st['documents']} documents ({st['search_results']} search results after grouping, "
+               f"{st['older_versions']} older versions), {st['chunks']} chunks, {st['characters']:,} characters")
+    typer.echo("  by source:   " + ", ".join(f"{k} {v}" for k, v in sorted(st["by_source"].items())))
+    typer.echo("  by language: " + ", ".join(f"{k} {v}" for k, v in sorted(st["by_language"].items())))
+    typer.echo(f"  search-only translations: {st['translation_rows']} pages · chunker v{st['chunker_version']} · "
+               f"updated {st['updated_at'] or 'never — run `qv kb index`'}")
+
+
+@kb_app.command("search")
+def kb_search(query: Annotated[str, typer.Argument(help='Words; a "quoted phrase" must appear as written')],
+              source: Annotated[list[str] | None, typer.Option(help="web | wikipedia | quran | book (repeatable)")]
+              = None,
+              lang: Annotated[list[str] | None, typer.Option(help="en | de | ar | ur (repeatable)")] = None,
+              tier: Annotated[list[str] | None, typer.Option(help="P | S | T | X (repeatable)")] = None,
+              edition: Annotated[str | None, typer.Option(help="Read for a question of this edition")] = None,
+              older: Annotated[bool, typer.Option(help="Include older versions of pages")] = False,
+              limit: int = 10) -> None:
+    """Search everything stored: web pages, Wikipedia, Qur'an verses and book pages."""
+    from qv.kb.index import KnowledgeIndex
+    from qv.kb.search import SearchFilters, search
+    idx = KnowledgeIndex.for_data_dir(_settings().data_dir)
+    hits = search(idx, query, limit=limit, chunks_per_doc=1,
+                  filters=SearchFilters(source_kinds=source or [], languages=lang or [], tiers=tier or [],
+                                        edition=edition, include_older=older))
+    idx.close()
+    for h in hits:
+        flags = " (older version)" if not h.is_current else ""
+        flags += " (found through its translation)" if h.via_translation else ""
+        typer.echo(f"{h.score:5.1f}  [{h.tier}] {h.lang:<5} {h.title[:80]}{flags}")
+        typer.echo(f"       {h.url}" + (f"  — also at {', '.join(h.also_at[:2])}" if h.also_at else ""))
+        if h.chunks:
+            typer.echo("       " + " ".join(h.chunks[0].text.split())[:220])
+    if not hits:
+        typer.echo("Nothing found (is the index built? `qv kb index`)")
+
+
+@kb_app.command("benchmark")
+def kb_benchmark(save: Annotated[bool, typer.Option(help="Save the report in data/kb/benchmarks/")] = True) -> None:
+    """Measure retrieval on labels from stored research (no model calls, no network)."""
+    from qv.kb.benchmark import compare, run_benchmark, summary_lines
+    from qv.kb.index import update_index
+    settings, db = _settings(), _db()
+    typer.echo("Index: " + update_index(db, settings.data_dir).line())
+    report, path = run_benchmark(db, settings.data_dir, save=save)
+    for line in summary_lines(report):
+        typer.echo(line)
+    names = list(report["systems"])
+    for other in names[1:]:
+        c = compare(report, names[0], other)
+        typer.echo(f"{other} vs {names[0]}: Recall@10 {c['recall@10']['diff']:+.3f} {c['recall@10']['ci95']}, "
+                   f"condensed MRR {c['condensed_mrr']['diff']:+.3f}, condensed nDCG@10 "
+                   f"{c['condensed_ndcg@10']['diff']:+.3f} → {'better' if c['better'] else 'not shown to be better'}"
+                   + (" (unjudged share > 30 %: judge a sample first)" if c["needs_judging"] else ""))
+    if path:
+        typer.echo(f"Saved: {path}")
 
 
 if __name__ == "__main__":

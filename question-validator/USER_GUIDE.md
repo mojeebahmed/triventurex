@@ -192,6 +192,14 @@ page. It uses the free Flash-Lite requests (one per page) and continues the next
 
 Books stay on your Mac; exports only carry short quotes.
 
+## Knowledge index
+
+Everything the checks have read — web pages, Wikipedia, Qur'an verses — and every page of your books is kept in one
+search index on your Mac. It updates itself after every batch. Terminal: `qv kb search "first Jalsa Salana"`
+(add `--source book`, `--lang de`, `--tier P`, `--edition swab-quest` to narrow it), `qv kb status`. A search page
+on the web page comes next. `qv kb benchmark` measures how well the search finds the pages that turned out useful —
+for deciding later whether new search methods help.
+
 ## Websites
 
 The **Websites** page (Advanced) decides which sites the checks may read and how much to trust them. Your marks

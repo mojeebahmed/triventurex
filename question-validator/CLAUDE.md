@@ -78,6 +78,8 @@ all other commands stay for power users and debugging.
    benchmark · 2 knowledge search page + saved topics · 3 stored pages first in research (+ web PDFs) · 4 embeddings /
    local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
    generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
+   **Phase 1 built 2026-11-17** (branch `feat/qv-kb-index`): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
+   the plan's phase-1 result note.
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
 (`not_text`); refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
@@ -237,6 +239,24 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
 - Refused list = `fetches` failures grouped by domain (web PDFs excluded — they are book candidates); note that
   failures older than `FAILURE_RETRY_AFTER` are deleted when retried, so the list shows recent problems.
   "Possibly good" = web domains with grounded quotes that sources.yaml does not list and the person has not marked.
+
+## Implementation invariants (knowledge index — KB phase 1, 2026-11-17)
+- `qv/kb/`: `text.py` (normalize_url, chunk_text + `CHUNKER_VERSION`, guess_language — pure), `index.py`
+  (`<data_dir>/kb/index.sqlite`: kb_docs / kb_chunks / kb_fts / meta), `search.py` (BM25, filters, one result per
+  `canon_key`), `benchmark.py` (labels from stored research, metrics, decision rule `compare`).
+- The index is a **cache**: derived only from `validation.db` + the library index; no Alembic; `SCHEMA_VERSION`
+  change → dropped and rebuilt. Anything a person decides or that cost model requests belongs in Alembic instead.
+- Doc keys: `doc:<documents.id>`, `book:<book>/p<page>`. A `library://` document is indexed once, as its book page
+  (alias in `meta.aliases`). Chunk offsets always reproduce the stored text (test); never alter text when chunking.
+- `canon_key` = union of "same normalised URL" (versions) and "same content hash" (copies); search returns one hit per
+  canon key, the benchmark judges canon keys. Older versions: `is_current = 0`, hidden by default, never deleted.
+- Metadata (tier from `registry_with_marks`, language, current, canon, editions / categories / question count) is
+  recomputed on every update; only new / changed texts or a new `CHUNKER_VERSION` are re-chunked.
+- Translations of book pages are extra FTS rows with `chunk_id NULL`: they find the page, the hit shows the original.
+- The CLI updates the index after every batch (`_print_run_report` → `update_quietly`, never raises) and after
+  `qv library index`. Commands: `qv kb index | rebuild | status | search | benchmark`.
+- Benchmark labels: relevant = read, `about_right_subject`, ≥ 1 passage with `target = 'need'`; not relevant =
+  off-topic, or read without any passage. Questions keyed `<edition>#<id>@<hash8>`; queries = S1a only.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,

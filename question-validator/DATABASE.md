@@ -36,6 +36,8 @@ it). Still, change nothing by hand — use `qv` for everything that writes.
 | `qv usage` | calls, tokens and errors per provider and model |
 | `qv quota` | free quota left today / this month |
 | `qv eval score 5` | how a run on an eval dataset compares with the expected verdicts |
+| `qv kb status` / `qv kb search "first Jalsa Salana"` | the knowledge index: what it holds; search every stored page and book page |
+| `qv kb benchmark` | how well that search finds the pages research found useful (saved in `data/kb/benchmarks/`) |
 
 ## The tables in plain words
 
@@ -106,7 +108,7 @@ sqlite3 -header -column data/validation.db "select p.mode, d.domain, substr(p.qu
 ```
 
 ```bash
-# Search our own saved pages for a word (the start of a knowledge base)
+# Search our own saved pages for a word (simplest way; `qv kb search` ranks results)
 sqlite3 -header -column data/validation.db "select id, domain, substr(title, 1, 60) title from documents where text like '%Maryam%'"
 ```
 
@@ -141,8 +143,26 @@ under that earlier run's id — the last query then shows only the stages that w
 ## Our own knowledge base (what exists today)
 
 Every page we fetch is saved in full in `documents`, and every quote that passed the exact-match check in
-`passages`. Search results are kept in `search_queries` (reused until `expires_at`). So far this is an
-**archive**: a new question still searches the web, and a page found for one question is not offered to another.
-Turning it into a searchable knowledge base (our pages + the PDF library first, the web only when they are not
-enough; consistency across questions; suggested notes and questions) is next-work item 4 in
-[CLAUDE.md](CLAUDE.md).
+`passages`. Search results are kept in `search_queries` (reused until `expires_at`).
+
+**The knowledge index** (`data/kb/index.sqlite`, phase 1 of [KNOWLEDGE_BASE_PLAN.md](KNOWLEDGE_BASE_PLAN.md)) makes
+all of it searchable in one place: every stored document plus every page of the searchable library books, cut into
+chunks of about 1,200 characters and indexed with SQLite FTS5 (BM25). It is a **cache** — built only from
+`validation.db` and `data/library/index.sqlite`, updated after every batch (`qv kb index`), and safe to delete
+(`qv kb rebuild` builds it again in about a second). It is not in the Alembic database and has no migrations.
+
+| Table (index.sqlite) | What it holds |
+|---|---|
+| `kb_docs` | one row per document (`doc:<documents.id>`) or book page (`book:<book>/p<page>`): URL, normalised URL, title, trust tier, language guess, current / older version, `canon_key` (its search group), which editions / categories / how many questions read it |
+| `kb_chunks` | the chunks: document, start / end offsets into the stored text (`text == stored[start:end]`), page |
+| `kb_fts` | the FTS5 index: chunk text (`kind = original`) and search-only translations of book pages (`kind = en` …) |
+| `meta` | schema version, last update, `library://` documents that are indexed as their book page |
+
+Same page, several URLs (tracking parameters, `www.`, http/https …) or the same text at two sites → one search
+result with "also at …". A page fetched again with new text keeps the old version (passages still point at it);
+search shows the newest unless older versions are asked for.
+
+```bash
+# The ten biggest documents in the index
+sqlite3 -header -column data/kb/index.sqlite "select doc_key, tier, lang, char_len, substr(title, 1, 50) title from kb_docs order by char_len desc limit 10"
+```

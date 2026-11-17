@@ -1,8 +1,8 @@
 # Knowledge base — plan
 
 *2026-11-17. One plan for the question validator's knowledge base: what exists, what was decided (after two review
-rounds with ChatGPT), and the phased roadmap. Nothing of the roadmap is implemented yet; each phase is meant to be
-built in its own session and branch.*
+rounds with ChatGPT), and the phased roadmap. Phase 1 is built (branch `feat/qv-kb-index`, result note below); each
+phase is meant to be built in its own session and branch.*
 
 ## 1. What exists
 
@@ -185,6 +185,30 @@ Acceptance
 
 Tests: chunker (boundaries, offsets, pages), URL normalisation table, version/current grouping, content-hash
 grouping, incremental indexing, metric functions on hand-made rankings (incl. condensed lists and coverage).
+
+**Result (2026-11-17, branch `feat/qv-kb-index`)** — `qv/kb/` (text, index, search, benchmark), `qv kb index |
+rebuild | status | search | benchmark`, `tests/test_kb.py` (24 tests).
+- Index of today's data: 787 documents (265 web, 3 Wikipedia, 22 Qur'an, 497 book pages), 762 search results after
+  grouping, 9 older versions, 3,833 chunks, 75 search-only translation rows. Full build 0.5 s; an update with nothing
+  new 0.2 s. Every chunk's offsets reproduce its stored text (checked on all chunks of the real data and in tests).
+- Book search vs today's library search on 10 known queries: 9 of 10 share ≥ 2 of the top 3 pages; where the top
+  page differs, the new top page contains the asked words and the old one did not ("Noah ark": old p. 317 has neither
+  word, new p. 266 has both; "Promised Messiah birth Qadian": new p. 255 has *born* and *Qadian*, old p. 254 neither)
+  → same or better (chunk-level BM25 instead of whole pages).
+- **Baseline** (`data/kb/benchmarks/2026-11-17-012320.json`; 61 questions, 54 with a relevant document, 180 relevant /
+  93 not-relevant labels):
+
+  | system | Recall@5 | Recall@10 | MRR | nDCG@10 | cond. MRR | cond. nDCG@10 | unjudged@10 |
+  |---|---|---|---|---|---|---|---|
+  | bm25-need (S1a information need) | 0.63 | 0.79 | 0.68 | 0.65 | 0.93 | 0.91 | 0.70 |
+  | bm25-queries (all blind queries as one) | 0.67 | 0.82 | 0.66 | 0.66 | 0.89 | 0.91 | 0.68 |
+  | bm25-queries-rrf (each query, fused) | 0.71 | 0.87 | 0.69 | 0.70 | 0.91 | 0.92 | 0.67 |
+
+  RRF wins Recall@10 over the need alone (+0.08, interval 0.02–0.15) but not condensed MRR / nDCG, and its unjudged
+  share is ≈ 0.67 > 30 % → by the decision rule nothing is "better" yet; a sample of unjudged results needs judging
+  (phase 2's judging tool). For phase 3, per-query search fused with RRF is the natural default.
+- Not done (optional in the plan): the `documents.canonical_url / published` migration — new fetches still store
+  only the final URL. Normalised URLs + content-hash groups cover today's 16 copies and 9 versions.
 
 ### Phase 2 — Knowledge search page
 
