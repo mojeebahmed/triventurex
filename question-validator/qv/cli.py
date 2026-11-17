@@ -927,17 +927,31 @@ def kb_search(query: Annotated[str, typer.Argument(help='Words; a "quoted phrase
 
 
 @kb_app.command("benchmark")
-def kb_benchmark(save: Annotated[bool, typer.Option(help="Save the report in data/kb/benchmarks/")] = True) -> None:
-    """Measure retrieval on labels from stored research (no model calls, no network)."""
+def kb_benchmark(save: Annotated[bool, typer.Option(help="Save the report in data/kb/benchmarks/")] = True,
+                 vectors: Annotated[str | None, typer.Option(
+                     help="Also measure embeddings of this local model (after `qv kb embed --model …`), "
+                          "or 'hashing' (pure code)")] = None) -> None:
+    """Measure retrieval on labels from stored research (no cloud model calls)."""
     from qv.kb.benchmark import compare, run_benchmark, summary_lines
-    from qv.kb.index import update_index
+    from qv.kb.index import KnowledgeIndex, update_index
     settings, db = _settings(), _db()
     typer.echo("Index: " + update_index(db, settings.data_dir).line())
     from qv.services.knowledge import benchmark_labels
     extra = benchmark_labels(db)
     if extra:
         typer.echo(f"Your judgements from the Knowledge page: {len(extra)} (added to the stored-research labels)")
-    report, path = run_benchmark(db, settings.data_dir, save=save, extra_labels=extra)
+    vs = None
+    if vectors:
+        from qv.kb.vectors import VectorSearch, VectorStore
+        idx, store = KnowledgeIndex.for_data_dir(settings.data_dir), VectorStore.for_data_dir(settings.data_dir)
+        try:
+            vs = VectorSearch(idx, store, _embedder(vectors))
+        finally:
+            idx.close()
+            store.close()
+        typer.echo(f"Vectors ({vs.embedder.name}): {vs.size} chunks"
+                   + (f", {vs.missing} without a vector yet (qv kb embed)" if vs.missing else ""))
+    report, path = run_benchmark(db, settings.data_dir, save=save, extra_labels=extra, vectors=vs)
     for line in summary_lines(report):
         typer.echo(line)
     names = list(report["systems"])
@@ -949,6 +963,43 @@ def kb_benchmark(save: Annotated[bool, typer.Option(help="Save the report in dat
                    + (" (unjudged share > 30 %: judge a sample first)" if c["needs_judging"] else ""))
     if path:
         typer.echo(f"Saved: {path}")
+
+
+def _embedder(model: str):  # noqa: ANN202
+    """`hashing` (pure code) or a local Ollama embedding model."""
+    from qv.kb.vectors import HashingEmbedder, OllamaEmbedder
+    return HashingEmbedder() if model == "hashing" else OllamaEmbedder(model)
+
+
+@kb_app.command("embed")
+def kb_embed(model: Annotated[str, typer.Option(help="Local Ollama embedding model (e.g. bge-m3; pull it first with "
+                                                     "`ollama pull bge-m3`), or 'hashing' (pure code)")] = "bge-m3",
+             limit: Annotated[int | None, typer.Option(help="At most this many chunks now (resumable)")] = None,
+             batch: Annotated[int, typer.Option(help="Chunks per request")] = 16) -> None:
+    """KB phase 4: embed the knowledge index's chunks with a LOCAL model (free; vectors in data/kb/vectors.sqlite)."""
+    from qv.kb.index import KnowledgeIndex, update_index
+    from qv.kb.vectors import EmbedderUnavailable, VectorStore, embed_index
+    settings, db = _settings(), _db()
+    typer.echo("Index: " + update_index(db, settings.data_dir).line())
+    idx, store = KnowledgeIndex.for_data_dir(settings.data_dir), VectorStore.for_data_dir(settings.data_dir)
+    last = [0.0]
+
+    def progress(done: int, total: int) -> None:
+        import time as _t
+        if _t.monotonic() - last[0] > 10 or done == total:
+            last[0] = _t.monotonic()
+            typer.echo(f"  {done} / {total}")
+
+    try:
+        report = embed_index(idx, store, _embedder(model), batch=batch, limit=limit, progress=progress)
+    except EmbedderUnavailable as exc:
+        typer.echo(f"Not possible: {exc}")
+        raise typer.Exit(1) from exc
+    finally:
+        idx.close()
+        store.close()
+    typer.echo(report.line())
+    typer.echo(f"Next: qv kb benchmark --vectors {model}")
 
 
 if __name__ == "__main__":

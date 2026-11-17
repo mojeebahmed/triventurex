@@ -323,6 +323,26 @@ DB changes: index only. Acceptance: a written result in `data/kb/benchmarks/` + 
 embeddings (hybrid) **only** if the decision rule says so; otherwise remove `kb_vectors` code paths. A stage moves local
 only if its evaluation-set numbers are not worse.
 
+**Result — code (2026-11-17, branch `claude/qv-kb-phase4`); the measurement is still to run.**
+- `qv/kb/vectors.py`: `OllamaEmbedder` (local `/api/embed`, never a cloud model), `HashingEmbedder` (pure code: test
+  double and a floor), `VectorStore`, `VectorSearch` (brute-force cosine in numpy, best chunk per `canon_key`).
+- **Deviation:** `kb_vectors` lives in its own cache file `data/kb/vectors.sqlite`, keyed by (model, chunk-text
+  sha256), not in `index.sqlite` by chunk id — so `qv kb rebuild` / a `SCHEMA_VERSION` change keeps the vectors (local
+  embedding is the slow part), and copies of a page share one vector.
+- Benchmark: `qv kb benchmark --vectors <model>` adds `vec-need`, `vec-queries-rrf`, `hybrid-rrf` (RRF of BM25-RRF and
+  vector-RRF) and prints the decision rule for vectors and hybrid vs `bm25-queries-rrf`. English → German set
+  (`language_sets`): questions with a book page a person marked relevant on the Knowledge page, grouped by the page's
+  language (`en→de`, control `en→en`), only the marked pages count as relevant; systems `fts-original` (search-only
+  translations left out — `search(original_only=True)`), `fts+translation` (today), vectors, hybrid.
+- Plumbing run on a copy of the database with `hashing-512`: 7,103 current chunks (6,990 different texts) embedded in
+  4 s, vectors 7.2 MB, benchmark 23 s. The hashing floor is worse than BM25 (recall@10 −0.20; hybrid −0.10), as
+  expected without word meaning — it only proves the plumbing.
+- **To do (free, needs Mojeeb):** `ollama pull bge-m3` (≈ 1.2 GB download) → `qv kb embed --model bge-m3` (est. a few
+  minutes for 7 k chunks; time and memory are printed) → `qv kb benchmark --vectors bge-m3`; mark 30–40 German book
+  pages (+ 10 English controls) as relevant for the en→de set; then write the decision note here and either adopt
+  hybrid for stored pages or delete `vectors.py`. Overnight eval runs with local models per stage still spend Gemini
+  quota on the other stages, so they wait for the quota plan.
+
 ### Phase 5 — Same fact, different result (duplicates)
 
 **Delivers**: consistency across editions. **Depends on**: phase 1 (phase 4 if embeddings were adopted).

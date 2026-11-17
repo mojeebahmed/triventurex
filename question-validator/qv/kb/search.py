@@ -98,8 +98,9 @@ def build_match(query: str) -> str | None:
 
 
 def search(idx: KnowledgeIndex, query: str, *, filters: SearchFilters | None = None, limit: int = 20,
-           chunks_per_doc: int = 2) -> list[DocHit]:
-    """The best documents for a query, one per document group, best first."""
+           chunks_per_doc: int = 2, original_only: bool = False) -> list[DocHit]:
+    """The best documents for a query, one per document group, best first. `original_only` leaves the search-only
+    translations out (KB phase 4: original text vs translation)."""
     match = build_match(query)
     if match is None:
         return []
@@ -111,6 +112,8 @@ def search(idx: KnowledgeIndex, query: str, *, filters: SearchFilters | None = N
     best: dict[str, tuple[float, list[int], bool]] = {}     # canon → (score, chunk ids, only via translation)
     winner: dict[str, str] = {}
     for chunk_id, doc_key, kind, score in rows:
+        if original_only and kind != "original":
+            continue
         if doc_key not in docs:
             docs[doc_key] = c.execute("SELECT * FROM kb_docs WHERE doc_key = ?", (doc_key,)).fetchone()
         d = docs[doc_key]
@@ -144,6 +147,7 @@ def search(idx: KnowledgeIndex, query: str, *, filters: SearchFilters | None = N
 
 
 def ranked_keys(idx: KnowledgeIndex, query: str, *, filters: SearchFilters | None = None,
-                limit: int = 100) -> list[str]:
+                limit: int = 100, original_only: bool = False) -> list[str]:
     """Canon keys only, best first (for the benchmark)."""
-    return [h.canon_key for h in search(idx, query, filters=filters, limit=limit, chunks_per_doc=0)]
+    return [h.canon_key for h in search(idx, query, filters=filters, limit=limit, chunks_per_doc=0,
+                                        original_only=original_only)]

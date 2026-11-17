@@ -256,6 +256,14 @@ searches still run as before; a setting (`stored_first_skip_web` in `config/rese
 them when enough stored pages are found. After a batch the terminal shows *searches per question* and *stored pages
 added per question*.
 
+**Embeddings (an experiment, free and local)** — would a meaning-based search find more than word search, for example
+an English question's answer in the German book? To measure it: `ollama pull bge-m3` (a one-time ≈ 1.2 GB download),
+then `qv kb embed --model bge-m3` (a few minutes on this Mac; it can stop and continue) and
+`qv kb benchmark --vectors bge-m3`. The benchmark prints a *Decision rule* line: only if it says **BETTER** would
+the checks start to use it. For the English → German comparison, mark the right page of the German book as
+*✅ Relevant* for 30–40 questions on the Knowledge page (plus ~10 English book pages as a control); the benchmark
+then adds an *en→de* line.
+
 **PDFs on websites** are now read too, page by page (each page is its own source with the site's trust); a PDF
 whose text is unreadable is marked *needs OCR* and not used. `qv kb benchmark` also reports the *stored-page
 recall* (how often the stored pages step would pick a page that turned out useful).

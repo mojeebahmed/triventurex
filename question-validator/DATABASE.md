@@ -38,7 +38,8 @@ it). Still, change nothing by hand — use `qv` for everything that writes.
 | `qv eval score 5` | how a run on an eval dataset compares with the expected verdicts |
 | `qv pairs` | questions about the same fact (within and across files) whose answers or results differ; `--group all` for every pair |
 | `qv kb status` / `qv kb search "first Jalsa Salana"` | the knowledge index: what it holds; search every stored page and book page |
-| `qv kb benchmark` | how well that search finds the pages research found useful (saved in `data/kb/benchmarks/`) |
+| `qv kb benchmark` | how well that search finds the pages research found useful (saved in `data/kb/benchmarks/`); `--vectors bge-m3` also measures embeddings + hybrid and applies the decision rule |
+| `qv kb embed --model bge-m3` | (KB phase 4) embeds the index's chunks with a local Ollama model — free, resumable |
 
 ## The tables in plain words
 
@@ -154,6 +155,10 @@ all of it searchable in one place: every stored document plus every page of the 
 chunks of about 1,200 characters and indexed with SQLite FTS5 (BM25). It is a **cache** — built only from
 `validation.db` and `data/library/index.sqlite`, updated after every batch (`qv kb index`), and safe to delete
 (`qv kb rebuild` builds it again in about a second). It is not in the Alembic database and has no migrations.
+
+**Embeddings** (KB phase 4, an experiment): `data/kb/vectors.sqlite`, table `kb_vectors` — one float16 vector per
+(model, chunk text sha256), made by a **local** model (`qv kb embed --model bge-m3`). Also a cache, kept apart from
+the index so `qv kb rebuild` does not throw hours of local embedding away; safe to delete.
 
 | Table (index.sqlite) | What it holds |
 |---|---|

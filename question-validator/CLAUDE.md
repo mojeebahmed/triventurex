@@ -78,7 +78,8 @@ all other commands stay for power users and debugging.
    benchmark · 2 knowledge search page + saved topics · 3 stored pages first in research (+ web PDFs) · 4 embeddings /
    local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
    generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
-   **Phase 5 built 2026-11-17** (branch `claude/qv-fact-pairs`): Same fact page + `qv pairs` — see the plan's
+   **Phase 4 code built 2026-11-17** (branch `claude/qv-kb-phase4`): local embeddings + benchmark plumbing; the
+   bge-m3 measurement waits for Mojeeb (plan's phase-4 note). **Phase 5 built 2026-11-17** (branch `claude/qv-fact-pairs`): Same fact page + `qv pairs` — see the plan's
    phase-5 result note.
    **Phase 1 built 2026-11-17** (merged to main): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
    the plan's phase-1 result note. **Phase 2 built 2026-11-17** (merged): Knowledge
@@ -351,6 +352,13 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
   `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
 - `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
+
+## Implementation invariants (embeddings — KB phase 4 code, 2026-11-17)
+- `qv/kb/vectors.py` uses **local** models only (Ollama `/api/embed`) or pure code (`hashing`); never a cloud model,
+  never pulls a model itself. Vectors: `data/kb/vectors.sqlite` (cache; key = model + chunk-text sha256, float16 unit
+  vectors) — survives `qv kb rebuild`. Research does not use vectors; adopt only when `benchmark.compare` says better.
+- `qv kb embed --model …` (resumable, `--limit`), `qv kb benchmark --vectors …`; `search(original_only=True)` leaves
+  the search-only translations out (en→de comparison).
 
 ## Implementation invariants (S3 retry, 2026-11-17)
 - `_extract_document`: when ≥ 1 quote of a window is not verbatim (`ungrounded_quotes`), S3 is asked **once more** for

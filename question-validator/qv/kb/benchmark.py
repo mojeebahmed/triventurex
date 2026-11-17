@@ -20,12 +20,16 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text as sql
 
 from qv.db.session import Database
 from qv.kb.index import KnowledgeIndex
 from qv.kb.search import ranked_keys
+
+if TYPE_CHECKING:
+    from qv.kb.vectors import VectorSearch
 
 DEPTH = 100          # ranked list length per question
 RRF_K = 60
@@ -166,6 +170,54 @@ def default_systems(idx: KnowledgeIndex) -> dict[str, Callable[[BenchQuestion], 
     }
 
 
+def vector_systems(idx: KnowledgeIndex, vs: VectorSearch) -> dict[str, Callable[[BenchQuestion], list[str]]]:
+    """KB phase 4: embeddings alone (the need; each blind query fused) and hybrid = RRF of BM25-RRF and vector-RRF."""
+    def vec_rrf(q: BenchQuestion) -> list[str]:
+        return rrf([vs.ranked_keys(x, DEPTH) for x in (q.queries or [q.need])])
+
+    def bm25_rrf(q: BenchQuestion) -> list[str]:
+        return rrf([ranked_keys(idx, x, limit=DEPTH) for x in (q.queries or [q.need])])
+
+    return {"vec-need": lambda q: vs.ranked_keys(q.need, DEPTH), "vec-queries-rrf": vec_rrf,
+            "hybrid-rrf": lambda q: rrf([bm25_rrf(q), vec_rrf(q)])}
+
+
+def language_sets(questions: list[BenchQuestion], idx: KnowledgeIndex,
+                  person_labels: list[tuple[str, str, str]]) -> dict[str, list[BenchQuestion]]:
+    """KB phase 4 English → German set: questions whose answer page in a **book** a person marked relevant (Knowledge
+    page), grouped by the page's language ("en→de", controls "en→en"). Only the marked book pages count as relevant
+    here, so the set measures finding that page — not the web pages research found."""
+    by_q: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    for qkey, doc_key, label in person_labels:
+        d = idx.doc(doc_key)
+        if label != "relevant" or d is None or d["source_kind"] != "book":
+            continue
+        lang = (d["lang"] or "?").split("+")[0]
+        by_q[qkey][lang].add(d["canon_key"])
+    known = {q.key: q for q in questions}
+    out: dict[str, list[BenchQuestion]] = defaultdict(list)
+    for qkey, langs in by_q.items():
+        q = known.get(qkey)
+        if q is None:
+            continue
+        for lang, keys in langs.items():
+            out[f"en→{lang}"].append(BenchQuestion(q.key, q.need, q.queries, set(keys), q.not_relevant - keys))
+    return dict(out)
+
+
+def language_systems(idx: KnowledgeIndex, vs: VectorSearch | None) -> dict[str, Callable[[BenchQuestion], list[str]]]:
+    """Original text only vs original + search-only translations (today) vs embeddings vs hybrid."""
+    def fts(original_only: bool) -> Callable[[BenchQuestion], list[str]]:
+        return lambda q: rrf([ranked_keys(idx, x, limit=DEPTH, original_only=original_only)
+                              for x in (q.queries or [q.need])])
+
+    systems = {"fts-original": fts(True), "fts+translation": fts(False)}
+    if vs is not None:
+        vec = vector_systems(idx, vs)
+        systems |= {"vec-queries-rrf": vec["vec-queries-rrf"], "hybrid-rrf": vec["hybrid-rrf"]}
+    return systems
+
+
 def evaluate(questions: list[BenchQuestion], systems: dict[str, Callable[[BenchQuestion], list[str]]]) -> dict:
     """Metrics per system (mean + bootstrap interval), unjudged share, and per-question numbers.
     Recall / MRR / nDCG are averaged over questions with ≥ 1 relevant document; coverage over all."""
@@ -230,13 +282,31 @@ def stored_page_recall(questions: list[BenchQuestion], idx: KnowledgeIndex, n: i
 
 def run_benchmark(db: Database, data_dir: Path, *, save: bool = True,
                   extra_labels: list[tuple[str, str, str]] | None = None,
-                  stored_n: int | None = None) -> tuple[dict, Path | None]:
-    """Build the labels, evaluate the default systems, save `<data_dir>/kb/benchmarks/<date-time>.json`."""
+                  stored_n: int | None = None, vectors: VectorSearch | None = None) -> tuple[dict, Path | None]:
+    """Build the labels, evaluate the default systems, save `<data_dir>/kb/benchmarks/<date-time>.json`.
+
+    With `vectors` (KB phase 4) the vector and hybrid systems run too, the decision rule compares hybrid with
+    today's BM25 (`report["decision"]`), and the English → German set is scored when a person marked book pages."""
     idx = KnowledgeIndex.for_data_dir(data_dir)
     try:
         questions = load_questions(db, idx, extra_labels)
         t0 = time.monotonic()
-        report = evaluate(questions, default_systems(idx))
+        systems = default_systems(idx)
+        if vectors is not None:
+            systems |= vector_systems(idx, vectors)
+        report = evaluate(questions, systems)
+        if vectors is not None:
+            report["vectors"] = {"model": vectors.embedder.name, "chunks": vectors.size,
+                                 "chunks_without_vector": vectors.missing}
+            report["decision"] = {b: compare(report, "bm25-queries-rrf", b) for b in ("vec-queries-rrf", "hybrid-rrf")}
+        sets = language_sets(questions, idx, extra_labels or [])
+        if sets:
+            lsys = language_systems(idx, vectors)
+            report["languages"] = {}
+            for name, qs in sorted(sets.items()):
+                r = evaluate(qs, lsys)
+                r["systems"] = {s: sr["metrics"] for s, sr in r["systems"].items()}
+                report["languages"][name] = r
         if stored_n is None:
             from qv.config import load_research_config
             stored_n = load_research_config().stored_pages_per_question
@@ -268,6 +338,14 @@ def summary_lines(report: dict) -> list[str]:
         m = sysr["metrics"]
         cells = "".join(f"{m[k]['mean']:>7.3f} [{m[k]['ci95'][0]:.2f}-{m[k]['ci95'][1]:.2f}]" for k in METRICS)
         lines.append(f"{name:<20}{cells}{m['unjudged_share@10']:>14.2f}")
+    for b, d in (report.get("decision") or {}).items():
+        lines.append(f"Decision rule, {b} vs bm25-queries-rrf: " + ("BETTER" if d["better"] else "not better")
+                     + f" — recall@10 {d['recall@10']['diff']:+.3f} {d['recall@10']['ci95']}, condensed MRR "
+                     f"{d['condensed_mrr']['diff']:+.3f} {d['condensed_mrr']['ci95']}"
+                     + (" — needs a person to judge a sample first (unjudged > 30 %)" if d["needs_judging"] else ""))
+    for name, lr in (report.get("languages") or {}).items():
+        lines.append(f"{name} ({lr['questions']} questions with a marked book page): " + " · ".join(
+            f"{s} R@5 {m['recall@5']['mean']:.2f} MRR {m['mrr']['mean']:.2f}" for s, m in lr["systems"].items()))
     sp = report.get("stored_pages")
     if sp:
         lines.append(f"Stored-page recall (top {sp['n']} of bm25-queries-rrf, {sp['questions']} questions): "
