@@ -757,6 +757,24 @@ def _direct_lookup(deps: ResearchDeps, source: str, ref: str, scheme: str | None
     return out
 
 
+def ungrounded_quotes(out: Extraction, index: DocumentIndex) -> list[str]:
+    """Quotes (first 200 characters) that are not word for word in the document."""
+    return [p.quote[:200] for p in out.passages if index.find(p.quote) is None]
+
+
+def s3_quote_problems(out: Extraction, index: DocumentIndex) -> list[str]:
+    """Code check stored with an S3 output: one problem per quote that is not verbatim."""
+    return [f"not verbatim in the document: {b[:120]!r}" for b in ungrounded_quotes(out, index)]
+
+
+def s3_retry_feedback(bad: list[str]) -> str:
+    """What the S3 retry is told: which quotes were not found word for word."""
+    lines = "\n".join(f"- {b!r}" for b in bad)
+    return ("\n\nA previous answer to this request quoted text that is NOT word for word in the document:\n"
+            f"{lines}\nCopy every quote exactly as it is written in the document (same words, same order, no "
+            "changes, no joining of separate sentences), or leave it out. Return all passages again.")
+
+
 def _extract_document(deps: ResearchDeps, run_id: int, question_id: int, q: Question, profile: Profile,
                       s1a: Decomposition, mode: str, doc_id: int, found_by: list[dict],
                       note_claims: list[tuple[str, str]], stats: dict) -> None:
@@ -794,30 +812,47 @@ def _extract_document(deps: ResearchDeps, run_id: int, question_id: int, q: Ques
     last_sid: int | None = None
     try:
         for wi, part in enumerate(parts):
-            def check(out: Extraction) -> list[str]:
-                bad = [p.quote[:120] for p in out.passages if index.find(p.quote) is None]
-                return ([f"These quotes are not verbatim in the document; copy text exactly: {bad}"]
-                        if len(bad) > 1 else [])
-
-            run = deps.runner.run(
-                stage="s3",
-                user=render_s3(q, s1a, mode=mode, doc=meta, window=part,
-                               note_claims=note_claims if mode == "B" else None),
-                schema_cls=Extraction,
-                hash_inputs={"doc": content_sha, "window": wi, "mode": mode, "need": s1a.information_need,
-                             "answer_type": s1a.answer_type, "opts": q.options if q.is_multi else None,
-                             "pre": [p.model_dump() for p in s1a.presuppositions] if mode == "A" else None,
-                             "notes": note_claims if mode == "B" else None},
-                ctx=CallContext(run_id, question_id, "s3"), checks=check)
+            user = render_s3(q, s1a, mode=mode, doc=meta, window=part,
+                             note_claims=note_claims if mode == "B" else None)
+            hash_inputs = {"doc": content_sha, "window": wi, "mode": mode, "need": s1a.information_need,
+                           "answer_type": s1a.answer_type, "opts": q.options if q.is_multi else None,
+                           "pre": [p.model_dump() for p in s1a.presuppositions] if mode == "A" else None,
+                           "notes": note_claims if mode == "B" else None}
+            run = deps.runner.run(stage="s3", user=user, schema_cls=Extraction, hash_inputs=hash_inputs,
+                                  ctx=CallContext(run_id, question_id, "s3"),
+                                  checks=lambda o: s3_quote_problems(o, index), retry_on_check_failure=False)
             out: Extraction = run.output  # type: ignore[assignment]
             last_sid = run.stage_output_id
             page = page or out.page
-            for p in out.passages:
-                g = index.find(p.quote)
-                if g is None or p.target not in targets:
-                    dropped_total += 1
-                    continue
-                grounded.append((p, g, run.stage_output_id))
+            attempts = [(out, run.stage_output_id)]
+            bad = ungrounded_quotes(out, index)
+            if bad and deps.cfg.s3_retry_dropped_quotes:
+                # One more request, only when a quote is not word for word in the document (target < 2 % dropped).
+                # Its own cache entry; the grounded passages of both attempts are kept (grounding proves each one).
+                stats["s3_retries"] += 1
+                try:
+                    retry = deps.runner.run(
+                        stage="s3", user=user + s3_retry_feedback(bad), schema_cls=Extraction,
+                        hash_inputs={**hash_inputs, "retry_for": bad}, ctx=CallContext(run_id, question_id, "s3"),
+                        checks=lambda o: s3_quote_problems(o, index), retry_on_check_failure=False)
+                    attempts.append((retry.output, retry.stage_output_id))  # type: ignore[arg-type]
+                    last_sid = retry.stage_output_id
+                except LLMError as exc:  # the first attempt still counts; QuotaExhausted is not an LLMError
+                    stats["s3_retry_failed"] += 1
+                    stats.setdefault("errors", []).append(f"S3 retry: {type(exc).__name__}")
+            spans = set()
+            for n, (attempt, sid) in enumerate(attempts):
+                last = n == len(attempts) - 1
+                for p in attempt.passages:
+                    g = index.find(p.quote)
+                    if g is None or p.target not in targets:
+                        if last:  # a quote counts as dropped only when the last attempt still has it wrong
+                            dropped_total += 1
+                        continue
+                    if n and (g.start, g.end, p.target) not in spans:
+                        stats["s3_quotes_recovered"] += 1
+                    spans.add((g.start, g.end, p.target))
+                    grounded.append((p, g, sid))
     except LLMError as exc:
         with db.session() as s:
             row = s.get(QuestionDocument, qd_id)

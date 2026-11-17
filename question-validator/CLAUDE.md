@@ -93,7 +93,8 @@ all other commands stay for power users and debugging.
    with them on, then the editions); code meanwhile: validated export, phase 5, phase 4 code, phase 6 code with
    samples only — full question generation waits for Mojeeb.
 
-Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); web PDFs are read page by page since
+Smaller open items: ~~retry S3 when ≥ 1 quote is dropped~~ (built 2026-11-17, see *Implementation invariants (S3
+retry)*; the dropped-quote rate with it is not measured yet); web PDFs are read page by page since
 KB phase 3; refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
 worth a look); no hadith direct source yet. Done 2026-11-16: `QV_CONTACT` is set (Wikipedia searches run); the
 free Gemini limits were checked in AI Studio — 4 more models with 20/day each were added to the pools
@@ -350,6 +351,15 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
   `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
 - `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
+
+## Implementation invariants (S3 retry, 2026-11-17)
+- `_extract_document`: when ≥ 1 quote of a window is not verbatim (`ungrounded_quotes`), S3 is asked **once more** for
+  that window, told which quotes failed (`s3_retry_feedback`); its own cache entry (`retry_for` in the hash). Grounded
+  passages of **both** attempts are kept (deduplicated by span) — grounding proves each one, so the retry can only
+  add. A quote counts as dropped only when the last attempt still has it wrong. A retry that fails (LLMError) leaves
+  the first answer; `QuotaExhausted` still stops the run. Switch: `research.yaml s3_retry_dropped_quotes`.
+- The runner's own check-retry is off for S3 (`retry_on_check_failure=False`; it replaced the first answer). Stats
+  `s3_retries`, `s3_quotes_recovered` (run stats, `qv metrics`).
 
 ## Implementation invariants (same fact — KB phase 5, 2026-11-17)
 - `qv/services/fact_pairs.py`, pure code: pairs are **recomputed** from every edition file's latest version (eval-…

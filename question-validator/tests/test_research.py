@@ -324,3 +324,51 @@ def test_library_is_not_used_for_other_editions(db: Database, tmp_path: Path) ->
     execute_run(deps, start_run(db, "wt", ["135"]))
     with db.session() as s:
         assert s.scalar(select(Document).where(Document.source_kind == "library")) is None
+
+
+class RetryLLM(FakeLLM):
+    """S3 copies one quote wrongly the first time and correctly when told which quote was not verbatim."""
+
+    def generate_json(self, *, model: str, system: str, messages: Sequence[Message], schema: dict[str, Any],
+                      ctx: CallContext) -> RawResponse:
+        user = messages[0].text
+        if ctx.stage == "s3" and "enc.org/kili" in user:
+            self.prompts.append((ctx.stage, user))
+            fixed = "NOT word for word" in user
+            border = ("The mountain lies near the border with Kenya" if fixed
+                      else "The mountain lies close to the border of Kenya")  # paraphrased: not in the document
+            out = {"page": page(), "no_relevant_content_reason": None, "passages": [
+                passage(GOOD_QUOTE, answer="Tanzania", option="B"), passage(border, stance="qualifies")]
+                + ([] if fixed else [passage(PRESUP_QUOTE, target="PR1", stance="supports")])}
+            return RawResponse(text=json.dumps(out), model=model, finish_reason="STOP")
+        return super().generate_json(model=model, system=system, messages=messages, schema=schema, ctx=ctx)
+
+
+@respx.mock
+def test_s3_is_asked_again_when_a_quote_is_dropped_and_both_answers_count(db: Database, dataset: None) -> None:
+    mock_web()
+    llm = RetryLLM()
+    run_id = start_run(db, "mini", ["135"])
+    execute_run(build(db, llm), run_id)
+    kili = [u for st, u in llm.prompts if st == "s3" and "enc.org/kili" in u]
+    assert len(kili) == 2 and "close to the border of Kenya" in kili[1]  # the retry names the wrong quote
+    assert "Expected answer" not in kili[1] and "NOTE-MARKER" not in kili[1]  # still blind
+    with db.session() as s:
+        qd = s.scalar(select(QuestionDocument).join(Document).where(Document.final_url == "https://enc.org/kili"))
+        quotes = sorted(p.quote[:30] for p in s.scalars(select(Passage).where(Passage.question_document_id == qd.id)))
+        # PR1 came only in the first answer, the border quote only in the retry: both kept, nothing dropped
+        assert (qd.grounded_count, qd.dropped_count) == (3, 0)
+        assert any(q.startswith("The mountain lies near") for q in quotes)
+        stats = s.scalar(select(RunQuestion.stats_json).where(RunQuestion.run_id == run_id))
+        assert stats["s3_retries"] == 1 and stats["s3_quotes_recovered"] == 1
+    n = len(llm.prompts)
+    execute_run(build(db, llm), start_run(db, "mini", ["135"]))  # a new run: both S3 answers come from the cache
+    assert not [u for st, u in llm.prompts[n:] if st == "s3" and "enc.org/kili" in u]
+
+
+@respx.mock
+def test_s3_retry_can_be_switched_off(db: Database, dataset: None) -> None:
+    mock_web()
+    llm = RetryLLM()
+    execute_run(build(db, llm, s3_retry_dropped_quotes=False), start_run(db, "mini", ["135"]))
+    assert len([u for st, u in llm.prompts if st == "s3" and "enc.org/kili" in u]) == 1

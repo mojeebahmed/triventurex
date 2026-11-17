@@ -13,8 +13,9 @@ claims and on direct-source texts. Mode B shows note claims, which may hint at t
 
 After the response, code runs the **grounding check**: each `quote` must occur in the stored document text after
 normalisation (Unicode NFKC, whitespace collapsed, curly → straight quotes, dashes unified). Offsets are
-computed by code, not by the model. Ungrounded passages are dropped and counted; if more than one is dropped,
-the call is retried once with the list of failures.
+computed by code, not by the model. Ungrounded passages are dropped and counted; if one or more is dropped,
+the call is retried once with the list of failures (since 2026-11-17; before: more than one), and the grounded
+passages of both answers are kept. A quote counts as dropped only when the retry still has it wrong.
 
 ---
 

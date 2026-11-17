@@ -278,6 +278,7 @@ class ResearchConfig(BaseModel):
     s3_window_chars: int = Field(40000, ge=2000)
     s3_window_overlap_chars: int = Field(1000, ge=0)
     s3_max_windows: int = Field(2, ge=1)
+    s3_retry_dropped_quotes: bool = Field(True, description="ask S3 once more when a quote is not verbatim")
     audit_sample_percent: float = Field(3.0, ge=0, le=100, description="auto_ok questions sent to review anyway")
     batch_size: int = Field(25, ge=1, description="most questions in one `qv next` batch")
     # KB phase 3 — stored pages first

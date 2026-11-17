@@ -131,7 +131,9 @@ def run_metrics(db: Database, run_id: int) -> dict:
     """Phase 2 exit metrics for a run (ARCHITECTURE.md §6).
 
     - grounding_failure_rate: quotes dropped / quotes reported (dropped also counts quotes with an
-      unknown target, so this is an upper bound on pure grounding failures)
+      unknown target, so this is an upper bound on pure grounding failures). With the S3 retry, a quote
+      counts as dropped only when the retry still has it wrong.
+    - s3_retries / s3_quotes_recovered: extra S3 requests for a not-verbatim quote, and the quotes they added
     - need_coverage: share of finished questions with ≥1 stored passage on the information need
       from a non-excluded document
     """
@@ -146,6 +148,7 @@ def run_metrics(db: Database, run_id: int) -> dict:
         tiers: dict[str, int] = {}
         for q in qds:
             tiers[q.effective_tier or "?"] = tiers.get(q.effective_tier or "?", 0) + 1
+        run_stats = [st or {} for st in s.scalars(select(RunQuestion.stats_json).where(RunQuestion.run_id == run_id))]
         return {
             "questions_done": len(done),
             "documents": len(qds),
@@ -155,6 +158,8 @@ def run_metrics(db: Database, run_id: int) -> dict:
             "passages_grounded": grounded,
             "quotes_dropped": dropped,
             "grounding_failure_rate": round(dropped / (grounded + dropped), 3) if grounded + dropped else 0.0,
+            "s3_retries": sum(st.get("s3_retries", 0) for st in run_stats),
+            "s3_quotes_recovered": sum(st.get("s3_quotes_recovered", 0) for st in run_stats),
             "need_coverage": round(len(covered & set(done)) / len(done), 3) if done else 0.0,
             "questions_without_need_passage": len(set(done) - covered),
         }
