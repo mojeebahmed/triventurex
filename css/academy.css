@@ -178,6 +178,43 @@ body.academy .qx-item.show-answers .qx-correct { color: var(--green-dark, var(--
 .ac-missed { list-style: none; padding: 0; display: grid; gap: 10px; max-width: 680px; margin: 0 auto; }
 .ac-missed li { padding: 12px 16px; font-weight: 700; }
 
+/* Info button on a learning card (shown once the answer is shown) → "About this answer".
+   Absolute in the card's corner, so a card keeps its size. Green ring = checked against sources. */
+.ac-flash, .ac-panel, .ac-missed li { position: relative; }
+.ac-info-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 1; width: 32px; height: 32px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; line-height: 1;
+  border: 1px solid var(--border); border-radius: 50%; background: #fff; color: var(--text-muted); cursor: pointer;
+}
+.ac-info-btn.is-checked { color: var(--green); border-color: var(--green); }
+@media (hover: hover) { .ac-info-btn:hover { background: var(--green-light); color: var(--green); } }
+.ac-info-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.ac-flash .ac-card-meta, .ac-panel .ac-card-meta { padding-right: 38px; }
+.ac-missed li { padding-right: 52px; }
+
+/* About this answer: a box in the middle on a computer, a sheet from the bottom on a phone */
+@media (min-width: 721px) {
+  .ac-info:not(.hidden) {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90;
+    width: min(560px, calc(100vw - 32px)); max-height: 84vh; overflow-y: auto; padding: 16px 20px 20px;
+    background: var(--card); border-radius: 16px; box-shadow: 0 16px 50px rgba(0,0,0,.25);
+  }
+}
+.qi { text-align: left; font-size: .92rem; line-height: 1.45; overflow-wrap: anywhere; }
+.qi-q { font-weight: 700; font-size: 1rem; }
+.qi-answer { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: var(--green-light); font-weight: 700; }
+.qi h4 { display: flex; align-items: center; gap: 6px; margin: 16px 0 6px; font-size: .85rem; text-transform: none; color: var(--text); }
+.qi-note { color: var(--text); }
+.qi .qx-check-info { font-size: .88rem; margin-top: 0; }
+.qi .qx-check-sources a { word-break: break-word; }
+.qi-unchecked { margin: 0; color: var(--text-muted); }
+.qi-topic { color: var(--text-muted); font-size: .85rem; }
+.qi-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.qi .tag-chip { cursor: default; }
+
+/* Tags in the filter */
+.ac-tags { margin-bottom: 8px; }
+
 /* Places */
 .ac-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .ac-place { overflow: hidden; }
@@ -298,6 +335,10 @@ body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
   }
   .ac-filter #ac-search, .ac-filter #ac-diff { height: 44px; font-size: 1rem; }   /* 1rem: iOS doesn't zoom in */
   .ac-tree .qx-node { padding: 11px 12px; font-size: .95rem; }
+  .ac-tags .tag-chip { padding: 7px 12px; font-size: .9rem; }
+  .ac-info-btn { width: 40px; height: 40px; font-size: 1.15rem; top: 6px; right: 6px; }
+  .ac-flash .ac-card-meta, .ac-panel .ac-card-meta { padding-right: 46px; }
+  .qi { font-size: 1rem; }
   .ac-tree .qx-node.depth-1 { padding-left: 26px; font-size: .92rem; }
   .ac-tree .qx-node.depth-2 { padding-left: 42px; font-size: .9rem; }
 

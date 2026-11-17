@@ -1,6 +1,6 @@
 /**
  * question-explorer.js
- * Setup screen tab *📚 Questions* (G19): browse the edition's questions by
+ * Setup screen tab *📚 Questions* (G19): browse the edition's questions by tag and by
  * category > subcategory > topic, search, filter by difficulty, peek at
  * answers, and mark a question as wrong / unclear with a note. The same
  * marked list is filled from the game (🚩 on a question card, G14) and can
@@ -9,7 +9,7 @@
 
 const QX_PAGE = 60;   // questions drawn at a time ("Show more" adds another page)
 
-const _qx = { path: [], text: '', diff: 'all', checked: 'all', markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
+const _qx = { path: [], text: '', diff: 'all', checked: 'all', tags: [], markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
 
 const _qxQuestions = () => window.QUESTIONS_DATA || [];
 const _qxLabel = name => name || 'Other';
@@ -22,6 +22,7 @@ function renderQuestionExplorer() {
   checkedSel.classList.toggle('hidden', !anyChecked);
   if (!anyChecked) _qx.checked = 'all';
   checkedSel.value = _qx.checked;
+  _qx.tags = knownTags(_qx.tags, _qxQuestions());
   _renderQxTree();
   _renderQxList();
   updateMarkedBadge();
@@ -29,7 +30,7 @@ function renderQuestionExplorer() {
 
 /** The edition changed: start again from "All questions". */
 function resetQuestionExplorer() {
-  Object.assign(_qx, { path: [], text: '', limit: QX_PAGE, editing: null });
+  Object.assign(_qx, { path: [], text: '', tags: [], limit: QX_PAGE, editing: null });
   const search = document.getElementById('qx-search');
   if (search) search.value = '';
   renderQuestionExplorer();
@@ -63,15 +64,35 @@ function _renderQxTree() {
 function _renderQxList() {
   const marked = loadMarkedQuestions();
   const onlyIds = _qx.markedOnly ? new Set(Object.keys(marked).map(Number)) : null;
-  const found = filterQuestions(_qxQuestions(), { path: _qx.path, text: _qx.text, diff: _qx.diff, checked: _qx.checked, onlyIds });
+  const found = filterQuestions(_qxQuestions(), { path: _qx.path, text: _qx.text, diff: _qx.diff, checked: _qx.checked, tags: _qx.tags, onlyIds });
   const shown = found.slice(0, _qx.limit);
-  const where = _qx.path.length ? _qx.path.map(_qxLabel).join(' › ') : 'All questions';
+  _renderQxTags(found);
+  const where = (_qx.path.length ? _qx.path.map(_qxLabel).join(' › ') : 'All questions') +
+    (_qx.tags.length ? ` · tagged ${_qx.tags.join(' + ')}` : '');
   document.getElementById('qx-count').textContent =
     `${where} · ${found.length} question${found.length === 1 ? '' : 's'}` + (shown.length < found.length ? ` (showing ${shown.length})` : '');
   document.getElementById('qx-list').innerHTML = shown.length
     ? shown.map(q => _qxItemHtml(q, marked[q.id])).join('') +
       (shown.length < found.length ? `<button type="button" class="btn btn-secondary btn-small qx-more" data-action="more">Show more</button>` : '')
     : `<p class="qx-empty">No questions match.</p>`;
+}
+
+/** Tag chips above the list: every tag of the edition; the count = questions the other filters leave. */
+function _renderQxTags(found) {
+  const box = document.getElementById('qx-tags');
+  if (!box) return;
+  const all = tagCounts(_qxQuestions());
+  box.classList.toggle('hidden', !all.length);
+  box.innerHTML = all.length
+    ? tagFilterHtml(all, _qx.tags, tagCounts(found)) +
+      (_qx.tags.length ? `<button type="button" class="link-btn tag-clear" data-tag-clear>${icon('close')} All tags</button>` : '')
+    : '';
+}
+
+function _qxSetTags(tags) {
+  _qx.tags = tags;
+  _qx.limit = QX_PAGE;
+  _renderQxList();
 }
 
 function _qxItemHtml(q, mark) {
@@ -83,7 +104,7 @@ function _qxItemHtml(q, mark) {
   const editing = _qx.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${_qx.answers ? 'show-answers' : ''}" data-id="${q.id}">
-      <div class="qx-meta">#${q.id} · ${icon(q.diff === 'hard' ? 'hard' : 'easy')} ${q.diff === 'hard' ? 'Hard' : 'Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}</div>
+      <div class="qx-meta">#${q.id} · ${icon(q.diff === 'hard' ? 'hard' : 'easy')} ${q.diff === 'hard' ? 'Hard' : 'Easy'} · ${esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › '))}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}${questionTagsHtml(q)}</div>
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${_qx.answers ? 'open' : ''}><summary>Answer</summary>${answer}</details>
@@ -182,7 +203,14 @@ function initQuestionExplorer() {
   document.getElementById('qx-marked-only').addEventListener('change', e => { _qx.markedOnly = e.target.checked; _renderQxList(); });
   document.getElementById('qx-answers').addEventListener('change', e => { _qx.answers = e.target.checked; _renderQxList(); });
 
+  document.getElementById('qx-tags')?.addEventListener('click', e => {
+    if (e.target.closest('[data-tag-clear]')) { _qxSetTags([]); return; }
+    const chip = e.target.closest('[data-tag]');
+    if (chip && !chip.disabled) _qxSetTags(toggleTag(_qx.tags, chip.dataset.tag));
+  });
   list.addEventListener('click', e => {
+    const tag = e.target.closest('[data-tag]');   // a tag on a question: show the questions with that tag
+    if (tag) { if (!_qx.tags.includes(tag.dataset.tag)) _qxSetTags([..._qx.tags, tag.dataset.tag]); return; }
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const id = Number(btn.closest('.qx-item')?.dataset.id);

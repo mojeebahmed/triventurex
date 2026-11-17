@@ -83,6 +83,9 @@ const ICONS = {
   checkVerified:   'lucide:badge-check',      // question checked against sources (Question Validator)
   checkReviewer:   'lucide:user-check',       // question confirmed / corrected by a reviewer
   checkSource:     'lucide:book-open',        // the sources a question was checked against
+  tag:             'lucide:tag',              // a question's tag (filter chips, tags on a question)
+  questionInfo:    'lucide:info',             // Academy card: where the answer comes from (sources, note, topic)
+  notChecked:      'lucide:circle-dashed',    // question not checked against sources yet
   editNote:        'lucide:pencil',
   search:          'lucide:search',
   modeExplore:     'lucide:library-big',      // Academy mode tabs

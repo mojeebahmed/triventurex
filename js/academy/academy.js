@@ -22,7 +22,7 @@ let _activeEditionId = null;
 function getActiveEditionId() { return _activeEditionId; }
 
 /** Filter shared by every question mode. */
-const ac = { path: [], diff: 'all', text: '', mode: 'explore' };
+const ac = { path: [], diff: 'all', text: '', tags: [], mode: 'explore' };
 
 /** Same width as the phone layout in css/academy.css. */
 const AC_PHONE_QUERY = '(max-width: 720px)';
@@ -88,7 +88,7 @@ const acQuestions = () => window.QUESTIONS_DATA || [];
 
 /** The questions the filter selects (every question mode starts from these). */
 function filteredQuestions(extra = {}) {
-  return filterQuestions(acQuestions(), { path: ac.path, text: ac.text, diff: ac.diff, ...extra });
+  return filterQuestions(acQuestions(), { path: ac.path, text: ac.text, diff: ac.diff, tags: ac.tags, ...extra });
 }
 
 const _acLabel = name => name || 'Other';
@@ -103,13 +103,40 @@ function _renderTree() {
   const all = `<button type="button" class="qx-node ${ac.path.length ? '' : 'active'}" data-path="[]">
                  All questions <small>${acQuestions().length}</small></button>`;
   document.getElementById('ac-tree').innerHTML = all + questionTree(acQuestions()).map(n => node(n, [n.name], 0)).join('');
-  const n = filteredQuestions().length;
+  const found = filteredQuestions();
+  const n = found.length;
+  _renderTags(found);
   document.getElementById('ac-filter-summary').textContent =
-    `· ${ac.path.length ? ac.path.map(_acLabel).join(' › ') : 'All'} · ${n} question${n === 1 ? '' : 's'}`;
+    `· ${ac.path.length ? ac.path.map(_acLabel).join(' › ') : 'All'}${ac.tags.length ? ` · ${ac.tags.join(' + ')}` : ''} · ${n} question${n === 1 ? '' : 's'}`;
   document.getElementById('ac-filter-done').textContent = `Show ${n} question${n === 1 ? '' : 's'}`;
 }
 
+/** Tag chips: every tag of the edition; the count = questions the other filters leave. */
+function _renderTags(found) {
+  const box = document.getElementById('ac-tags');
+  const all = tagCounts(acQuestions());
+  box.classList.toggle('hidden', !all.length);
+  box.innerHTML = all.length
+    ? tagFilterHtml(all, ac.tags, tagCounts(found)) +
+      (ac.tags.length ? `<button type="button" class="link-btn tag-clear" data-tag-clear>${icon('close')} All tags</button>` : '')
+    : '';
+}
+
+/** Show only questions with this tag too (a tag clicked on a question in Explore / Review). */
+function addFilterTag(tag) {
+  if (ac.tags.includes(tag)) return;
+  ac.tags = [...ac.tags, tag];
+  _filterChanged();
+}
+
 function _initFilter() {
+  document.getElementById('ac-tags').addEventListener('click', e => {
+    if (e.target.closest('[data-tag-clear]')) { ac.tags = []; _filterChanged(); return; }
+    const chip = e.target.closest('[data-tag]');
+    if (!chip || chip.disabled) return;
+    ac.tags = toggleTag(ac.tags, chip.dataset.tag);
+    _filterChanged();
+  });
   document.getElementById('ac-tree').addEventListener('click', e => {
     const btn = e.target.closest('[data-path]');
     if (!btn) return;
@@ -141,7 +168,57 @@ function _showBackdrop(on) {
 function closeSheets() {
   if (isPhone()) document.getElementById('ac-filter').open = false;
   document.getElementById('ac-more').classList.add('hidden');
+  _closeQuestionInfo();
   _showBackdrop(false);
+}
+
+// ── About this answer (the info button on a learning card) ─────────────────────
+
+let _infoOpener = null;   // the button that opened it — focus goes back there
+
+/** Open "About this answer" for question `id`: a sheet on a phone, a box in the middle on a computer. */
+function openQuestionInfo(id, opener = null) {
+  const q = acQuestions().find(x => x.id === id);
+  if (!q) return;
+  const box = document.getElementById('ac-info');
+  box.innerHTML = `
+    <div class="ac-bsheet-head">
+      <strong id="ac-info-title">${icon('questionInfo')} About this answer</strong>
+      <button type="button" class="ac-bsheet-close" data-close-sheet aria-label="Close">${icon('close')}</button>
+    </div>
+    ${questionInfoHtml(q)}`;
+  _infoOpener = opener;
+  box.classList.remove('hidden');
+  box.scrollTop = 0;
+  _showBackdrop(true);
+  box.querySelector('.ac-bsheet-close').focus();
+}
+
+function _closeQuestionInfo() {
+  const box = document.getElementById('ac-info');
+  if (!box || box.classList.contains('hidden')) return;
+  box.classList.add('hidden');
+  box.innerHTML = '';
+  if (_infoOpener?.isConnected) _infoOpener.focus({ preventScroll: true });
+  _infoOpener = null;
+}
+
+/** The info button sits inside cards that turn or answer on a click: catch it first (capture), so
+ *  opening the info never turns the card. Works for every mode, also the "Look at these again" list. */
+function _initQuestionInfo() {
+  const open = (e, btn) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openQuestionInfo(Number(btn.dataset.qInfo), btn);
+  };
+  document.addEventListener('click', e => {
+    const btn = e.target.closest?.('[data-q-info]');
+    if (btn) open(e, btn);
+  }, true);
+  document.addEventListener('keydown', e => {
+    const btn = (e.key === 'Enter' || e.key === ' ') && e.target.closest?.('[data-q-info]');
+    if (btn) open(e, btn);
+  }, true);
 }
 
 // ── As an app: install + offline (academy-sw.js) ────────────────────────────────
@@ -330,6 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startIcons();   // emoji + control icons from the bundled sets (js/shared/icons.js)
   startHelp(academyHelpTopic);   // ? button + the ? key (js/shared/help.js)
   _startApp();                   // install + offline (academy-sw.js)
+  _initQuestionInfo();           // the info button on learning cards → About this answer
   startTextSize('academy');      // A− / A+: top bar, or More on a phone (js/shared/text-size.js)
   const id = _pickEditionId();
   if (!id) { document.getElementById('ac-main').innerHTML = emptyHtml('No editions found.'); return; }

@@ -103,3 +103,64 @@ describe('topic filter keys (same topic name under several branches)', () => {
     assert.equal(selectedTopicKeys(['Gone › Gone › Gone'], T).size, 0);
   });
 });
+
+describe('tags', () => {
+  const { tagCounts, toggleTag, knownTags } = require('../js/shared/questions.js');
+  const Q = [
+    { id: 1, q: 'Longest river?', opts: [], answer: 'Nile', diff: 'easy', cat: 'Geo', tags: ['records', 'water'] },
+    { id: 2, q: 'Biggest cat?', opts: [], answer: 'Tiger', diff: 'hard', cat: 'Animals', tags: ['records'] },
+    { id: 3, q: 'Capital of Peru?', opts: [], answer: 'Lima', diff: 'easy', cat: 'Geo' },
+  ];
+
+  it('filters by tags: a question needs every chosen tag; no tags = everything', () => {
+    assert.deepEqual(filterQuestions(Q, { tags: ['records'] }).map(q => q.id), [1, 2]);
+    assert.deepEqual(filterQuestions(Q, { tags: ['records', 'water'] }).map(q => q.id), [1]);
+    assert.deepEqual(filterQuestions(Q, { tags: [] }).map(q => q.id), [1, 2, 3]);
+    assert.deepEqual(filterQuestions(Q, { tags: ['records'], diff: 'easy' }).map(q => q.id), [1]);
+  });
+  it('search finds tag words too', () => {
+    assert.deepEqual(filterQuestions(Q, { text: 'water' }).map(q => q.id), [1]);
+  });
+  it('counts tags, most used first; toggles and drops unknown tags', () => {
+    assert.deepEqual(tagCounts(Q), [{ tag: 'records', count: 2 }, { tag: 'water', count: 1 }]);
+    assert.deepEqual(tagCounts([]), []);
+    assert.deepEqual(toggleTag(['a'], 'b'), ['a', 'b']);
+    assert.deepEqual(toggleTag(['a', 'b'], 'a'), ['b']);
+    assert.deepEqual(knownTags(['water', 'gone'], Q), ['water']);
+  });
+});
+
+describe('question HTML (tags, About this answer)', () => {
+  // Page helpers: stub icon() and use the real esc()
+  if (typeof global.esc !== 'function') {
+    require('node:vm').runInThisContext(require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/shared/utils.js'), 'utf8'));
+  }
+  global.icon ??= name => `[${name}]`;
+  const { tagFilterHtml, questionTagsHtml, questionInfoHtml } = require('../js/shared/questions.js');
+  const q = { id: 7, q: 'Longest river?', opts: [], answer: 'Nile', diff: 'easy', cat: 'Geo', subcat: '', topic: '', note: 'It flows north.',
+    tags: ['water', '<b>x'],
+    check: { status: 'verified', on: '2026-11-16', how: 'Checked', asOf: '', quote: 'Nile <script>',
+      sources: [{ name: 'Good <i>site</i>', url: 'https://example.org/nile' }, { name: 'Bad', url: 'javascript:alert(1)' }] } };
+
+  it('tag chips escape the tag and mark the chosen ones', () => {
+    const html = tagFilterHtml([{ tag: 'water', count: 2 }, { tag: '<b>x', count: 1 }], ['water'], [{ tag: 'water', count: 2 }]);
+    assert.match(html, /class="tag-chip on" data-tag="water" aria-pressed="true"/);
+    assert.match(html, /&lt;b&gt;x <small>0<\/small>/);
+    assert.match(html, /disabled/);          // nothing left with that tag
+    assert.doesNotMatch(html, /<b>x/);
+    assert.equal(tagFilterHtml([], []), '');
+    assert.doesNotMatch(questionTagsHtml(q), /<b>x/);
+    assert.equal(questionTagsHtml({ id: 1 }), '');
+  });
+  it('About this answer: escapes web text, links only http(s), says when not checked', () => {
+    const html = questionInfoHtml(q);
+    assert.match(html, /href="https:\/\/example.org\/nile"/);
+    assert.doesNotMatch(html, /javascript:/);
+    assert.doesNotMatch(html, /<script>|<i>site/);
+    assert.match(html, /It flows north\./);
+    assert.match(html, /Geo/);
+    const plain = questionInfoHtml({ ...q, check: undefined });
+    assert.match(plain, /Not checked against sources yet/);
+    assert.equal(questionInfoHtml(null), '');
+  });
+});

@@ -53,6 +53,8 @@
           <select id="ac-diff" class="settings-select">
             <option value="all">Easy + hard</option><option value="easy" data-icon-text="easy">Easy</option><option value="hard" data-icon-text="hard">Hard</option>
           </select>
+          <!-- Tag chips (questions.csv `tags` column) — hidden when the edition has no tags -->
+          <div id="ac-tags" class="tag-filter ac-tags hidden" aria-label="Filter by tag"></div>
           <nav id="ac-tree" class="ac-tree"></nav>
           <div class="ac-bsheet-foot ac-phone-only">
             <button type="button" id="ac-filter-done" class="btn btn-primary" data-close-sheet>Show questions</button>
@@ -65,6 +67,8 @@
 
   <!-- Phones: the modes that work best on a computer (filled by academy.js) -->
   <div id="ac-more" class="ac-bsheet ac-more hidden" role="dialog" aria-label="More"></div>
+  <!-- "About this answer": opened by the info button on a learning card (sources, note, topic) -->
+  <div id="ac-info" class="ac-bsheet ac-info hidden" role="dialog" aria-modal="true" aria-labelledby="ac-info-title"></div>
   <div id="ac-backdrop" class="ac-backdrop hidden" data-close-sheet></div>
 
   <textarea id="ac-export" class="rules-export hidden" rows="8" readonly></textarea>

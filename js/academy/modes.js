@@ -14,6 +14,20 @@ const _where = q => esc([q.cat, q.subcat, q.topic].filter(Boolean).join(' › ')
 const _note = q => (q.note ? `<div class="ac-note">${icon('note')} ${q.note}</div>` : '');
 const _pts = () => CONFIG.GAME?.pointsName ?? 'points';
 
+/**
+ * The small info button on a learning card: opens "About this answer" (where the
+ * answer comes from, the note, the topic — openQuestionInfo in academy.js). Shown
+ * only once the answer is shown, so it never gives the answer away. Inside a card
+ * that is itself a button (Flashcards) it is a span with role="button".
+ */
+function _infoBtn(q, inButton = false) {
+  const label = q.check ? 'About this answer — checked against sources' : 'About this answer';
+  const attrs = `class="ac-info-btn ${q.check ? 'is-checked' : ''}" data-q-info="${Number(q.id)}" aria-label="${esc(label)}" title="${esc(label)}"`;
+  return inButton
+    ? `<span role="button" tabindex="0" ${attrs}>${icon('questionInfo')}</span>`
+    : `<button type="button" ${attrs}>${icon('questionInfo')}</button>`;
+}
+
 /** A question's options as a list (no answer shown). */
 function _optsHtml(q) {
   return isMulti(q) ? `<ol class="ac-opts">${q.opts.map((o, i) => `<li><b>${LETTERS[i]}</b> ${o}</li>`).join('')}</ol>` : '';
@@ -25,7 +39,7 @@ function _summaryHtml(score, total, missed, again = 'Play again') {
   const stars = pct >= 0.9 ? icon('star').repeat(3) : pct >= 0.6 ? icon('star').repeat(2) : pct > 0 ? icon('star') : icon('sprout');
   const list = missed.length ? `
     <h3>Look at these again</h3>
-    <ul class="ac-missed">${missed.map(q => `<li><div>${q.q}</div><div class="ac-answer">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}</li>`).join('')}</ul>` : '';
+    <ul class="ac-missed">${missed.map(q => `<li>${_infoBtn(q)}<div>${q.q}</div><div class="ac-answer">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}</li>`).join('')}</ul>` : '';
   return `<div class="ac-summary">
       <div class="ac-stars">${stars}</div>
       <h2>${score} / ${total}</h2>
@@ -48,7 +62,7 @@ function _itemHtml(q, { marked, reviewed, review }) {
   const editing = _ex.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${showAll ? 'show-answers' : ''} ${review && reviewed[q.id] ? 'reviewed' : ''}" data-id="${q.id}">
-      <div class="qx-meta">#${q.id} · ${_diffTag(q)} · ${_where(q)}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}</div>
+      <div class="qx-meta">#${q.id} · ${_diffTag(q)} · ${_where(q)}${q.check ? ` · ${checkBadgeHtml(q)}` : ''}${questionTagsHtml(q)}</div>
       <div class="qx-q">${q.q}</div>
       ${opts}
       <details class="qx-reveal" ${showAll ? 'open' : ''}><summary>Answer</summary>${answer}</details>
@@ -72,6 +86,8 @@ function _itemHtml(q, { marked, reviewed, review }) {
 /** Mark / unmark / note / reviewed clicks in a question list; `redraw` after a change. */
 function _listActions(list, redraw) {
   list.addEventListener('click', e => {
+    const tag = e.target.closest('[data-tag]');   // a tag on a question: filter by it too
+    if (tag) { addFilterTag(tag.dataset.tag); return; }
     const btn = e.target.closest('[data-action]');
     const item = e.target.closest('.qx-item');
     if (!btn || !item) return;
@@ -176,6 +192,7 @@ registerMode({
       const turn = one() && touchScreen ? 'Tap to turn · swipe for the next card' : 'Tap to see the answer';
       return `<button type="button" data-content class="ac-qcard ac-flash ${open ? 'flipped' : ''} ${anim || ''}" data-flip="${q.id}" aria-pressed="${open}">
           <div class="ac-card-meta">${_diffTag(q)}${one() ? ` · ${_where(q)}` : ''}</div>
+          ${open ? _infoBtn(q, true) : ''}
           <div class="ac-card-q">${q.q}</div>
           ${open ? `<div class="ac-card-a">${icon('answer')} ${esc(answerText(q))}</div>${_note(q)}`
                  : `${_optsHtml(q)}<div class="ac-card-turn">${icon('thinking')} ${turn}</div>`}
@@ -308,6 +325,7 @@ registerMode({
         </div>
         <div class="ac-panel">
           <div class="ac-card-meta">${_diffTag(q)} · ${_where(q)}</div>
+          ${answered !== null ? _infoBtn(q) : ''}
           <div class="ac-card-q">${q.q}</div>
           ${body || ''}${after}
         </div>`;
@@ -403,6 +421,7 @@ registerMode({
         <div class="ac-bar"><span class="qx-count">Statement ${i + 1} of ${items.length} · ${icon('resultRight')} ${score}</span></div>
         <div class="ac-panel">
           <div class="ac-card-meta">${_diffTag(q)} · ${_where(q)}</div>
+          ${said !== null ? _infoBtn(q) : ''}
           <div class="ac-card-q">${q.q}</div>
           <div class="ac-statement">Answer: <b>${esc(shown)}</b></div>
           ${said === null ? `

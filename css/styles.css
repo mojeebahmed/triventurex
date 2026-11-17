@@ -2329,6 +2329,21 @@ body.presenting.present-idle * { cursor: none !important; }
 .qx-check-when { color: var(--text-muted); white-space: nowrap; }
 .qx-check-sources a { color: var(--green-dark, var(--green)); }
 .qx-check-quote { margin: 0; font-style: italic; color: var(--text-muted); }
+/* Tags: filter chips (Questions tab, Academy filter) and the small chips on a question */
+.tag-filter { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.tag-filter.hidden { display: none; }
+.tag-chip {
+  display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: .78rem; line-height: 1.2;
+  padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--text); cursor: pointer;
+}
+.tag-chip small { color: var(--text-muted); font-size: .7rem; }
+.tag-chip.on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 700; }
+.tag-chip.on small { color: rgba(255,255,255,.85); }
+.tag-chip:disabled { opacity: .45; cursor: default; }
+@media (hover: hover) { .tag-chip:not(:disabled):not(.on):hover { border-color: var(--green); } }
+.tag-chip-small { font-size: .68rem; padding: 1px 7px; vertical-align: 1px; }
+.qx-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 4px; }
+.tag-clear { font-size: .76rem; }
 .qx-mark { margin-top: 6px; font-size: .82rem; color: var(--danger); font-weight: 600; }
 .qx-actions { margin-top: 6px; display: flex; gap: 14px; }
 .qx-actions .link-btn { font-size: .8rem; }

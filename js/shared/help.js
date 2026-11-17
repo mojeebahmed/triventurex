@@ -97,6 +97,7 @@ Browse every question in this edition — to check them, or just to learn.
 - {icon:markQuestion} **Mark** a question that looks wrong or unclear, and add a note. You can also mark a question during a game, on its card.
 - **Marked only** shows just your marks. {icon:copy} **Copy marked list** copies them with your notes — send it to whoever looks after the questions.
 - {icon:checkVerified} **Checked** questions went through the Question Validator: the badge says how ({icon:checkVerified} against sources, {icon:checkReviewer} by a reviewer). Open the answer to see the sources, the date and a short quote from the best source. The **Checked / Not checked** filter appears when the edition has checked questions.
+- {icon:tag} **Tags** (the chips under the search box) group questions across topics — like *animals*, *water* or *numbers*. Tap a tag to show only those questions; tap more tags to narrow it down, **All tags** to clear. A tag on a question shows its questions too. The number on a tag counts what your other choices leave.
 - {icon:academy} **Academy** opens Triventurex Academy in a new tab: flashcards, quizzes and games with these questions.`,
   },
 
@@ -255,7 +256,8 @@ Your phone is your controller; the board is on the big screen.
 Learn the questions of an edition before you play — or just for fun.
 
 - Choose the **edition** at the top, and a **mode** in the row of tabs.
-- **Choose what to learn** (left): tick topics, pick easy or hard, or search. Every mode uses this choice.
+- **Choose what to learn** (left): tick topics, pick easy or hard, or search. {icon:tag} **Tags** pick questions across topics (like *animals* or *numbers*) — tap one or more, **All tags** to clear. Every mode uses this choice.
+- {icon:questionInfo} **About this answer**: once a card shows its answer (Flashcards, Quiz, True or false, and the *Look at these again* list), tap the small round button in its corner to see where the answer comes from — the sources it was checked against, the fact behind it, its topic and tags. A green ring means it was checked against sources.
 - {icon:marked} Marks on questions are shared with the game's Questions tab, on this device.
 - {icon:playGame} **Play the game** goes back to the game.
 - {icon:textSmaller} {icon:textBigger} **Text size** (top right): smaller or bigger text on the question cards — tabs and menus stay the same. Remembered on this device.
@@ -280,6 +282,7 @@ Browse the questions with their answers and the fact behind each one.
 - {icon:markQuestion} **Mark as wrong / unclear** with a note when something looks off; {icon:editNote} edits the note.
 - **Marked only** shows just the marked questions.
 - {icon:checkVerified} A **Checked** badge means the question was checked with the Question Validator. Under the answer you see how, when, the {icon:checkSource} sources (tap one to read it) and a short quote.
+- {icon:tag} Tap a **tag** on a question to show all questions with that tag.
 - On a phone, marking is in {icon:modeReview} **Review** (under {icon:moreModes} More).`,
   },
   'academy-flashcards': {
@@ -290,7 +293,8 @@ A set of cards: guess the answer, then tap the card to turn it over.
 - Choose how many cards a set has: 4, 8 or 12. The cards keep their width — in a smaller window or with bigger text they move into fewer columns.
 - On a phone you see one card at a time: **swipe** left for the next card and right to go back.
 - {icon:turnAll} **Turn all** / {icon:hideAll} **Hide all**; move to the next set or {icon:back} back.
-- {icon:shuffle} **Shuffle and start again** for a new order.`,
+- {icon:shuffle} **Shuffle and start again** for a new order.
+- {icon:questionInfo} On a turned card, the round button in the corner opens **About this answer**: where it comes from, the fact behind it and its topic.`,
   },
   'academy-quiz': {
     title: 'Quiz', icon: 'modeQuiz', more: ['academy'],
@@ -298,7 +302,8 @@ A set of cards: guess the answer, then tap the card to turn it over.
 A practice round, with your score at the end.
 
 - Choose how many questions, then think of the answer and show it.
-- Be honest: {icon:answerRight} **I got it** or {icon:answerWrong} **Not quite**.`,
+- Be honest: {icon:answerRight} **I got it** or {icon:answerWrong} **Not quite**.
+- {icon:questionInfo} After you answer, the round button in the corner shows **About this answer** — where it comes from.`,
   },
   'academy-match': {
     title: 'Match', icon: 'modeMatch', more: ['academy'],
@@ -308,7 +313,9 @@ Find the pairs: tap a question, then the answer that goes with it. Fewer tries i
   'academy-truefalse': {
     title: 'True or false', icon: 'modeTrueFalse', more: ['academy'],
     body: `
-Each question shows an answer — is it the right one? Tap {icon:answerRight} **True** or {icon:answerWrong} **False**.`,
+Each question shows an answer — is it the right one? Tap {icon:answerRight} **True** or {icon:answerWrong} **False**.
+
+- {icon:questionInfo} After you answer, the round button in the corner shows **About this answer** — where it comes from.`,
   },
   'academy-speed': {
     title: 'Speed round', icon: 'modeSpeed', more: ['academy'],

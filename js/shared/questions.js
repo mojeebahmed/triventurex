@@ -2,7 +2,8 @@
  * questions.js
  * Browsing an edition's questions (G19) and the list of questions marked as
  * wrong / unclear (G14 + G19). Pure: no page access — unit-tested.
- * A question: { id, q, opts, answer, diff, cat, subcat, topic, note, check? }.
+ * A question: { id, q, opts, answer, diff, cat, subcat, topic, note, tags?, check? }.
+ * `tags` (optional): lower-case tags from the CSV's `tags` column, e.g. ['animals', 'water'].
  * `check` (optional, from the Question Validator's export — see _questionCheck in csv.js):
  * { status: 'verified' | 'confirmed' | 'edited', on, how, sources: [{ name, url }], quote, asOf }.
  */
@@ -65,8 +66,9 @@ function questionTree(questions) {
  *   diff     'easy' | 'hard' | 'all'
  *   onlyIds  Set of ids (e.g. the marked ones), or null
  *   checked  'all' | 'yes' (checked by the Question Validator) | 'no'
+ *   tags     tags the question must ALL have (none = any question)
  */
-function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyIds = null, checked = 'all' } = {}) {
+function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyIds = null, checked = 'all', tags = [] } = {}) {
   const words = String(text).toLowerCase().split(/\s+/).filter(Boolean);
   const levels = ['cat', 'subcat', 'topic'];
   return (questions || []).filter(q => {
@@ -74,11 +76,55 @@ function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyId
     if (onlyIds && !onlyIds.has(q.id)) return false;
     if (checked !== 'all' && Boolean(q.check) !== (checked === 'yes')) return false;
     if (!path.every((v, i) => (q[levels[i]] || '') === v)) return false;
+    if (tags.length && !tags.every(t => q.tags?.includes(t))) return false;
     if (!words.length) return true;
-    const hay = [q.id, q.q, ...(q.opts || []), q.answer, q.note, q.cat, q.subcat, q.topic]
+    const hay = [q.id, q.q, ...(q.opts || []), q.answer, q.note, q.cat, q.subcat, q.topic, ...(q.tags || [])]
       .map(_qPlain).join(' ').toLowerCase();
     return words.every(w => hay.includes(w));
   });
+}
+
+// ── Tags ────────────────────────────────────────────────────────────────────────
+
+/** Every tag used by the questions with how many questions carry it, most used first: [{ tag, count }]. */
+function tagCounts(questions) {
+  const counts = new Map();
+  for (const q of questions || []) for (const t of q.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+  return [...counts].map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/** Add or remove one tag from a selection (a new array). */
+function toggleTag(selected, tag) {
+  return selected.includes(tag) ? selected.filter(t => t !== tag) : [...selected, tag];
+}
+
+/** Keep only selected tags that still exist (e.g. after the edition changed). */
+function knownTags(selected, questions) {
+  const all = new Set(tagCounts(questions).map(c => c.tag));
+  return (selected || []).filter(t => all.has(t));
+}
+
+/**
+ * The tag chips to filter with: one toggle button per tag (`data-tag`), with its
+ * count in `counts` (the tag counts for the questions the other filters leave).
+ * A selected tag shows as pressed; '' when the edition has no tags.
+ * HTML — call it only in a page (uses icon() / esc()).
+ */
+function tagFilterHtml(allTags, selected, counts = null) {
+  if (!allTags.length) return '';
+  const n = counts ? new Map(counts.map(c => [c.tag, c.count])) : new Map(allTags.map(c => [c.tag, c.count]));
+  return allTags.map(({ tag }) => {
+    const on = selected.includes(tag);
+    const count = n.get(tag) || 0;
+    return `<button type="button" class="tag-chip ${on ? 'on' : ''}" data-tag="${esc(tag)}" aria-pressed="${on}" ${!on && !count ? 'disabled' : ''}>${icon('tag')} ${esc(tag)} <small>${count}</small></button>`;
+  }).join('');
+}
+
+/** A question's tags as small chips for a question list (click = filter by that tag). */
+function questionTagsHtml(q) {
+  if (!q?.tags?.length) return '';
+  return `<span class="qx-tags">${q.tags.map(t => `<button type="button" class="tag-chip tag-chip-small" data-tag="${esc(t)}" title="Show questions tagged ${esc(t)}">${icon('tag')} ${esc(t)}</button>`).join('')}</span>`;
 }
 
 /** "B — Stockholm" for multiple choice, the answer text otherwise. */
@@ -162,7 +208,35 @@ function checkDetailsHtml(q) {
     </div>`;
 }
 
+/**
+ * "About this answer" — what the info button on an Academy learning card opens:
+ * the answer, the note, where it comes from (how it was checked, the sources with
+ * links, a short quote — or that it was not checked yet), and the topic and tags.
+ * Written for children and grown-ups alike: short headings, plain words.
+ * HTML — call it only in a page (uses icon() / esc()). The note is edition content
+ * (may hold a little HTML, like everywhere it is shown); web text is escaped.
+ */
+function questionInfoHtml(q) {
+  if (!q) return '';
+  const where = [q.cat, q.subcat, q.topic].filter(Boolean).join(' › ');
+  const tags = (q.tags || []).map(t => `<span class="tag-chip tag-chip-small">${icon('tag')} ${esc(t)}</span>`).join(' ');
+  const from = q.check
+    ? checkDetailsHtml(q)
+    : `<p class="qi-unchecked">${icon('notChecked')} Not checked against sources yet. Curious? Look it up together in a book or a trusted website.</p>`;
+  return `
+    <div class="qi">
+      <div class="qi-q">${q.q}</div>
+      <div class="qi-answer">${icon('answer')} ${esc(answerLabel(q))}</div>
+      ${q.note ? `<h4>${icon('note')} Good to know</h4><div class="qi-note">${q.note}</div>` : ''}
+      <h4>${icon('checkSource')} Where the answer comes from</h4>
+      ${from}
+      <h4>${icon('tag')} Topic</h4>
+      <div class="qi-topic">${esc(where || 'General')} · ${q.diff === 'hard' ? `${icon('hard')} Hard` : `${icon('easy')} Easy`} · #${Number(q.id)}${tags ? `<div class="qi-tags">${tags}</div>` : ''}</div>
+    </div>`;
+}
+
 if (typeof module !== 'undefined') {
   module.exports = { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, TOPIC_SEP,
-                     checkLabel, checkedCount, CHECK_LABELS };
+                     checkLabel, checkedCount, CHECK_LABELS, tagCounts, toggleTag, knownTags,
+                     checkBadgeHtml, checkDetailsHtml, tagFilterHtml, questionTagsHtml, questionInfoHtml };
 }

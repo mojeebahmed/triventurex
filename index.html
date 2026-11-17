@@ -188,6 +188,8 @@
           <span class="rules-foot-spacer"></span>
           <button type="button" class="btn btn-secondary btn-small" onclick="openAcademy()"
                   title="Learn this edition's questions with flashcards, quizzes and games — in a new tab"><i data-icon="academy"></i> Academy</button>
+          <!-- Tag chips (questions.csv `tags` column): click to show only questions with that tag; hidden when the edition has no tags -->
+          <div id="qx-tags" class="tag-filter hidden" aria-label="Filter by tag"></div>
         </div>
         <div class="rules-layout qx-layout">
           <nav id="qx-tree" class="qx-tree"></nav>
