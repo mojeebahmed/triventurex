@@ -204,6 +204,47 @@ changed — your corrections exist only in the exports. A new version keeps the 
 Terminal: `qv datasets` · `qv issues <file>` · `qv diff <file>`.
 """),
     ],
+    "knowledge": [
+        ("This page", """
+One search over **everything the checks have stored**: every web page, Wikipedia article and Qur'an verse that was
+read for a question, and every page of the books in the library. It reads only what is already on your Mac — no
+internet, no AI requests. The list is kept up to date after every batch; nothing on this page changes a result.
+
+Type words to find the pages that contain them (more and rarer words rank higher). Put words in "double quotes" to
+find them only as that exact phrase. Click a result to read the stored text with your words marked; the best
+passages are underlined; ◀ / ▶ step through the results. **Open the page** goes to the web page (or to the book's
+PDF at that page, when the book's download address is known).
+"""),
+        ("Filters", """
+- **Type** — web page, Wikipedia, Qur'an verse, book page.
+- **Language** — guessed from the text; a page mixing two languages counts for both.
+- **Trust** — how much the source is trusted (see *Trust levels*).
+- **Edition / Category** — pages that were read for a question of that edition or category.
+- **Older versions** — when a page was fetched again later, the older copy is hidden unless you tick this.
+
+The same text at several addresses is shown once; the other addresses are in **Also at**.
+"""),
+        ("Topics", """
+A **topic** is a saved search: a name, the words and the filters. **📌 Save as topic** keeps what is on the page;
+choose a topic in the **Topic** box to search it again. **💾 Save changes** stores changed words or filters in the
+open topic, **✏️ Rename** gives it another name, **🗑** deletes the topic (only the saved search).
+
+The tab **❓ Questions with these words** lists the questions in your files (latest version, every edition) that
+contain the words, with where each one stands now — useful to see which questions a subject touches.
+"""),
+        ("Judging", """
+Optional. In a result's popup, pick a file and a question id and say whether the page is **✅ relevant** (it is
+about what the question asks) or **❌ not relevant** for that question; **↩ No judgement** takes it back. Only your
+newest judgement counts; earlier ones are kept as a history.
+
+Judgements belong to the question's exact wording (a changed question starts without them). They do not change
+any result: they are used to measure how well the search finds the right pages (`qv kb benchmark`).
+"""),
+        ("Terminal", """
+`qv kb status` · `qv kb index` (update the list now) · `qv kb search "first Jalsa Salana"` · `qv kb benchmark`
+"""),
+        ("Trust levels", TIERS),
+    ],
     "library": [
         ("Books as a source", """
 Books are a source like websites, cited as **book + page** (e.g. *Basics of Religious Education, p. 118*). A book is

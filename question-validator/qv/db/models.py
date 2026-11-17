@@ -465,3 +465,57 @@ SOURCE_MARK_TRIGGERS: dict[str, str] = {
         BEGIN SELECT RAISE(ABORT, 'source marks are append-only'); END
     """,
 }
+
+
+# ---------------------------------------------------------------------------
+# Knowledge base (KB phase 2) — saved searches and a person's relevance judgements
+# ---------------------------------------------------------------------------
+
+class Topic(Base):
+    """A saved search ("topic"): a name, the search words and the filters.
+
+    Kept small on purpose: a later `topic_links` table (topic id → document / question / fact / passage,
+    append-only) points at `topics.id` without changing this table (KNOWLEDGE_BASE_PLAN.md, phase 2).
+    """
+
+    __tablename__ = "topics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), unique=True)
+    query: Mapped[str] = mapped_column(Text, default="")
+    filters_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RelevanceLabel(Base):
+    """A person's judgement: is a stored page / book page relevant for a question? (append-only; the newest one
+    for a question + page wins; `clear` takes a judgement back).
+
+    The question is its exact content (`ext_id` + `content_hash` in a dataset), like decisions; the page is its
+    knowledge-index doc key (`doc:<documents.id>` or `book:<book>/p<page>`). Used as extra benchmark labels.
+    """
+
+    __tablename__ = "relevance_labels"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), index=True)
+    ext_id: Mapped[str] = mapped_column(String(50))
+    content_hash: Mapped[str] = mapped_column(String(64))
+    doc_key: Mapped[str] = mapped_column(String(300), index=True)
+    label: Mapped[str] = mapped_column(String(20))  # relevant | not_relevant | clear
+    who: Mapped[str] = mapped_column(String(100), default="you")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+#: Relevance judgements are a history: never changed or deleted.
+RELEVANCE_LABEL_TRIGGERS: dict[str, str] = {
+    "relevance_labels_no_update": """
+        CREATE TRIGGER relevance_labels_no_update BEFORE UPDATE ON relevance_labels
+        BEGIN SELECT RAISE(ABORT, 'relevance labels are append-only'); END
+    """,
+    "relevance_labels_no_delete": """
+        CREATE TRIGGER relevance_labels_no_delete BEFORE DELETE ON relevance_labels
+        BEGIN SELECT RAISE(ABORT, 'relevance labels are append-only'); END
+    """,
+}

@@ -860,7 +860,11 @@ def kb_benchmark(save: Annotated[bool, typer.Option(help="Save the report in dat
     from qv.kb.index import update_index
     settings, db = _settings(), _db()
     typer.echo("Index: " + update_index(db, settings.data_dir).line())
-    report, path = run_benchmark(db, settings.data_dir, save=save)
+    from qv.services.knowledge import benchmark_labels
+    extra = benchmark_labels(db)
+    if extra:
+        typer.echo(f"Your judgements from the Knowledge page: {len(extra)} (added to the stored-research labels)")
+    report, path = run_benchmark(db, settings.data_dir, save=save, extra_labels=extra)
     for line in summary_lines(report):
         typer.echo(line)
     names = list(report["systems"])

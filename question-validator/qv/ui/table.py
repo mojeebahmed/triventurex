@@ -50,10 +50,34 @@ tbody tr { user-select: none; }
 .pick tbody tr { cursor: pointer; }
 .pick tbody tr:hover td { background: rgba(127, 127, 127, 0.08); }
 tbody tr.on td, .pick tbody tr.on:hover td { background: #fff3c4; color: #31333f; font-weight: 600; }
+mark { background: #ffe066; color: inherit; padding: 0 1px; border-radius: 3px; }
 .qv-empty { padding: 10px; opacity: 0.7; font-size: 14px; }
 """
 
 _JS = """
+// Put a cell's text into the page, the search words wrapped in <mark> — built from text nodes, never as HTML
+function fillCell(td, v, marks) {
+  if (!marks.length) { td.textContent = v; return; }
+  const low = v.toLowerCase();
+  const words = marks.map(w => w.toLowerCase()).sort((a, b) => b.length - a.length);
+  const isWordChar = ch => !!ch && (ch.toLowerCase() !== ch.toUpperCase() || (ch >= '0' && ch <= '9'));
+  let at = 0, i = 0;
+  while (i < low.length) {
+    const w = isWordChar(low[i - 1]) ? null : words.find(x => low.startsWith(x, i));
+    if (w) {
+      if (i > at) td.appendChild(document.createTextNode(v.slice(at, i)));
+      const mk = document.createElement('mark');
+      mk.textContent = v.slice(i, i + w.length);
+      td.appendChild(mk);
+      i += w.length;
+      at = i;
+    } else {
+      i += 1;
+    }
+  }
+  if (at < v.length) td.appendChild(document.createTextNode(v.slice(at)));
+}
+
 export default function(component) {
   const { data, parentElement, setStateValue } = component;
   let root = parentElement.querySelector('.qv-root');
@@ -139,7 +163,7 @@ export default function(component) {
       if (i === data.selected) tr.classList.add('on');
       data.rows[i].forEach((v, j) => {
         const td = document.createElement('td');
-        td.textContent = v;
+        fillCell(td, v, data.marks || []);
         td.title = v;
         td.style.maxWidth = data.columns[j].width;
         if (data.columns[j].num) td.classList.add('num');
@@ -257,12 +281,13 @@ def picked_row(state: Any, sig: str, n_rows: int) -> int | None:
 
 
 def render_table(df: pd.DataFrame, *, key: str | None, select: bool, columns: dict | None, height: int,
-                 highlight: int | None, search: str = "") -> tuple[int | None, float | None, list[int] | None]:
+                 highlight: int | None, search: str = "", marks: list[str] | None = None
+                 ) -> tuple[int | None, float | None, list[int] | None]:
     """Draw the table (click a header to sort; `search` = placeholder of a filter box above it).
 
     With `select`, returns (clicked row, click id, visible order) — rows as positions in `df`, whatever the viewer's
     sort or search; the order is what the viewer saw when clicking — or (None, None, None) until something is
-    clicked.
+    clicked. `marks` = words marked in every cell (whole words and word starts, any case).
     """
     names, specs = table_spec(df, columns)
     rows = [[cell_text(v) for v in rec] for rec in df[names].itertuples(index=False, name=None)]
@@ -274,6 +299,7 @@ def render_table(df: pd.DataFrame, *, key: str | None, select: bool, columns: di
     clicked = picked_row(old, sig, len(rows))
     shown = clicked if clicked is not None else highlight
     data = {"columns": specs, "rows": rows, "select": select, "height": height, "sig": sig, "search": search,
+            "marks": [w for w in (marks or []) if w],
             "selected": shown if shown is not None and shown < len(rows) else -1}
     kwargs: dict[str, Any] = {"key": comp_key, "data": data}
     if select:

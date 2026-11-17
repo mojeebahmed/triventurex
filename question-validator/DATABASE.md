@@ -75,6 +75,8 @@ api_calls, quota_usage                              (every call made, and the fr
 | `validations` | the verdict for one question in one run | `verdict`, `evidence_strength`, `review_status`, `blind_answer`, `blind_matches_key`, `reasons_json`, `suggested_answer`, `passage_map_json` (P1, P2 … → passage) |
 | `source_marks` | your mark on a website (use with a trust P/S/T / don't use / needs special access / clear) — never changed, the newest per site counts; applied on top of `config/sources.yaml` | `domain`, `action`, `tier`, `note`, `created_at` |
 | `decisions` | your decision about one question (keep / edit / specialist / remove / later) — never changed, the newest counts | `ext_id`, `action`, `changes_json` (your edit), `comment`, `content_hash` (the wording it was made for), `created_at` |
+| `topics` | a saved search on the Knowledge page: a name, the search words and the filters — can be renamed and changed | `name` (unique), `query`, `filters_json` (`source_kinds`, `languages`, `tiers`, `edition`, `category`, `include_older`), `created_at`, `updated_at` |
+| `relevance_labels` | your judgement that a stored page / book page is relevant or not for a question — never changed, the newest per question + page counts (`clear` takes it back); used by `qv kb benchmark` | `dataset_id`, `ext_id`, `content_hash` (the wording it was made for), `doc_key` (`doc:<documents.id>` or `book:<book>/p<page>`), `label` (relevant · not_relevant · clear), `who`, `created_at` |
 | `api_calls` | every call to a model, search engine or website | `provider`, `model`, `stage`, `status` (ok / error / quota), `input_tokens`, `output_tokens`, `latency_ms`, `error` |
 | `quota_usage` | free quota used per provider and day / month | `used`, `exhausted` |
 | `alembic_version` | the database schema version (internal) | — |
@@ -162,7 +164,13 @@ Same page, several URLs (tracking parameters, `www.`, http/https …) or the sam
 result with "also at …". A page fetched again with new text keeps the old version (passages still point at it);
 search shows the newest unless older versions are asked for.
 
+Your topics and relevance judgements are **not** in this cache: they are in `validation.db` (`topics`,
+`relevance_labels`), so rebuilding the index never loses them.
+
 ```bash
+# Your current relevance judgements (newest per question + page)
+sqlite3 -header -column data/validation.db "select d.name file, r.ext_id, r.doc_key, r.label, r.created_at from relevance_labels r join datasets d on d.id = r.dataset_id where r.id in (select max(id) from relevance_labels group by dataset_id, ext_id, content_hash, doc_key) and r.label != 'clear'"
+
 # The ten biggest documents in the index
 sqlite3 -header -column data/kb/index.sqlite "select doc_key, tier, lang, char_len, substr(title, 1, 50) title from kb_docs order by char_len desc limit 10"
 ```

@@ -1,7 +1,7 @@
 """Web page (Streamlit). Run with `qv ui`, or double-click `Start Question Validator.command`.
 
 Menu (sidebar, in sections): Overview · Files: Import · Check questions: Validate, Daily run, Review, Export ·
-Advanced: Batches, Files & versions, Book library, Websites, Usage & quota. The file being worked on is chosen in
+Advanced: Batches, Files & versions, Knowledge, Book library, Websites, Usage & quota. The file being worked on is chosen in
 the bar at the top of the pages that work on one file. Queries and writes live in qv.services; this file only lays
 them out. Long work (a batch) runs as a separate `qv next` process, so the page can be closed while it works.
 
@@ -73,6 +73,7 @@ section[data-testid="stSidebar"][data-collapsed="true"] [data-testid="stSidebarN
 mark { background: #ffe066; padding: 0 2px; border-radius: 3px; }
 .qv-page { white-space: pre-wrap; font-size: 0.92em; line-height: 1.5; max-height: 55vh; overflow: auto;
   border: 1px solid rgba(49, 51, 63, 0.15); border-radius: 8px; padding: 0.75rem; }
+.qv-hit { background: rgba(255, 205, 60, 0.18); border-bottom: 2px solid #ffcd3c; }
 .qv-quote { border-left: 4px solid #ffcd3c; padding: 0.3rem 0.8rem; margin: 0.4rem 0 0.1rem 0;
   background: rgba(255, 205, 60, 0.08); border-radius: 0 6px 6px 0; }
 </style>
@@ -126,12 +127,13 @@ settings = Settings()
 
 def data_table(rows: list[dict] | pd.DataFrame, *, key: str | None = None, select: bool = False,
                columns: dict | None = None, max_rows: int = 12, highlight: int | None = None,
-               search: bool | str | None = None,
+               search: bool | str | None = None, marks: list[str] | None = None,
                on_open: Callable[[int, list[int]], None] | None = None) -> int | None:
     """Every table on the page: same look, height that fits, row count, sortable columns, optional search box.
 
     - `search`: True / a placeholder text shows a search box above the table (default: when it has > 8 rows).
     - `select=True`: a click on a row picks it; returns the picked position (in `rows`), else None.
+    - `marks`: words marked in every cell (e.g. the search words).
     - `on_open(row, order)`: called once per click (also a second click on the same row) — for opening a popup.
       `order` = the rows as the viewer saw them (after their sort and search), for Previous / Next in the popup.
     """
@@ -146,7 +148,7 @@ def data_table(rows: list[dict] | pd.DataFrame, *, key: str | None = None, selec
     shown = min(len(df), max_rows)
     row, nonce, order = render_table(df, key=key, select=select, columns=columns,
                                      height=HEADER_PX + ROW_PX * shown + 16,  # + room for a sideways scrollbar
-                                     highlight=highlight, search=placeholder)
+                                     highlight=highlight, search=placeholder, marks=marks)
     note = f"{len(df)} row{'s' if len(df) != 1 else ''}"
     if len(df) > max_rows:
         note += " — scroll to see all"
@@ -1200,6 +1202,234 @@ def page_library() -> None:
                    columns={"match": TEXT("Where it matches", width="large")}, on_open=open_hit)
 
 
+# --- knowledge (search everything stored, topics, judgements) -----------------------------
+
+KN_WIDGETS = {"kn_query": "", "kn_kinds": [], "kn_langs": [], "kn_tiers": [], "kn_edition": "", "kn_category": "",
+              "kn_older": False}
+NEW_SEARCH = 0
+
+
+def md_escape(text: str) -> str:
+    """Text shown inside Markdown without being read as Markdown or HTML (stored titles are untrusted)."""
+    return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$&])", r"\\\1", text or "")
+
+
+def kn_load_topic(topic_id: int) -> None:
+    """Put a topic's search into the Knowledge widgets (only before they exist: callbacks / start of the page)."""
+    from qv.services import knowledge as kn
+    t = kn.get_topic(db, topic_id) if topic_id else None
+    f = t.filters if t else {}
+    st.session_state.update({
+        "kn_query": t.query if t else "", "kn_kinds": list(f.get("source_kinds", [])),
+        "kn_langs": list(f.get("languages", [])), "kn_tiers": list(f.get("tiers", [])),
+        "kn_edition": f.get("edition") or "", "kn_category": f.get("category") or "",
+        "kn_older": bool(f.get("include_older"))})
+
+
+def kn_current_filters() -> dict:
+    """The filters as set on the page."""
+    ss = st.session_state
+    return {"source_kinds": ss.get("kn_kinds", []), "languages": ss.get("kn_langs", []),
+            "tiers": ss.get("kn_tiers", []), "edition": ss.get("kn_edition") or None,
+            "category": ss.get("kn_category") or None, "include_older": ss.get("kn_older", False)}
+
+
+def page_knowledge() -> None:
+    """Search every stored page and book page; saved searches (topics); judge results for a question."""
+    from qv.kb.index import update_index
+    from qv.library import query_words
+    from qv.services import knowledge as kn
+    page_title("🧠 Knowledge", "knowledge", "Search every page and book page the checks have stored. Save a search "
+                                           "as a topic; mark pages as relevant for a question.")
+    ss = st.session_state
+    for k, v in KN_WIDGETS.items():
+        ss.setdefault(k, v)
+    if "kn_topic_next" in ss:                               # a click in the topics table
+        ss.kn_topic = ss.pop("kn_topic_next")
+        if ss.kn_topic != NEW_SEARCH:                       # a deleted topic leaves its search on the page
+            kn_load_topic(ss.kn_topic)
+    idx = kn.open_index(settings.data_dir)
+    status = idx.status() if idx else None
+    opts = kn.filter_options(idx) if idx else kn.FilterOptions()
+    if idx:
+        idx.close()
+    if not status or not status.get("documents"):
+        st.info("The knowledge index is empty. Build it once; after that it is updated after every batch.")
+        if st.button("Build the knowledge index", type="primary",
+                     help="Reads the pages already stored and the book library — no internet, no AI requests"):
+            with st.spinner("Building …"):
+                st.toast(update_index(db, settings.data_dir).line())
+            st.rerun()
+        return
+
+    topics = kn.list_topics(db)
+    names = {t.id: t.name for t in topics}
+    if ss.get("kn_topic") not in names:
+        ss.kn_topic = NEW_SEARCH
+    c = st.columns([2.6, 1.8, 1.8, 1.5, 0.6], vertical_alignment="bottom")
+    c[0].selectbox("Topic", [NEW_SEARCH, *names], key="kn_topic",
+                   format_func=lambda i: names.get(i, "— new search —"),
+                   on_change=lambda: kn_load_topic(st.session_state.kn_topic),
+                   help="A topic is a saved search: its words and filters. Choose one to search it again.")
+    with c[1].popover("📌 Save as topic", width="stretch", help="Keep these words and filters under a name"):
+        new_name = st.text_input("Name", key="kn_new_name", placeholder="e.g. First Jalsa Salana")
+        if st.button("Save", type="primary", key="kn_save_new", disabled=not new_name):
+            try:
+                t = kn.save_topic(db, new_name, ss.kn_query, kn_current_filters())
+            except ValueError as exc:
+                st.error(str(exc))
+            else:
+                ss.kn_topic_next = t.id
+                st.toast(f"Saved topic “{t.name}”")
+                st.rerun()
+    topic = next((t for t in topics if t.id == ss.kn_topic), None)
+    if topic:
+        changed = (ss.kn_query.strip() != topic.query
+                   or kn.filters_to_dict(kn.filters_from_dict(kn_current_filters())) != topic.filters)
+        if c[2].button("💾 Save changes", width="stretch", disabled=not changed,
+                       help="Store the words and filters shown now in this topic"):
+            try:
+                kn.update_topic(db, topic.id, query=ss.kn_query, filters=kn_current_filters())
+                st.toast("Topic saved")
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+        with c[3].popover("✏️ Rename", width="stretch"):
+            renamed = st.text_input("New name", value=topic.name, key=f"kn_rename_{topic.id}")
+            if st.button("Rename", type="primary", key="kn_rename_go"):
+                try:
+                    kn.update_topic(db, topic.id, name=renamed)
+                    st.rerun()
+                except ValueError as exc:
+                    st.error(str(exc))
+        with c[4].popover("🗑", help="Delete this topic (only the saved search)"):
+            st.caption(f"Delete the topic “{topic.name}”? The pages and questions are not touched.")
+            if st.button("Delete", key="kn_delete"):
+                kn.delete_topic(db, topic.id)
+                ss.kn_topic_next = NEW_SEARCH
+                st.rerun()
+
+    st.text_input("Search", key="kn_query", placeholder='🔎 e.g. first Jalsa Salana Qadian, or "exact words"',
+                  label_visibility="collapsed")
+    f = st.columns([2, 2, 2, 2, 2, 1.7], vertical_alignment="bottom")
+    f[0].multiselect("Type", opts.source_kinds, key="kn_kinds", format_func=lambda k: kn.SOURCE_KIND_TEXT.get(k, k),
+                     placeholder="All types")
+    f[1].multiselect("Language", sorted(set(opts.languages) | set(ss.kn_langs)), key="kn_langs",
+                     placeholder="All languages", help="Guessed from the text; a mixed page counts for both")
+    f[2].multiselect("Trust", sorted(set(opts.tiers) | set(ss.kn_tiers), key="PSTX".find), key="kn_tiers",
+                     format_func=TIER_LABEL.get, placeholder="Any trust")
+    f[3].selectbox("Edition", ["", *sorted(set(opts.editions) | ({ss.kn_edition} - {""}))], key="kn_edition",
+                   format_func=lambda e: e or "All editions", help="Pages read for a question of this edition")
+    f[4].selectbox("Category", ["", *sorted(set(opts.categories) | ({ss.kn_category} - {""}))], key="kn_category",
+                   format_func=lambda e: e or "All categories", help="Pages read for a question of this category")
+    f[5].checkbox("Older versions", key="kn_older",
+                  help="Also show older copies of a page that was fetched again later (hidden by default)")
+    query = ss.kn_query
+    st.caption(f"{status['documents']} pages in the index · updated {str(status.get('updated_at') or '')[:16]}")
+    if not query_words(query):
+        st.caption("Type words to find the pages that contain them; click a result to read the page with your words "
+                   "marked.")
+        return
+    words = query_words(query.replace('"', " "))
+    hits = kn.run_search(settings.data_dir, query, kn.filters_from_dict(kn_current_filters()))
+    questions = kn.matching_questions(db, query)
+    t_pages, t_questions = st.tabs([f"📄 Pages ({len(hits)})", f"❓ Questions with these words ({len(questions)})"])
+    with t_pages:
+        if not hits:
+            st.caption("No page matches.")
+        else:
+            def open_hit(row: int, order: list[int]) -> None:
+                ss.kn_hits = [{"doc_key": hits[i].doc_key, "spans": [(ch.start, ch.end) for ch in hits[i].chunks],
+                               "also_at": hits[i].also_at, "via_translation": hits[i].via_translation,
+                               "meta": kn.result_rows([hits[i]])[0]} for i in order]
+                ss.kn_pos = order.index(row) if row in order else 0
+                knowledge_hit_dialog(words)
+
+            data_table(kn.result_rows(hits, words), key=f"kn_hits_{query}_{kn_current_filters()}", search=False,
+                       marks=words, max_rows=14,
+                       columns={"document": TEXT("Document", width="medium"),
+                                "best passage": TEXT("Best passage", width="large"),
+                                "trust": TEXT("Trust", width="small"), "also at": TEXT("Also at", width="medium")},
+                       on_open=open_hit)
+    with t_questions:
+        st.caption("Questions in your files (latest version) that contain these words, with their result now.")
+        data_table(questions, key=f"kn_q_{query}", marks=words, search="🔎 Search these questions",
+                   columns={"question": TEXT("Question", width="large"), "answer": TEXT("Answer", width="medium"),
+                            "category": TEXT("Category", width="medium"), "file": TEXT("File", width="small"),
+                            "id": TEXT("Id", width="small")})
+
+
+@st.dialog("Search result", width="large", on_dismiss="rerun")
+def knowledge_hit_dialog(words: list[str]) -> None:
+    """One result: the stored text with the search words marked; Previous / Next; judge it for a question."""
+    from qv.services import knowledge as kn
+    ss = st.session_state
+    items = ss.get("kn_hits") or []
+    if not items:
+        return
+    pos = popup_nav("kn_pos", len(items), "result")
+    item = items[pos]
+    doc = kn.stored_text(db, settings.data_dir, item["doc_key"])
+    if doc is None:
+        st.info("This page is no longer stored (or its book was removed from the library).")
+        return
+    m = item["meta"]
+    st.markdown(f"#### {md_escape(doc.title)}")
+    st.caption(" · ".join(p for p in (m["type"], TIER_LABEL.get(m["trust"], m["trust"]), m["language"], m["page"],
+                                      m["date"], "older version" if m["older version"] else "") if p))
+    if doc.link:
+        st.link_button("Open the page" if not item["doc_key"].startswith("book:") else "Open the book's PDF at "
+                       "this page", doc.link)
+    else:
+        st.caption(f"Stored as {md_escape(doc.where)}")
+    if item["also_at"]:
+        st.caption("Same text also at: " + " · ".join(md_escape(u) for u in item["also_at"]))
+    if item["via_translation"]:
+        st.caption("Found through its machine translation — the text below is the original (the evidence).")
+    spans = [tuple(s) for s in item["spans"]]
+    ok = [s for s in spans if 0 <= s[0] < s[1] <= len(doc.text)]
+    if ok:
+        a, b = ok[0]
+        st.caption("Best passage")
+        st.markdown(f"<div class='qv-quote'>{kn.marked_html(doc.text[a:b], words)}</div>", unsafe_allow_html=True)
+    st.caption("The stored text — your words marked, the best passages underlined")
+    st.markdown(f"<div class='qv-page'>{kn.marked_html(doc.text, words, ok)}</div>", unsafe_allow_html=True)
+    judge_panel(item["doc_key"])
+
+
+def judge_panel(doc_key: str) -> None:
+    """Relevant / not relevant for a question (optional; used as extra benchmark labels)."""
+    from qv.services import knowledge as kn
+    st.divider()
+    st.markdown("**Judge this page for a question** (optional)")
+    names = workflow.dataset_names(db)
+    if not names:
+        st.caption("Import a question file first.")
+        return
+    c = st.columns([2, 1, 5], vertical_alignment="bottom")
+    cur = st.session_state.get("dataset")
+    c[0].selectbox("File", names, index=names.index(cur) if cur in names else 0, key="kn_judge_file")
+    c[1].text_input("Question id", key="kn_judge_id", placeholder="e.g. 135")
+    qid = (st.session_state.get("kn_judge_id") or "").strip()
+    q = kn.find_question(db, st.session_state.kn_judge_file, qid) if qid else None
+    if qid and q is None:
+        c[2].caption("No question with this id in the file's latest version.")
+    elif q:
+        now = kn.label_for(db, q, doc_key)
+        c[2].caption(f"#{q.ext_id}: {md_escape(q.question)}  \nNow: **{kn.LABEL_TEXT[now] if now else 'not judged'}**")
+        b = st.columns(3)
+        for col, label, text in ((b[0], "relevant", "✅ Relevant"), (b[1], "not_relevant", "❌ Not relevant"),
+                                 (b[2], "clear", "↩ No judgement")):
+            if col.button(text, key=f"kn_judge_{label}", width="stretch", disabled=(now == label)
+                          or (label == "clear" and now is None),
+                          help="Is this page about what the question asks? Stored for measuring the search."):
+                kn.add_label(db, q, doc_key, label)
+                st.rerun(scope="fragment")
+    done = kn.labels_for_doc(db, doc_key)
+    if done:
+        st.caption("Judged for: " + " · ".join(f"{d['file']} #{d['id']} {d['judgement']}" for d in done))
+
+
 # --- websites ------------------------------------------------------------------------------
 def page_websites() -> None:
     """Websites research could not read, unlisted sites that gave quotes, and the person's own list."""
@@ -1289,6 +1519,7 @@ PAGES = {
     "export": st.Page(page_export, title="Export", icon=":material/download:", url_path="export"),
     "batches": st.Page(page_batches, title="Batches", icon=":material/list_alt:", url_path="batches"),
     "files": st.Page(page_files, title="Files & versions", icon=":material/folder:", url_path="files"),
+    "knowledge": st.Page(page_knowledge, title="Knowledge", icon=":material/travel_explore:", url_path="knowledge"),
     "library": st.Page(page_library, title="Book library", icon=":material/menu_book:", url_path="library"),
     "websites": st.Page(page_websites, title="Websites", icon=":material/language:", url_path="websites"),
     "usage": st.Page(page_usage, title="Usage & quota", icon=":material/data_usage:", url_path="usage"),
@@ -1297,7 +1528,7 @@ SECTIONS = {
     "": ["overview"],
     "Files": ["import"],
     "Check questions": ["validate", "daily", "review", "export"],
-    "Advanced": ["batches", "files", "library", "websites", "usage"],
+    "Advanced": ["batches", "files", "knowledge", "library", "websites", "usage"],
 }
 #: Pages that work on one file show the "Working on" bar.
 WITH_FILE = {"overview", "validate", "review", "export", "batches"}

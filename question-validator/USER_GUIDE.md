@@ -196,9 +196,20 @@ Books stay on your Mac; exports only carry short quotes.
 
 Everything the checks have read — web pages, Wikipedia, Qur'an verses — and every page of your books is kept in one
 search index on your Mac. It updates itself after every batch. Terminal: `qv kb search "first Jalsa Salana"`
-(add `--source book`, `--lang de`, `--tier P`, `--edition swab-quest` to narrow it), `qv kb status`. A search page
-on the web page comes next. `qv kb benchmark` measures how well the search finds the pages that turned out useful —
-for deciding later whether new search methods help.
+(add `--source book`, `--lang de`, `--tier P`, `--edition swab-quest` to narrow it), `qv kb status`.
+`qv kb benchmark` measures how well the search finds the pages that turned out useful — for deciding later whether
+new search methods help.
+
+**On the web page: Advanced → 🧠 Knowledge.** Type words (or "an exact phrase"), narrow with the filters (type,
+language, trust, edition, category, older versions) and click a result to read the stored text with your words
+marked (◀ / ▶ through the results; *Open the page* goes to the website or the book's PDF). It uses no internet and no
+AI requests.
+
+- **Topics** — *📌 Save as topic* keeps the words and filters under a name; pick it again in the *Topic* box,
+  *💾 Save changes*, *✏️ Rename* or *🗑* delete it. The tab *❓ Questions with these words* lists the questions of
+  every edition that contain the words, with where each one stands.
+- **Judging (optional)** — in a result's popup, enter a file and a question id and click *✅ Relevant* or
+  *❌ Not relevant*. Your judgements change no result; `qv kb benchmark` uses them to measure the search.
 
 ## Websites
 

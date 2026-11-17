@@ -79,7 +79,8 @@ all other commands stay for power users and debugging.
    local-model experiments with a decision rule · 5 same fact, different result (duplicates) · 6 facts + question
    generation (leave-one-out validation). Read the plan's ground rules and "Explicitly not now" before starting a phase.
    **Phase 1 built 2026-11-17** (branch `feat/qv-kb-index`): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
-   the plan's phase-1 result note.
+   the plan's phase-1 result note. **Phase 2 built 2026-11-17** (branch `claude/qv-kb-search-page-a3ae38`): Knowledge
+   page, topics, relevance judgements — see the plan's phase-2 result note.
 
 Smaller open items: retry S3 when ≥ 1 quote is dropped (to reach < 2 %); PDF pages from the web are skipped
 (`not_text`); refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
@@ -257,6 +258,18 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   `qv library index`. Commands: `qv kb index | rebuild | status | search | benchmark`.
 - Benchmark labels: relevant = read, `about_right_subject`, ≥ 1 passage with `target = 'need'`; not relevant =
   off-topic, or read without any passage. Questions keyed `<edition>#<id>@<hash8>`; queries = S1a only.
+
+## Implementation invariants (knowledge search page — KB phase 2, 2026-11-17)
+- Advanced → Knowledge (`page_knowledge`); all logic in `qv/services/knowledge.py`. The popup's text comes from where
+  it is stored (`documents.text`, library page), never from the index; chunk offsets mark the passages. Stored text,
+  titles and URLs are untrusted: HTML only via `marked_html` (escapes everything), Markdown via `md_escape`, links
+  only through `safe_link` (plain http/https). Table cells mark words with `data_table(marks=…)` (text nodes only).
+- `topics` (Alembic 0006) are **mutable** (rename / change / delete) — a later `topic_links` table points at
+  `topics.id` and must not require changing `topics`. Filters are stored as `filters_to_dict(SearchFilters)`.
+- `relevance_labels` are **append-only** (triggers); newest per (dataset, ext_id, content_hash, doc_key) wins;
+  `clear` takes one back. They belong to a question's exact wording. `qv kb benchmark` always passes
+  `knowledge.benchmark_labels(db)` as `extra_labels` (key `<profile>#<id>@<hash8>`, profile of the version holding
+  that wording). Judgements never change a result.
 
 ## Coding standards (Python)
 - Python 3.12+, own `pyproject.toml`; type hints on all signatures, docstrings on classes and functions,

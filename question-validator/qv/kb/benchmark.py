@@ -222,6 +222,7 @@ def run_benchmark(db: Database, data_dir: Path, *, save: bool = True,
     finally:
         idx.close()
     report["created"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    report["person_labels"] = len(extra_labels or [])
     report["labels_rule"] = ("relevant = read, on the right subject, >= 1 grounded passage on the need; "
                              "not relevant = read and off-topic, or read without a grounded quote")
     path = None

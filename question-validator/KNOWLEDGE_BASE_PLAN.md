@@ -230,6 +230,25 @@ document | question | fact | passage, target ref, note, who, created; append-onl
 Acceptance: any stored page is findable by a distinctive phrase; filters combine; the popup opens the right page and
 offsets; a topic can be saved, reopened and renamed. Tests: query building, filters, topic CRUD, label storage.
 
+**Result (built 2026-11-17, branch `claude/qv-kb-search-page-a3ae38`, based on `feat/qv-kb-index`)**
+- Advanced → **🧠 Knowledge** (`page_knowledge` in `qv/ui/app.py`); logic in `qv/services/knowledge.py`. Results table
+  marks the search words in the cells (new `marks=` option of `data_table` / `qv/ui/table.py`, built from text
+  nodes, never HTML). The popup reads the stored text from `documents.text` / the library page (not from the index),
+  shows the best passage, marks the words, underlines the hit chunks by their offsets, links only plain `http(s)`
+  addresses (a book page links to the book's `source_url#page=N` when known); ◀ / ▶ via `popup_nav`.
+- Topics: a **Topic** box above the search (choose = reopen), 📌 Save as topic · 💾 Save changes · ✏️ Rename · 🗑.
+  Tab *Questions with these words*: a simple word match (word starts ≥ 4 letters count; quoted phrases must match)
+  over the latest version of every non-eval file, with status and verdict (`workflow.question_states`) — no FTS
+  table was needed at ≈ 1,200 questions.
+- Judging: popup → file + question id → ✅ / ❌ / ↩; `relevance_labels` (migration 0006, append-only triggers).
+  `qv kb benchmark` passes the current judgements as `extra_labels` (question key from the version's profile) and the
+  report stores `person_labels`.
+- DB: `topics` (mutable: rename / change / delete; `topic_links` can later point at `topics.id`), `relevance_labels`.
+- Tests: `tests/test_knowledge.py` (filters, combined filters, older versions, every stored page findable by a
+  phrase, offsets reproduce the stored text, escaping, safe links, topic CRUD, question matching, labels newest-wins
+  + append-only, labels reaching the benchmark). Checked in the browser against a copy of `data/`.
+- Not done: a search inside the stored text of one result beyond marking; topic links (not now, as planned).
+
 ### Phase 3 — Stored pages first (+ web PDFs)
 
 **Delivers**: research reuses what is stored; fewer free searches. **Depends on**: phase 1 (and its baseline).
