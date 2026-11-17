@@ -96,8 +96,9 @@ all other commands stay for power users and debugging.
 
 Smaller open items: ~~retry S3 when ≥ 1 quote is dropped~~ (built 2026-11-17, see *Implementation invariants (S3
 retry)*; the dropped-quote rate with it is not measured yet); web PDFs are read page by page since
-KB phase 3; refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×11 —
-worth a look); no hadith direct source yet. Done 2026-11-16: `QV_CONTACT` is set (Wikipedia searches run); the
+KB phase 3; refused sites are now listed for Mojeeb on the Websites page (alislam.org itself answered 500 ×13 —
+all on `/friday_sermon/…` pages, 2026-11-17; `new.alislam.org/library/books/…` pages are built in the browser and
+store ~12 characters — candidates for "needs special access" on the Websites page); no hadith direct source yet. Done 2026-11-16: `QV_CONTACT` is set (Wikipedia searches run); the
 free Gemini limits were checked in AI Studio — 4 more models with 20/day each were added to the pools
 (gemini-4-hydrogen, gemini-3-flash-preview, gemini-2.5-flash in `judge`; gemini-2.5-flash-lite in `cheap`), their
 quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
@@ -352,6 +353,15 @@ quality not measured yet; Pro / 4 Argon / 4 Carbon have no free quota.
   exported file keeps results. `check_hash` (10 hex of sha256 over question, type, answer, opt_a–d, note joined with
   `\n`) must equal `checkHash` in scripts/content.js (`tests/test_check_export.py` runs node to compare).
 - `apply_edits_as_new_version` uses `corrected_csv`, not the game export — stored versions never get check columns from us.
+
+## Implementation invariants (Qur'an references, 2026-11-17)
+- `providers/quran.py VERSES_COMMON` (114 surahs, 6,236 verses; Bismillah numbering = +1 except surahs 1 and 9):
+  `parse_refs` refuses a verse that does not exist (never fetched; was: 66:20 fetched, stored nothing) and ends a range
+  at the surah's last verse. `missing_verses` → Prepare flag `verse_not_found` (only for profiles with a
+  `quran_numbering` convention).
+- Search hits on `alislam.org/quran/app/<s>:<v>[-<w>]` are read with the verse reader (`_verse_page_into`; the app is
+  built in the browser, a plain fetch stored 0 characters); whole-surah pages (`/quran/app/<s>`) are skipped. Stats
+  `quran_pages_from_search`, `quran_surah_pages_skipped`.
 
 ## Implementation invariants (embeddings — KB phase 4 code, 2026-11-17)
 - `qv/kb/vectors.py` uses **local** models only (Ollama `/api/embed`) or pure code (`hashing`); never a cloud model,

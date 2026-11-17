@@ -91,7 +91,8 @@ def prepare_items(db: Database, dataset: str) -> list[PrepareItem]:
         q = questions[st.question_id]
         flags = wording_flags(q, long_question_words=cfg.prepare_long_question_words,
                               long_answer_words=cfg.prepare_long_answer_words,
-                              near_duplicate=st.question_id in dupes)
+                              near_duplicate=st.question_id in dupes,
+                              quran_numbering=profile.conventions.get("quran_numbering"))
         found = runner.stored("s6", StageRunner.hash_for("s6", s6_hash_inputs(q), system), Quality)
         out.append(PrepareItem(st, flags, found.output if found else None))  # type: ignore[arg-type]
     return out

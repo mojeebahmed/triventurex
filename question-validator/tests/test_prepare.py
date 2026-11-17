@@ -63,6 +63,14 @@ def test_numbers_figures_negatives_and_length() -> None:
     assert flags(q("Who?"), near_duplicate=True) == ("near_duplicate",)
 
 
+def test_a_verse_that_does_not_exist_is_flagged_only_for_editions_that_cite_verses() -> None:
+    noted = Question(**{**q("What did Allah forbid?").__dict__, "note": "Surah At-Tahrim 66:20"})
+    assert "verse_not_found" in flags(noted, quran_numbering="bismillah_is_verse_1")
+    assert "verse_not_found" not in flags(noted)                         # e.g. World Tour: no verse check
+    fine = Question(**{**noted.__dict__, "note": "Surah At-Tahrim 66:13"})
+    assert "verse_not_found" not in flags(fine, quran_numbering="bismillah_is_verse_1")
+
+
 def test_flags_have_labels_and_the_help_lists_them_all() -> None:
     from qv.ui.help_text import help_for
     assert len(FLAG_BY_CODE) == len(FLAGS)

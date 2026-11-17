@@ -26,6 +26,52 @@ _SCHEME_ALIASES = {
     "common": COMMON_SCHEME, "hafs": COMMON_SCHEME, "cairo": COMMON_SCHEME, "standard": COMMON_SCHEME,
 }
 MAX_VERSES_PER_LOOKUP = 6
+#: Verses per surah in the common (Hafs / Cairo) numbering — 6,236 in all. In the Bismillah-as-verse-1 numbering
+#: every surah except 1 (Bismillah already 1:1) and 9 (no Bismillah) has one verse more.
+VERSES_COMMON = (
+    7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135, 112, 78, 118, 64,
+    77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49,
+    62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
+    29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4,
+    5, 6,
+)
+_VERSE_URL = re.compile(r"^https?://(?:www\.)?alislam\.org/quran/app/(\d{1,3})(?::(\d{1,3})(?:-(\d{1,3}))?)?/?$")
+
+
+def scheme_of(scheme: str | None) -> str:
+    """The canonical numbering scheme name (unknown names raise QuranRefError)."""
+    key = (scheme or "").strip().lower()
+    if key not in _SCHEME_ALIASES:
+        raise QuranRefError(f"Unknown numbering scheme {scheme!r}")
+    return _SCHEME_ALIASES[key]
+
+
+def verse_count(surah: int, scheme: str | None = None) -> int:
+    """How many verses a surah has in a numbering scheme (default: Bismillah as verse 1)."""
+    n = VERSES_COMMON[surah - 1]
+    return n + 1 if scheme_of(scheme) == BISMILLAH_SCHEME and surah not in (1, 9) else n
+
+
+def missing_verses(text: str, scheme: str | None = None) -> list[str]:
+    """References 's:v' (or 's:v-w') in a text that name a surah or verse that does not exist in the scheme —
+    e.g. '66:20' (Surah 66 has 12 verses, 13 counting the Bismillah)."""
+    out = []
+    for m in re.finditer(r"(?<![\d:])(\d{1,3})\s*:\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?![\d:])", text):
+        surah, first, last = int(m.group(1)), int(m.group(2)), int(m.group(3) or m.group(2))
+        if not 1 <= surah <= 114 or first < 1 or max(first, last) > verse_count(surah, scheme):
+            out.append(m.group(0).replace(" ", ""))
+    return out
+
+
+def verse_url_ref(url: str) -> str | None:
+    """'s:v' / 's:v-w' when a URL is an alislam.org Qur'an app verse page (read with the verse reader, not as a web
+    page — the app is built in the browser), '' for a whole-surah page (not readable), else None."""
+    m = _VERSE_URL.match(url.strip())
+    if not m:
+        return None
+    if m.group(2) is None:
+        return ""
+    return f"{m.group(1)}:{m.group(2)}" + (f"-{m.group(3)}" if m.group(3) else "")
 
 
 class QuranRefError(ValueError):
@@ -55,16 +101,15 @@ def parse_refs(ref: str, scheme: str | None = None) -> list[VerseRef]:
         raise QuranRefError(f"No surah:verse in {ref!r}")
     if "@" in ref:
         scheme = scheme or ref.rsplit("@", 1)[1]
-    key = (scheme or "").strip().lower()
-    if key not in _SCHEME_ALIASES:
-        raise QuranRefError(f"Unknown numbering scheme {scheme!r}")
-    norm = _SCHEME_ALIASES[key]
+    norm = scheme_of(scheme)
     surah, first = int(m.group(1)), int(m.group(2))
     last = int(m.group(3)) if m.group(3) else first
     if not 1 <= surah <= 114 or first < 1 or last < first:
         raise QuranRefError(f"Out of range: {ref!r}")
-    if last - first + 1 > MAX_VERSES_PER_LOOKUP:
-        last = first + MAX_VERSES_PER_LOOKUP - 1
+    n = verse_count(surah, norm)
+    if first > n:  # never fetched: the verse does not exist (a typo, or the other numbering)
+        raise QuranRefError(f"Surah {surah} has {n} verses in this numbering ({norm}); {ref!r} does not exist")
+    last = min(last, n, first + MAX_VERSES_PER_LOOKUP - 1)
     shift = 1 if norm == COMMON_SCHEME and surah not in (1, 9) else 0
     return [VerseRef(surah, v + shift) for v in range(first, last + 1)]
 

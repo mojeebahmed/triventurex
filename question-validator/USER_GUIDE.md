@@ -76,7 +76,9 @@ Look at the wording before checking, so the checks see the final wording and not
 
 - **Wording flags** — worked out in code for every question at once, free: *answer holds several facts*,
   *statement before the question*, *several numbers or dates*, *exact figure*, *'not' question*, *asks two
-  things*, *long question / answer*, *similar to another question*. Hints for you, never verdicts.
+  things*, *long question / answer*, *similar to another question*, and (Swab Quest, Prophets' Stories) *verse that
+  does not exist* — e.g. a note citing 66:20 when Surah 66 has 13 verses counting the Bismillah. Hints for you,
+  never verdicts.
 - **AI quality check** — **▶ Check … question(s) now**: one free Flash-Lite request per question, no searching. It
   reads the question as a quiz editor (two facts in one, wording that can be read two ways, answers given away,
   weak wrong options, difficulty …) and suggests a new wording when one would help. It does not judge whether the

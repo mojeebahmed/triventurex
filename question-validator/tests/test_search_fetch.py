@@ -242,10 +242,38 @@ def test_parse_refs(ref: str, scheme: str | None, expected: list[str]) -> None:
     assert [v.label for v in parse_refs(ref, scheme)] == expected
 
 
-@pytest.mark.parametrize("ref", ["Surah Yusuf", "115:1", "2:5-3"])
+@pytest.mark.parametrize("ref", ["Surah Yusuf", "115:1", "2:5-3", "66:20", "1:8", "9:130@hafs"])
 def test_bad_refs(ref: str) -> None:
+    """66:20 was fetched in a real run and came back empty: Surah 66 has 12 verses (13 with the Bismillah)."""
     with pytest.raises(QuranRefError):
         parse_refs(ref)
+
+
+def test_verse_counts_and_ranges_end_at_the_last_verse() -> None:
+    from qv.providers.quran import VERSES_COMMON, verse_count
+    assert len(VERSES_COMMON) == 114 and sum(VERSES_COMMON) == 6236
+    assert (verse_count(66), verse_count(66, "common"), verse_count(1), verse_count(9)) == (13, 12, 7, 129)
+    assert [v.label for v in parse_refs("66:12-20")] == ["66:12", "66:13"]
+    assert [v.label for v in parse_refs("66:13")] == ["66:13"]          # last verse with the Bismillah
+    assert [v.label for v in parse_refs("66:12", "common")] == ["66:13"]
+
+
+@pytest.mark.parametrize("text,scheme,missing", [
+    ("Surah At-Tahrim 66:20", None, ["66:20"]), ("Surah Al Imran 3:58", None, []), ("2:287", "common", ["2:287"]),
+    ("2:287", None, []), ("Al-Fatiha 1:8", None, ["1:8"]), ("115:2 and 4:0", None, ["115:2", "4:0"]),
+    ("verses 18:66-68", None, []), ("at 5:30 pm", None, []), ("no reference here", None, [])])
+def test_missing_verses(text: str, scheme: str | None, missing: list[str]) -> None:
+    from qv.providers.quran import missing_verses
+    assert missing_verses(text, scheme) == missing
+
+
+@pytest.mark.parametrize("url,ref", [
+    ("https://www.alislam.org/quran/app/2:32", "2:32"), ("https://alislam.org/quran/app/1:2-5", "1:2-5"),
+    ("https://www.alislam.org/quran/app/2", ""), ("https://www.alislam.org/quran/view/2:32", None),
+    ("https://example.org/quran/app/2:32", None)])
+def test_verse_url_ref(url: str, ref: str | None) -> None:
+    from qv.providers.quran import verse_url_ref
+    assert verse_url_ref(url) == ref
 
 
 def test_parse_verse_page() -> None:

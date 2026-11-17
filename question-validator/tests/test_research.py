@@ -372,3 +372,28 @@ def test_s3_retry_can_be_switched_off(db: Database, dataset: None) -> None:
     llm = RetryLLM()
     execute_run(build(db, llm, s3_retry_dropped_quotes=False), start_run(db, "mini", ["135"]))
     assert len([u for st, u in llm.prompts if st == "s3" and "enc.org/kili" in u]) == 1
+
+
+class VerseSearch(FakeSearch):
+    """Search hits on alislam.org's Qur'an app: one verse page and one whole-surah page."""
+
+    def search(self, query, *, max_results, ctx, objective=None):  # noqa: ANN001, ANN201
+        return [SearchHit("https://www.alislam.org/quran/app/2:32", "Al-Baqarah 2:32", "", 1, self.name),
+                SearchHit("https://www.alislam.org/quran/app/2", "Al-Baqarah", "", 2, self.name)]
+
+
+@respx.mock
+def test_quran_app_pages_found_by_search_are_read_with_the_verse_reader(db: Database, dataset: None) -> None:
+    """The app is built in the browser: a plain fetch stored nothing (real runs: 'only 0 characters')."""
+    routes = mock_web()
+    surah = respx.get("https://www.alislam.org/quran/app/2").mock(return_value=httpx.Response(200, text="<html/>"))
+    deps = build(db, FakeLLM())
+    deps.router = SearchRouter(db, [Pool(VerseSearch(), [Limit("day", 1000)], 1, 1000)], deps.metering)
+    run_id = start_run(db, "mini", ["3"])
+    execute_run(deps, run_id)
+    assert routes["verse"].call_count == 1 and surah.call_count == 0
+    with db.session() as s:
+        doc = s.scalar(select(Document).where(Document.final_url == "https://www.alislam.org/quran/app/2:32"))
+        assert doc.source_kind == "quran" and "Sher Ali" in doc.text
+        stats = s.scalar(select(RunQuestion.stats_json).where(RunQuestion.run_id == run_id))
+        assert stats["quran_pages_from_search"] >= 1 and stats["quran_surah_pages_skipped"] >= 1

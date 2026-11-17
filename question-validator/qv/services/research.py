@@ -40,7 +40,7 @@ from qv.config import split_entry
 from qv.providers.llm.base import LLMError, LLMProvider, ModelPool, PoolEntry
 from qv.providers.llm.gemini import GeminiProvider
 from qv.providers.llm.ollama import OllamaProvider
-from qv.providers.quran import QuranRefError, QuranSource
+from qv.providers.quran import BISMILLAH_SCHEME, QuranRefError, QuranSource, verse_url_ref
 from qv.providers.search.base import SearchError, SearchHit, SearchProvider, domain_of
 from qv.providers.search.free import AlislamSearch, SitemapSearch, WikipediaSearch
 from qv.providers.search.router import Pool, SearchRouter
@@ -699,6 +699,9 @@ def _fetch_into(deps: ResearchDeps, c: Candidate, ctx: CallContext, stats: dict,
                 chosen: list[tuple[int, str, list[dict]]], taken: set[int]) -> bool:
     """Fetch one candidate into `chosen` (a web PDF: its best pages). `taken` = documents already chosen by
     another path (stored pages), so the web budget is not spent on them again."""
+    ref = verse_url_ref(c.url)
+    if ref is not None:
+        return _verse_page_into(deps, c, ref, ctx, stats, chosen, taken)
     res = deps.fetcher.fetch(c.url, CallContext(ctx.run_id, ctx.question_id, "fetch"))
     if not res.ok:
         stats[f"fetch_{res.status}"] += 1
@@ -717,6 +720,33 @@ def _fetch_into(deps: ResearchDeps, c: Candidate, ctx: CallContext, stats: dict,
     stats["documents"] += 1
     chosen.append((res.document_id, c.mode, c.found_by))
     return True
+
+
+def _verse_page_into(deps: ResearchDeps, c: Candidate, ref: str, ctx: CallContext, stats: dict,
+                     chosen: list[tuple[int, str, list[dict]]], taken: set[int]) -> bool:
+    """A search hit on an alislam.org Qur'an app page: its app is built in the browser, so a plain fetch stores
+    nothing. Read the verse(s) with the verse reader instead (same documents as a direct lookup; alislam.org numbers
+    with the Bismillah as verse 1). A whole-surah page is skipped."""
+    if not ref:
+        stats["quran_surah_pages_skipped"] += 1
+        return False
+    try:
+        results = deps.quran.lookup(ref, BISMILLAH_SCHEME, CallContext(ctx.run_id, ctx.question_id, "lookup"))
+    except QuranRefError:
+        stats["lookup_bad_ref"] += 1
+        return False
+    have = {doc_id for doc_id, m, _ in chosen if m == c.mode} | taken
+    added = 0
+    for r in results:
+        if r.ok and r.document_id not in have:
+            chosen.append((r.document_id, c.mode, [{**fb, "quran_ref": ref} for fb in c.found_by]))
+            have.add(r.document_id)
+            added += 1
+        elif not r.ok:
+            stats["lookups_failed"] += 1
+    stats["documents"] += added
+    stats["quran_pages_from_search"] += added
+    return bool(added)
 
 
 def _best_pdf_pages(deps: ResearchDeps, page_ids: tuple[int, ...], c: Candidate, n: int) -> list[tuple[int, int]]:

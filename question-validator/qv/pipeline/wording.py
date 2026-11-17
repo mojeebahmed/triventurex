@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass
 
 from qv.domain.question import Question
+from qv.providers.quran import missing_verses
 
 _REF = re.compile(r"\b\d{1,3}\s*:\s*\d{1,3}\b")              # verse references like 2:31 are not figures
 _NUMBER = re.compile(r"\d[\d,.]*\d|\d")
@@ -48,6 +49,10 @@ FLAGS: tuple[Flag, ...] = (
     Flag("long_answer", "long answer", "A long answer is hard to give and to judge in play; an explanation "
                                        "can go in the note. (Not shown when the answer already holds several "
                                        "facts.)"),
+    Flag("verse_not_found", "verse that does not exist",
+         "The note, question or answer cites a Qur'an verse that this surah does not have in the edition's numbering "
+         "(Bismillah = verse 1) — a typo, or a number from the other numbering. Shown only for editions that cite "
+         "verses."),
     Flag("near_duplicate", "similar to another question", "The import found a question with the same or almost "
                                                            "the same wording in this file."),
 )
@@ -91,8 +96,9 @@ def _statement_first(question: str) -> bool:
 
 
 def wording_flags(q: Question, *, long_question_words: int, long_answer_words: int,
-                  near_duplicate: bool = False) -> tuple[str, ...]:
-    """Codes of the flags that apply to a question, in `FLAGS` order."""
+                  near_duplicate: bool = False, quran_numbering: str | None = None) -> tuple[str, ...]:
+    """Codes of the flags that apply to a question, in `FLAGS` order. `quran_numbering` (the edition profile's
+    convention) turns on the verse check; editions without one never cite verses."""
     answer = q.resolved_answer_text or q.answer
     found: set[str] = set()
     if q.type == "open" and _words(answer) >= 6 and _several_facts(answer):
@@ -114,4 +120,6 @@ def wording_flags(q: Question, *, long_question_words: int, long_answer_words: i
         found.add("long_answer")
     if near_duplicate:
         found.add("near_duplicate")
+    if quran_numbering and missing_verses(f"{q.question} {answer} {q.note}", quran_numbering):
+        found.add("verse_not_found")
     return tuple(f.code for f in FLAGS if f.code in found)
