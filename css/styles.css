@@ -2341,6 +2341,11 @@ body.presenting.present-idle * { cursor: none !important; }
 .tag-chip.on small { color: rgba(255,255,255,.85); }
 .tag-chip:disabled { opacity: .45; cursor: default; }
 @media (hover: hover) { .tag-chip:not(:disabled):not(.on):hover { border-color: var(--green); } }
+/* Any of these / All of these: how two or more chosen tags combine */
+.tag-mode { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin-left: 4px; }
+.tag-mode-btn { border: 0; background: #fff; padding: 3px 10px; font-size: .78rem; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+.tag-mode-btn + .tag-mode-btn { border-left: 1px solid var(--border); }
+.tag-mode-btn.on { background: var(--green-light); color: var(--green-dark, var(--green)); font-weight: 700; }
 .tag-chip-small { font-size: .68rem; padding: 1px 7px; vertical-align: 1px; }
 .qx-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 4px; }
 .tag-clear { font-size: .76rem; }

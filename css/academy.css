@@ -191,6 +191,9 @@ body.academy .qx-item.show-answers .qx-correct { color: var(--green-dark, var(--
 .ac-info-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .ac-flash .ac-card-meta, .ac-panel .ac-card-meta { padding-right: 38px; }
 .ac-missed li { padding-right: 52px; }
+/* Explore / Review: the same button with its name, inside the revealed answer (not in a corner) */
+.ac-info-btn.ac-info-inline { position: static; width: auto; height: auto; margin-top: 6px; padding: 4px 12px; gap: 6px;
+  border-radius: 999px; font-size: .85rem; font-weight: 600; }
 
 /* About this answer: a box in the middle on a computer, a sheet from the bottom on a phone */
 @media (min-width: 721px) {
@@ -336,7 +339,9 @@ body.academy .qx-item.reviewed.marked { border-left-color: var(--danger); }
   .ac-filter #ac-search, .ac-filter #ac-diff { height: 44px; font-size: 1rem; }   /* 1rem: iOS doesn't zoom in */
   .ac-tree .qx-node { padding: 11px 12px; font-size: .95rem; }
   .ac-tags .tag-chip { padding: 7px 12px; font-size: .9rem; }
+  .ac-tags .tag-mode-btn { padding: 8px 12px; font-size: .88rem; }
   .ac-info-btn { width: 40px; height: 40px; font-size: 1.15rem; top: 6px; right: 6px; }
+  .ac-info-btn.ac-info-inline { width: auto; height: auto; min-height: 40px; font-size: .95rem; }
   .ac-flash .ac-card-meta, .ac-panel .ac-card-meta { padding-right: 46px; }
   .qi { font-size: 1rem; }
   .ac-tree .qx-node.depth-1 { padding-left: 26px; font-size: .92rem; }

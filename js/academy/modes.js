@@ -28,6 +28,15 @@ function _infoBtn(q, inButton = false) {
     : `<button type="button" ${attrs}>${icon('questionInfo')}</button>`;
 }
 
+/**
+ * Explore / Review: a labelled "About this answer" button inside the revealed answer, for every question
+ * (the same box as on the learning cards: sources and how it was checked, or "not checked yet"; the note,
+ * topic and tags). Green when the question was checked against sources.
+ */
+function _infoLink(q) {
+  return `<button type="button" class="ac-info-btn ${q.check ? 'is-checked' : ''} ac-info-inline" data-q-info="${Number(q.id)}">${icon('questionInfo')} About this answer</button>`;
+}
+
 /** A question's options as a list (no answer shown). */
 function _optsHtml(q) {
   return isMulti(q) ? `<ol class="ac-opts">${q.opts.map((o, i) => `<li><b>${LETTERS[i]}</b> ${o}</li>`).join('')}</ol>` : '';
@@ -58,7 +67,7 @@ function _itemHtml(q, { marked, reviewed, review }) {
   const showAll = review || _ex.answers;
   const opts = isMulti(q)
     ? `<ol class="qx-opts">${q.opts.map((o, i) => `<li class="${LETTERS[i] === q.answer ? 'qx-correct' : ''}"><b>${LETTERS[i]}</b> ${o}</li>`).join('')}</ol>` : '';
-  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>${checkDetailsHtml(q)}`;
+  const answer = `<div class="qx-answer">${icon('answer')} ${esc(answerLabel(q))}${q.note ? `<div class="qx-note-text">${q.note}</div>` : ''}</div>${_infoLink(q)}`;
   const editing = _ex.editing === q.id;
   return `
     <div class="qx-item ${mark ? 'marked' : ''} ${showAll ? 'show-answers' : ''} ${review && reviewed[q.id] ? 'reviewed' : ''}" data-id="${q.id}">

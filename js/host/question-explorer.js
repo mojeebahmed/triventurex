@@ -1,7 +1,7 @@
 /**
  * question-explorer.js
- * Setup screen tab *📚 Questions* (G19): browse the edition's questions by tag and by
- * category > subcategory > topic, search, filter by difficulty, peek at
+ * Setup screen tab *📚 Questions* (G19): browse the edition's questions by tag (any / all of the
+ * chosen tags) and by category > subcategory > topic (several branches at once), search, filter by difficulty, peek at
  * answers, and mark a question as wrong / unclear with a note. The same
  * marked list is filled from the game (🚩 on a question card, G14) and can
  * be copied out to fix questions.csv. Pure parts: js/shared/questions.js.
@@ -9,7 +9,8 @@
 
 const QX_PAGE = 60;   // questions drawn at a time ("Show more" adds another page)
 
-const _qx = { path: [], text: '', diff: 'all', checked: 'all', tags: [], markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
+// paths: the chosen branches of the tree (several allowed, [] = all); tagMode: 'any' | 'all' chosen tags
+const _qx = { paths: [], text: '', diff: 'all', checked: 'all', tags: [], tagMode: 'any', markedOnly: false, answers: false, limit: QX_PAGE, editing: null };
 
 const _qxQuestions = () => window.QUESTIONS_DATA || [];
 const _qxLabel = name => name || 'Other';
@@ -30,7 +31,7 @@ function renderQuestionExplorer() {
 
 /** The edition changed: start again from "All questions". */
 function resetQuestionExplorer() {
-  Object.assign(_qx, { path: [], text: '', tags: [], limit: QX_PAGE, editing: null });
+  Object.assign(_qx, { paths: [], text: '', tags: [], limit: QX_PAGE, editing: null });
   const search = document.getElementById('qx-search');
   if (search) search.value = '';
   renderQuestionExplorer();
@@ -38,21 +39,21 @@ function resetQuestionExplorer() {
 
 // ── Tree (left) ─────────────────────────────────────────────────────────────────
 
+/** The tree: a click chooses a branch or takes it back (several at once); chosen branches open. */
 function _renderQxTree() {
   const tree = questionTree(_qxQuestions());
-  const [cat, sub] = _qx.path;
   const btn = (path, label, count, depth) => {
-    const active = JSON.stringify(path) === JSON.stringify(_qx.path);
-    return `<button type="button" class="qx-node depth-${depth} ${active ? 'active' : ''}"
+    const active = path.length ? pathChosen(_qx.paths, path) : !_qx.paths.length;
+    return `<button type="button" class="qx-node depth-${depth} ${active ? 'active' : ''}" aria-pressed="${active}"
               data-path="${esc(JSON.stringify(path))}"><span>${esc(label)}</span><small>${count}</small></button>`;
   };
   let html = btn([], 'All questions', _qxQuestions().length, 0);
   for (const c of tree) {
     html += btn([c.name], _qxLabel(c.name), c.count, 0);
-    if (_qx.path.length && cat !== c.name) continue;                  // only the open branch
+    if (!pathOpen(_qx.paths, [c.name])) continue;                    // only chosen branches open
     for (const s of c.children) {
       html += btn([c.name, s.name], _qxLabel(s.name), s.count, 1);
-      if (_qx.path.length < 2 || sub !== s.name) continue;
+      if (!pathOpen(_qx.paths, [c.name, s.name])) continue;
       for (const t of s.children) html += btn([c.name, s.name, t.name], t.name, t.count, 2);
     }
   }
@@ -64,11 +65,12 @@ function _renderQxTree() {
 function _renderQxList() {
   const marked = loadMarkedQuestions();
   const onlyIds = _qx.markedOnly ? new Set(Object.keys(marked).map(Number)) : null;
-  const found = filterQuestions(_qxQuestions(), { path: _qx.path, text: _qx.text, diff: _qx.diff, checked: _qx.checked, tags: _qx.tags, onlyIds });
+  const filter = { paths: _qx.paths, text: _qx.text, diff: _qx.diff, checked: _qx.checked, tags: _qx.tags, tagMode: _qx.tagMode, onlyIds };
+  const found = filterQuestions(_qxQuestions(), filter);
   const shown = found.slice(0, _qx.limit);
-  _renderQxTags(found);
-  const where = (_qx.path.length ? _qx.path.map(_qxLabel).join(' › ') : 'All questions') +
-    (_qx.tags.length ? ` · tagged ${_qx.tags.join(' + ')}` : '');
+  _renderQxTags(filter);
+  const where = pathsLabel(_qx.paths, _qxLabel) +
+    (_qx.tags.length ? ` · tagged ${_qx.tags.join(_qx.tagMode === 'any' ? ' or ' : ' + ')}` : '');
   document.getElementById('qx-count').textContent =
     `${where} · ${found.length} question${found.length === 1 ? '' : 's'}` + (shown.length < found.length ? ` (showing ${shown.length})` : '');
   document.getElementById('qx-list').innerHTML = shown.length
@@ -77,14 +79,14 @@ function _renderQxList() {
     : `<p class="qx-empty">No questions match.</p>`;
 }
 
-/** Tag chips above the list: every tag of the edition; the count = questions the other filters leave. */
-function _renderQxTags(found) {
+/** Tag chips above the list: every tag of the edition, counts from the other filters (tagChipCounts). */
+function _renderQxTags(filter) {
   const box = document.getElementById('qx-tags');
   if (!box) return;
   const all = tagCounts(_qxQuestions());
   box.classList.toggle('hidden', !all.length);
   box.innerHTML = all.length
-    ? tagFilterHtml(all, _qx.tags, tagCounts(found)) +
+    ? tagFilterHtml(all, _qx.tags, tagChipCounts(_qxQuestions(), filter, _qx.tagMode), _qx.tagMode) +
       (_qx.tags.length ? `<button type="button" class="link-btn tag-clear" data-tag-clear>${icon('close')} All tags</button>` : '')
     : '';
 }
@@ -189,7 +191,7 @@ function initQuestionExplorer() {
   document.getElementById('qx-tree').addEventListener('click', e => {
     const node = e.target.closest('.qx-node');
     if (!node) return;
-    _qx.path = JSON.parse(node.dataset.path);
+    _qx.paths = togglePath(_qx.paths, JSON.parse(node.dataset.path));
     _qx.limit = QX_PAGE;
     renderQuestionExplorer();
   });
@@ -205,6 +207,8 @@ function initQuestionExplorer() {
 
   document.getElementById('qx-tags')?.addEventListener('click', e => {
     if (e.target.closest('[data-tag-clear]')) { _qxSetTags([]); return; }
+    const mode = e.target.closest('[data-tag-mode]');
+    if (mode) { _qx.tagMode = mode.dataset.tagMode; _qx.limit = QX_PAGE; _renderQxList(); return; }
     const chip = e.target.closest('[data-tag]');
     if (chip && !chip.disabled) _qxSetTags(toggleTag(_qx.tags, chip.dataset.tag));
   });

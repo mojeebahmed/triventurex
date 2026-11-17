@@ -164,3 +164,61 @@ describe('question HTML (tags, About this answer)', () => {
     assert.equal(questionInfoHtml(null), '');
   });
 });
+
+describe('several branches and any / all tags', () => {
+  const { togglePath, pathChosen, pathOpen, pathsLabel, tagChipCounts, tagModeHtml } = require('../js/shared/questions.js');
+  const ids = opts => filterQuestions(Q, opts).map(q => q.id);
+  const T = [
+    { id: 1, cat: 'Geo', tags: ['records', 'water'] },
+    { id: 2, cat: 'Animals', tags: ['records'] },
+    { id: 3, cat: 'Geo', tags: ['food'] },
+    { id: 4, cat: 'Geo' },
+  ];
+  const tids = opts => filterQuestions(T, opts).map(q => q.id);
+
+  it('a question in ANY chosen branch matches; no branch = all; `path` still works', () => {
+    assert.deepEqual(ids({ paths: [['Geo', 'Africa'], ['history']] }), [2, 3]);
+    assert.deepEqual(ids({ paths: [['Geo', 'Europe', 'Capitals'], ['Geo', 'Africa', 'Rivers']] }), [1, 2, 4]);
+    assert.deepEqual(ids({ paths: [] }), [1, 2, 3, 4]);
+    assert.deepEqual(ids({ path: ['history'] }), [3]);
+  });
+  it('choosing a branch replaces the ones it contains or sits in; again = take it back; [] = all', () => {
+    let p = togglePath([], ['Geo']);
+    assert.deepEqual(p, [['Geo']]);
+    p = togglePath(p, ['Geo', 'Europe']);                       // narrows down
+    assert.deepEqual(p, [['Geo', 'Europe']]);
+    p = togglePath(p, ['history']);
+    assert.deepEqual(p, [['Geo', 'Europe'], ['history']]);
+    assert.ok(pathChosen(p, ['history']) && !pathChosen(p, ['Geo']));
+    assert.ok(pathOpen(p, ['Geo']) && pathOpen(p, ['Geo', 'Europe']) && !pathOpen(p, ['Geo', 'Africa']));
+    assert.deepEqual(togglePath(p, ['Geo']), [['history'], ['Geo']]);   // widens again
+    assert.deepEqual(togglePath(p, ['history']), [['Geo', 'Europe']]);
+    assert.deepEqual(togglePath(p, []), []);
+    assert.equal(pathsLabel(p), 'Geo › Europe + history');
+    assert.equal(pathsLabel([], undefined, 'All'), 'All');
+    assert.equal(pathsLabel([['']]), 'Other');
+  });
+  it("tags: 'any' = at least one chosen tag, 'all' = every one (the default)", () => {
+    assert.deepEqual(tids({ tags: ['water', 'food'], tagMode: 'any' }), [1, 3]);
+    assert.deepEqual(tids({ tags: ['water', 'food'], tagMode: 'all' }), []);
+    assert.deepEqual(tids({ tags: ['water', 'food'] }), []);
+    assert.deepEqual(tids({ tags: ['records'], tagMode: 'any', paths: [['Geo']] }), [1]);
+  });
+  it("chip counts: 'any' counts from the other filters, 'all' from what is left", () => {
+    const f = { tags: ['water'], paths: [['Geo']] };
+    assert.deepEqual(tagChipCounts(T, f, 'any'), [{ tag: 'food', count: 1 }, { tag: 'records', count: 1 }, { tag: 'water', count: 1 }]);
+    assert.deepEqual(tagChipCounts(T, f, 'all'), [{ tag: 'records', count: 1 }, { tag: 'water', count: 1 }]);
+  });
+  it('the Any / All switch shows once two tags are chosen', () => {
+    global.icon ??= name => `[${name}]`;
+    if (typeof global.esc !== 'function') {
+      require('node:vm').runInThisContext(require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/shared/utils.js'), 'utf8'));
+    }
+    const { tagFilterHtml } = require('../js/shared/questions.js');
+    const all = [{ tag: 'a', count: 1 }, { tag: 'b', count: 1 }];
+    assert.doesNotMatch(tagFilterHtml(all, ['a'], null, 'any'), /data-tag-mode/);
+    assert.match(tagFilterHtml(all, ['a', 'b'], null, 'any'), /data-tag-mode="any" aria-pressed="true"/);
+    assert.doesNotMatch(tagFilterHtml(all, ['a', 'b']), /data-tag-mode/);   // no switch asked for
+    assert.match(tagModeHtml('all'), /data-tag-mode="all" aria-pressed="true"/);
+  });
+});

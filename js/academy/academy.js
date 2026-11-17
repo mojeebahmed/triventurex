@@ -2,8 +2,8 @@
  * js/academy/academy.js — Triventurex Academy (academy.html), page shell.
  *
  * Loads ONE edition (config.js + questions.js as plain <script>s, so the page
- * also works opened from disk), keeps the shared filter (topic tree,
- * difficulty, search) and switches between the modes registered by modes.js.
+ * also works opened from disk), keeps the shared filter (topic tree — several
+ * branches at once —, tags — any / all —, difficulty, search) and switches between the modes registered by modes.js.
  * Changing the edition reloads the page with ?edition=<id>; the mode lives in
  * the #hash. Marks and review ticks: js/shared/marks.js (shared with the game).
  *
@@ -21,8 +21,9 @@ const LS_ACADEMY_EDITION = 'triventurex_academy_edition';
 let _activeEditionId = null;
 function getActiveEditionId() { return _activeEditionId; }
 
-/** Filter shared by every question mode. */
-const ac = { path: [], diff: 'all', text: '', tags: [], mode: 'explore' };
+/** Filter shared by every question mode. paths: chosen branches of the tree (several, [] = all);
+ *  tagMode: 'any' | 'all' of the chosen tags. */
+const ac = { paths: [], diff: 'all', text: '', tags: [], tagMode: 'any', mode: 'explore' };
 
 /** Same width as the phone layout in css/academy.css. */
 const AC_PHONE_QUERY = '(max-width: 720px)';
@@ -88,36 +89,37 @@ const acQuestions = () => window.QUESTIONS_DATA || [];
 
 /** The questions the filter selects (every question mode starts from these). */
 function filteredQuestions(extra = {}) {
-  return filterQuestions(acQuestions(), { path: ac.path, text: ac.text, diff: ac.diff, tags: ac.tags, ...extra });
+  return filterQuestions(acQuestions(), { ..._acFilter(), ...extra });
 }
 
 const _acLabel = name => name || 'Other';
+const _acFilter = () => ({ paths: ac.paths, text: ac.text, diff: ac.diff, tags: ac.tags, tagMode: ac.tagMode });
 
 function _renderTree() {
   const node = (n, path, depth) => {
-    const active = path.length === ac.path.length && path.every((v, i) => v === ac.path[i]);
-    return `<button type="button" class="qx-node depth-${depth} ${active ? 'active' : ''}" data-path="${esc(JSON.stringify(path))}">
+    const active = pathChosen(ac.paths, path);
+    return `<button type="button" class="qx-node depth-${depth} ${active ? 'active' : ''}" aria-pressed="${active}" data-path="${esc(JSON.stringify(path))}">
               ${esc(_acLabel(n.name))} <small>${n.count}</small></button>` +
       n.children.map(c => node(c, [...path, c.name], depth + 1)).join('');
   };
-  const all = `<button type="button" class="qx-node ${ac.path.length ? '' : 'active'}" data-path="[]">
+  const all = `<button type="button" class="qx-node ${ac.paths.length ? '' : 'active'}" aria-pressed="${!ac.paths.length}" data-path="[]">
                  All questions <small>${acQuestions().length}</small></button>`;
   document.getElementById('ac-tree').innerHTML = all + questionTree(acQuestions()).map(n => node(n, [n.name], 0)).join('');
   const found = filteredQuestions();
   const n = found.length;
-  _renderTags(found);
+  _renderTags();
   document.getElementById('ac-filter-summary').textContent =
-    `· ${ac.path.length ? ac.path.map(_acLabel).join(' › ') : 'All'}${ac.tags.length ? ` · ${ac.tags.join(' + ')}` : ''} · ${n} question${n === 1 ? '' : 's'}`;
+    `· ${pathsLabel(ac.paths, _acLabel, 'All')}${ac.tags.length ? ` · ${ac.tags.join(ac.tagMode === 'any' ? ' or ' : ' + ')}` : ''} · ${n} question${n === 1 ? '' : 's'}`;
   document.getElementById('ac-filter-done').textContent = `Show ${n} question${n === 1 ? '' : 's'}`;
 }
 
-/** Tag chips: every tag of the edition; the count = questions the other filters leave. */
-function _renderTags(found) {
+/** Tag chips: every tag of the edition, counts from the other filters (tagChipCounts). */
+function _renderTags() {
   const box = document.getElementById('ac-tags');
   const all = tagCounts(acQuestions());
   box.classList.toggle('hidden', !all.length);
   box.innerHTML = all.length
-    ? tagFilterHtml(all, ac.tags, tagCounts(found)) +
+    ? tagFilterHtml(all, ac.tags, tagChipCounts(acQuestions(), _acFilter(), ac.tagMode), ac.tagMode) +
       (ac.tags.length ? `<button type="button" class="link-btn tag-clear" data-tag-clear>${icon('close')} All tags</button>` : '')
     : '';
 }
@@ -132,6 +134,8 @@ function addFilterTag(tag) {
 function _initFilter() {
   document.getElementById('ac-tags').addEventListener('click', e => {
     if (e.target.closest('[data-tag-clear]')) { ac.tags = []; _filterChanged(); return; }
+    const mode = e.target.closest('[data-tag-mode]');
+    if (mode) { ac.tagMode = mode.dataset.tagMode; _filterChanged(); return; }
     const chip = e.target.closest('[data-tag]');
     if (!chip || chip.disabled) return;
     ac.tags = toggleTag(ac.tags, chip.dataset.tag);
@@ -140,7 +144,7 @@ function _initFilter() {
   document.getElementById('ac-tree').addEventListener('click', e => {
     const btn = e.target.closest('[data-path]');
     if (!btn) return;
-    ac.path = JSON.parse(btn.dataset.path);
+    ac.paths = togglePath(ac.paths, JSON.parse(btn.dataset.path));
     _filterChanged();   // on a phone the sheet stays open: its button shows the new count
   });
   document.getElementById('ac-diff').addEventListener('change', e => { ac.diff = e.target.value; _filterChanged(); });

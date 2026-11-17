@@ -59,29 +59,67 @@ function questionTree(questions) {
   return roots;
 }
 
+const _LEVELS = ['cat', 'subcat', 'topic'];
+const _inPath = (q, path) => path.every((v, i) => (q[_LEVELS[i]] || '') === v);
+
 /**
  * Questions matching every filter given:
- *   path     [cat, subcat?, topic?] — a branch of the tree ('' = "Other")
+ *   paths    branches of the tree, each [cat, subcat?, topic?] ('' = "Other"); a question in ANY of them
+ *            matches (none = every branch). `path` = one branch (older callers)
  *   text     words that must all appear (question, options, answer, note, id)
  *   diff     'easy' | 'hard' | 'all'
  *   onlyIds  Set of ids (e.g. the marked ones), or null
  *   checked  'all' | 'yes' (checked by the Question Validator) | 'no'
- *   tags     tags the question must ALL have (none = any question)
+ *   tags     chosen tags (none = any question); tagMode 'all' = the question has every one,
+ *            'any' = it has at least one
  */
-function filterQuestions(questions, { path = [], text = '', diff = 'all', onlyIds = null, checked = 'all', tags = [] } = {}) {
+function filterQuestions(questions, { path = [], paths = null, text = '', diff = 'all', onlyIds = null, checked = 'all',
+  tags = [], tagMode = 'all' } = {}) {
   const words = String(text).toLowerCase().split(/\s+/).filter(Boolean);
-  const levels = ['cat', 'subcat', 'topic'];
+  const branches = (paths || [path]).filter(p => p.length);
+  const hasTag = t => q => q.tags?.includes(t);
   return (questions || []).filter(q => {
     if (diff !== 'all' && q.diff !== diff) return false;
     if (onlyIds && !onlyIds.has(q.id)) return false;
     if (checked !== 'all' && Boolean(q.check) !== (checked === 'yes')) return false;
-    if (!path.every((v, i) => (q[levels[i]] || '') === v)) return false;
-    if (tags.length && !tags.every(t => q.tags?.includes(t))) return false;
+    if (branches.length && !branches.some(p => _inPath(q, p))) return false;
+    if (tags.length && !(tagMode === 'any' ? tags.some(t => hasTag(t)(q)) : tags.every(t => hasTag(t)(q)))) return false;
     if (!words.length) return true;
     const hay = [q.id, q.q, ...(q.opts || []), q.answer, q.note, q.cat, q.subcat, q.topic, ...(q.tags || [])]
       .map(_qPlain).join(' ').toLowerCase();
     return words.every(w => hay.includes(w));
   });
+}
+
+// ── Several branches of the tree ────────────────────────────────────────────────
+
+const _samePath = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+const _isPrefix = (a, b) => a.length <= b.length && a.every((v, i) => v === b[i]);
+
+/** Is this branch chosen? */
+function pathChosen(paths, path) {
+  return (paths || []).some(p => _samePath(p, path));
+}
+
+/**
+ * Choose or un-choose one branch (a new array). Choosing a branch drops the ones it
+ * contains or sits in, so "Capitals" then "Capitals › Europe" narrows down to Europe,
+ * and "Europe" then "Capitals" widens to all of Capitals. [] = "All questions".
+ */
+function togglePath(paths, path) {
+  if (!path.length) return [];
+  if (pathChosen(paths, path)) return paths.filter(p => !_samePath(p, path));
+  return [...(paths || []).filter(p => !_isPrefix(p, path) && !_isPrefix(path, p)), path];
+}
+
+/** Is this branch open in a tree that shows only chosen branches (it, or something inside it, is chosen)? */
+function pathOpen(paths, path) {
+  return (paths || []).some(p => _isPrefix(path, p));
+}
+
+/** "All questions", "Capitals › Europe" or "Capitals › Europe + Flags" for a count line. */
+function pathsLabel(paths, label = n => n || 'Other', all = 'All questions') {
+  return paths?.length ? paths.map(p => p.map(label).join(' › ')).join(' + ') : all;
 }
 
 // ── Tags ────────────────────────────────────────────────────────────────────────
@@ -111,14 +149,30 @@ function knownTags(selected, questions) {
  * A selected tag shows as pressed; '' when the edition has no tags.
  * HTML — call it only in a page (uses icon() / esc()).
  */
-function tagFilterHtml(allTags, selected, counts = null) {
+function tagFilterHtml(allTags, selected, counts = null, tagMode = null) {
   if (!allTags.length) return '';
   const n = counts ? new Map(counts.map(c => [c.tag, c.count])) : new Map(allTags.map(c => [c.tag, c.count]));
-  return allTags.map(({ tag }) => {
+  const chips = allTags.map(({ tag }) => {
     const on = selected.includes(tag);
     const count = n.get(tag) || 0;
     return `<button type="button" class="tag-chip ${on ? 'on' : ''}" data-tag="${esc(tag)}" aria-pressed="${on}" ${!on && !count ? 'disabled' : ''}>${icon('tag')} ${esc(tag)} <small>${count}</small></button>`;
   }).join('');
+  return chips + (tagMode && selected.length > 1 ? tagModeHtml(tagMode) : '');
+}
+
+/** "Any of these tags / All of these tags" switch, shown once two or more tags are chosen (`data-tag-mode`). */
+function tagModeHtml(tagMode) {
+  const opt = (mode, label, title) =>
+    `<button type="button" class="tag-mode-btn ${tagMode === mode ? 'on' : ''}" data-tag-mode="${mode}" aria-pressed="${tagMode === mode}" title="${title}">${label}</button>`;
+  return `<span class="tag-mode" role="group" aria-label="Questions with">${opt('any', 'Any of these', 'A question needs at least one of the chosen tags')}${opt('all', 'All of these', 'A question needs every chosen tag')}</span>`;
+}
+
+/**
+ * Tag counts for the chips. 'all': questions left by every filter (the tags included) — how many a
+ * chip would leave. 'any': questions left by the other filters only — how many each tag adds.
+ */
+function tagChipCounts(questions, filter, tagMode) {
+  return tagCounts(filterQuestions(questions, tagMode === 'any' ? { ...filter, tags: [] } : { ...filter, tagMode }));
 }
 
 /** A question's tags as small chips for a question list (click = filter by that tag). */
@@ -237,6 +291,7 @@ function questionInfoHtml(q) {
 
 if (typeof module !== 'undefined') {
   module.exports = { questionTree, filterQuestions, answerLabel, markedReport, topicKey, selectedTopicKeys, TOPIC_SEP,
-                     checkLabel, checkedCount, CHECK_LABELS, tagCounts, toggleTag, knownTags,
-                     checkBadgeHtml, checkDetailsHtml, tagFilterHtml, questionTagsHtml, questionInfoHtml };
+                     checkLabel, checkedCount, CHECK_LABELS, tagCounts, toggleTag, knownTags, tagChipCounts,
+                     pathChosen, togglePath, pathOpen, pathsLabel,
+                     checkBadgeHtml, checkDetailsHtml, tagFilterHtml, tagModeHtml, questionTagsHtml, questionInfoHtml };
 }

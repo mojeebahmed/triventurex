@@ -93,11 +93,11 @@ Change how the game plays. Every change is saved straight away for this edition,
     body: `
 Browse every question in this edition — to check them, or just to learn.
 
-- Pick a topic on the left, or search for words or a question's #number. Filter by difficulty and show or hide the answers.
+- Pick a topic on the left — tap more categories, subcategories or topics to see them together, tap a chosen one again to take it back, **All questions** to start over. Or search for words or a question's #number. Filter by difficulty and show or hide the answers.
 - {icon:markQuestion} **Mark** a question that looks wrong or unclear, and add a note. You can also mark a question during a game, on its card.
 - **Marked only** shows just your marks. {icon:copy} **Copy marked list** copies them with your notes — send it to whoever looks after the questions.
 - {icon:checkVerified} **Checked** questions went through the Question Validator: the badge says how ({icon:checkVerified} against sources, {icon:checkReviewer} by a reviewer). Open the answer to see the sources, the date and a short quote from the best source. The **Checked / Not checked** filter appears when the edition has checked questions.
-- {icon:tag} **Tags** (the chips under the search box) group questions across topics — like *animals*, *water* or *numbers*. Tap a tag to show only those questions; tap more tags to narrow it down, **All tags** to clear. A tag on a question shows its questions too. The number on a tag counts what your other choices leave.
+- {icon:tag} **Tags** (the chips under the search box) group questions across topics — like *animals*, *water* or *numbers*. Tap a tag to show only those questions; tap more tags to add them. With two or more tags, choose **Any of these** (a question needs one of them) or **All of these** (it needs every one). **All tags** clears them. A tag on a question shows its questions too. The number on a tag counts what your other choices leave.
 - {icon:academy} **Academy** opens Triventurex Academy in a new tab: flashcards, quizzes and games with these questions.`,
   },
 
@@ -256,7 +256,7 @@ Your phone is your controller; the board is on the big screen.
 Learn the questions of an edition before you play — or just for fun.
 
 - Choose the **edition** at the top, and a **mode** in the row of tabs.
-- **Choose what to learn** (left): tick topics, pick easy or hard, or search. {icon:tag} **Tags** pick questions across topics (like *animals* or *numbers*) — tap one or more, **All tags** to clear. Every mode uses this choice.
+- **Choose what to learn** (left): tap one or more categories or topics (tap again to take one back), pick easy or hard, or search. {icon:tag} **Tags** pick questions across topics (like *animals* or *numbers*) — tap one or more; with two or more choose **Any of these** or **All of these**; **All tags** clears them. Every mode uses this choice.
 - {icon:questionInfo} **About this answer**: once a card shows its answer (Flashcards, Quiz, True or false, and the *Look at these again* list), tap the small round button in its corner to see where the answer comes from — the sources it was checked against, the fact behind it, its topic and tags. A green ring means it was checked against sources.
 - {icon:marked} Marks on questions are shared with the game's Questions tab, on this device.
 - {icon:playGame} **Play the game** goes back to the game.
@@ -281,7 +281,7 @@ Browse the questions with their answers and the fact behind each one.
 
 - {icon:markQuestion} **Mark as wrong / unclear** with a note when something looks off; {icon:editNote} edits the note.
 - **Marked only** shows just the marked questions.
-- {icon:checkVerified} A **Checked** badge means the question was checked with the Question Validator. Under the answer you see how, when, the {icon:checkSource} sources (tap one to read it) and a short quote.
+- {icon:questionInfo} **About this answer** under each answer opens the fact behind it, its topic and tags, and where the answer comes from. {icon:checkVerified} A **Checked** badge (and a green button) means the question was checked with the Question Validator: the box then shows how and when, the {icon:checkSource} sources (tap one to read it) and a short quote.
 - {icon:tag} Tap a **tag** on a question to show all questions with that tag.
 - On a phone, marking is in {icon:modeReview} **Review** (under {icon:moreModes} More).`,
   },
@@ -345,7 +345,7 @@ For checking an edition's questions, one by one.
 
 - Tick a question as **reviewed** when it is right, or {icon:markQuestion} mark it with a note when it is not.
 - Show all questions, those not reviewed yet, or the marked ones; the bar shows your progress.
-- When the edition has questions checked with the Question Validator, you can also show only the {icon:checkVerified} **checked** or the **not checked** ones — the not-checked ones need a person most. Each checked question shows its sources and a short quote under the answer.
+- When the edition has questions checked with the Question Validator, you can also show only the {icon:checkVerified} **checked** or the **not checked** ones — the not-checked ones need a person most. Every question has {icon:questionInfo} **About this answer** under its answer — for a checked one with its sources and a short quote.
 - {icon:copy} **Copy report** copies your marks and notes — send them to whoever looks after the questions.`,
   },
 };
