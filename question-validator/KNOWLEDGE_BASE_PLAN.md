@@ -295,6 +295,15 @@ PDF page storage and trust.
   last scores (errors to review must not fall, false INCORRECT ≤ 3 %, false VERIFIED not up, quotes dropped < 2 %,
   need coverage ≥ 85 %), and compare the "Searches per question" lines with earlier runs (`stats_json`
   `searches_total`). `qv kb benchmark` gives the stored-page recall (no quota used).
+- **Acceptance result (2026-11-17)** — before = runs 7–17 (stored pages off), after = runs 18–28 (on), Flash-Lite
+  judge, compared on the 77 questions done in both: errors to review 31/36 → 32/36 (86.1 → 88.9 %), false
+  INCORRECT 0 → 0 %, false VERIFIED 2 → 2 (football seeded #26 fixed; swab seeded #20 new), correct questions
+  auto-verified 14/40 → 18/40, verdict as labelled 67.5 → 71.4 %. **Decision: stored pages stay on (2).** Swab
+  seeded #20 (Baitul Futuh, 2003 → 2006): the stored book page found the right year, but the judge treated the
+  whole key (place + size + year) as one claim and cited that passage as support — a judge / claim-splitting
+  weakness, not retrieval. Web searches per question fell to ~0, but mostly from cache, so not a fair saving
+  measure. Stored-page recall: hit 0.816 in the top 2. 13 items ran out of Flash-Lite quota (runs 26–28) — resume
+  with `qv resume <run>`. Quotes dropped / need coverage are not reported by `qv eval score` (not measured).
 
 ### Phase 4 — Retrieval experiments (embeddings) + local models per stage
 

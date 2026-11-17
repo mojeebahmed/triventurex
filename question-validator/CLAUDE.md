@@ -81,8 +81,9 @@ all other commands stay for power users and debugging.
    **Phase 1 built 2026-11-17** (merged to main): `qv/kb/`, `qv kb …` commands, baseline benchmark — see
    the plan's phase-1 result note. **Phase 2 built 2026-11-17** (merged): Knowledge
    page, topics, relevance judgements — see the plan's phase-2 result note. **Phase 3 code built 2026-11-17**
-   (merged): stored pages first + web PDFs; the eval-set acceptance run is still to
-   do (plan's phase-3 note).
+   (merged): stored pages first + web PDFs; eval-set acceptance run 2026-11-17 → stored pages stay on (plan's
+   phase-3 note). Known judge weakness from it: a key with several facts (place + size + year) is judged as one
+   claim, so a wrong year can be "supported" (swab seeded #20) — split such keys into claims in S1b / S5.
 5. **Order agreed 2026-11-17** (plan → *Agreed order from 2026-11-17*): first priority is validating the real
    editions (Swab Quest first) and using the export in the game — incl. a **validated export** with extra columns
    shown in the game's Questions tab and the Academy. Quota runs grouped (eval "before" with stored pages off, "after"
